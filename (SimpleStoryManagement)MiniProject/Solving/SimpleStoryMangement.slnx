@@ -1,0 +1,9 @@
+<Solution>
+  <Project Path="SimpleStoryMangement/SimpleStoryMangementSystem.UI.csproj">
+    <BuildDependency Project="SimpleStoryMangementSystemServices/SimpleStoryMangementSystem.Services.csproj" />
+    <BuildDependency Project="SimpleStoryMangementSystem.DataLayer/SimpleStoryMangementSystem.DataLayer.csproj" />
+  </Project>
+  <Project Path="SimpleStoryMangementSystem.Core/SimpleStoryMangementSystem.Core.csproj" />
+  <Project Path="SimpleStoryMangementSystemServices/SimpleStoryMangementSystem.Services.csproj" />
+  <Project Path="SimpleStoryMangementSystem.DataLayer/SimpleStoryMangementSystem.DataLayer.csproj" />
+</Solution>

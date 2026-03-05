@@ -1,0 +1,11 @@
+[
+  {
+    "Name": "New Profile",
+    "Projects": [
+      {
+        "Path": "SimpleStoryMangement\\SimpleStoryMangementSystem.UI.csproj",
+        "Action": "Start"
+      }
+    ]
+  }
+]
