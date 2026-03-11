@@ -32,7 +32,7 @@
       │            │          │              │            │
  ┌────▼────┐ ┌─────▼────┐ ┌──▼────┐ ┌───────▼──┐ ┌──────▼──┐
  │  Dev 1  │ │  Dev 2   │ │ Dev 3 │ │  Dev 4   │ │  Dev 5  │
- │  Lead   │ │ Senior   │ │Senior │ │   Mid    │ │ Mid/Jr  │
+ │  Lead   │ │          │ │       │ │          │ │         │
  │Foundation│ │Business  │ │  Geo  │ │ Lab/AI   │ │Support  │
  └─────────┘ └──────────┘ └───────┘ └──────────┘ └─────────┘
  Domain+Infra  Auth+Patient  Nearby   OCR+Chat    SignalR+Tests
@@ -84,7 +84,7 @@
 
 ---
 
-### 🔷 Dev 2 — Senior Developer · Core Business Logic
+### 🔷 Dev 2 —  · Core Business Logic
 
 **المسؤولية:** Auth system + Patient management + Medical records + Risk assessment + AI ML stub.
 يبدأ بعد merge Dev 1.
@@ -142,7 +142,7 @@ public Task<RiskPredictionResult> PredictRiskAsync(
 
 ---
 
-### 🟢 Dev 3 — Senior Developer · Nearby & Geo Services
+### 🟢 Dev 3 —  · Nearby & Geo Services
 
 **المسؤولية:** Google Maps integration + Nearby search + Appointment booking.
 يعمل بالتوازي مع Dev 2.
@@ -191,7 +191,7 @@ private static double CalculateMatchScore(
 
 ---
 
-### 🟠 Dev 4 — Mid-Level Developer · Lab OCR + Family + History + AI Chat
+### 🟠 Dev 4 —  · Lab OCR + Family + History + AI Chat
 
 **المسؤولية:** Lab OCR extraction + Family multi-profile + Health history + AI patient chat.
 يبدأ بعد merge Dev 1 + Dev 2 Auth.
@@ -235,7 +235,7 @@ private static double CalculateMatchScore(
 
 ---
 
-### 🟣 Dev 5 — Mid/Junior Developer · Chat, Notifications & Tests
+### 🟣 Dev 5 — Junior Developer · Chat, Notifications & Tests
 
 **المسؤولية:** SignalR real-time chat + Notification services + Middleware + xUnit test suite.
 
