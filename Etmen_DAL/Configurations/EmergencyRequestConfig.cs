@@ -8,7 +8,41 @@ namespace Etmen_DAL.Configurations
     {
         public void Configure(EntityTypeBuilder<EmergencyRequest> builder)
         {
-            throw new NotImplementedException("Configure is not implemented yet.");
+            builder.HasKey(x => x.Id);
+
+            builder.Property(x => x.PatientProfileId)
+                .IsRequired();
+
+            builder.HasOne(x => x.PatientProfile)
+                .WithMany(p => p.EmergencyRequests)
+                .HasForeignKey(x => x.PatientProfileId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.HasOne(x => x.HealthcareProvider)
+                .WithMany()
+                .HasForeignKey(x => x.HealthcareProviderId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            builder.Property(x => x.EmergencyType)
+                .HasMaxLength(500);
+
+            builder.Property(x => x.Description)
+                .HasMaxLength(1000);
+
+            builder.Property(x => x.Latitude)
+                .HasColumnType("decimal(9,6)");
+
+            builder.Property(x => x.Longitude)
+                .HasColumnType("decimal(9,6)");
+
+            builder.Property(x => x.ResponseNotes)
+                .HasMaxLength(500);
+
+            builder.Property(x => x.RequestedAt)
+                .IsRequired();
+
+            builder.HasIndex(x => x.Status);
+            builder.HasIndex(x => x.RequestedAt);
         }
     }
 }
