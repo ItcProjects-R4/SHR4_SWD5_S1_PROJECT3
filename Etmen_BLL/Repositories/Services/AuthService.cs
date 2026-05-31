@@ -150,6 +150,9 @@ namespace Etmen_BLL.Repositories.Services
             if (user.ResetPasswordTokenExpiry < DateTime.UtcNow)
                 return ServiceResult.Failure("انتهت صلاحية رابط إعادة تعيين كلمة المرور.");
 
+            if (string.IsNullOrWhiteSpace(dto.Token))
+                return ServiceResult.Failure("رمز إعادة التعيين مطلوب.");
+
             var result = await _userManager.ResetPasswordAsync(user, dto.Token, dto.Password);
             if (!result.Succeeded)
                 return ServiceResult.Failure(result.Errors.Select(e => e.Description));
