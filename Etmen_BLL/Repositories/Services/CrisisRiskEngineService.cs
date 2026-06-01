@@ -15,6 +15,11 @@ namespace Etmen_BLL.Repositories.Services
             _uow = uow;
         }
 
+        /// <summary>
+        /// Calculates the crisis risk for a specific patient against a given crisis configuration.
+        /// Uses the crisis-specific thresholds (EmergencyThreshold, HighRiskThreshold, MediumRiskThreshold)
+        /// to determine the patient's risk level within the context of that crisis.
+        /// </summary>
         public async Task<ServiceResult<CrisisRiskResultDto>> CalculateCrisisRiskAsync(int patientProfileId, int crisisConfigurationId)
         {
             try
@@ -35,13 +40,13 @@ namespace Etmen_BLL.Repositories.Services
                 if (latestRecord == null)
                     return ServiceResult<CrisisRiskResultDto>.Failure("No medical records found for patient.");
 
-                // Get crisis configuration with thresholds
+                // Get crisis configuration with outbreak zones
                 var crisis = await _uow.CrisisConfigurations.GetWithOutbreakZonesAsync(crisisConfigurationId);
                 if (crisis == null)
                     return ServiceResult<CrisisRiskResultDto>.Failure("Crisis configuration not found.");
 
                 // Calculate base risk score using RiskCalculatorHelper
-                var (riskScore, isEmergency, triggeredFactors) = RiskCalculatorHelper.Calculate(
+                var (riskScore, _, triggeredFactors) = RiskCalculatorHelper.Calculate(
                     latestRecord.SystolicBP,
                     latestRecord.DiastolicBP,
                     latestRecord.HeartRate,
@@ -51,45 +56,43 @@ namespace Etmen_BLL.Repositories.Services
                     latestRecord.Symptoms
                 );
 
-                // Determine risk level based on crisis thresholds
-                var riskLevel = RiskCalculatorHelper.GetRiskLevel(riskScore);
+                // Determine risk level using crisis-specific thresholds
+                // This allows each crisis configuration to define its own sensitivity
+                var riskLevel = riskScore >= crisis.EmergencyThreshold
+                    ? Etmen_Domain.Enums.RiskLevel.Emergency
+                    : riskScore >= crisis.HighRiskThreshold
+                        ? Etmen_Domain.Enums.RiskLevel.High
+                        : riskScore >= crisis.MediumRiskThreshold
+                            ? Etmen_Domain.Enums.RiskLevel.Medium
+                            : Etmen_Domain.Enums.RiskLevel.Low;
 
-                // Check if patient is in outbreak zone
+                // Check if patient is in an outbreak zone using their stored location.
                 bool isInOutbreakZone = false;
                 string? zoneName = null;
 
-                // Get all outbreak zones for this crisis
-                var outbreakZones = await _uow.OutbreakZones.GetByCrisisIdAsync(crisisConfigurationId);
-
-                if (outbreakZones.Any())
+                if (patient.Latitude.HasValue && patient.Longitude.HasValue)
                 {
-                    // Note: Patient location data (latitude/longitude) should ideally come from:
-                    // 1. PatientProfile (if location tracking is enabled)
-                    // 2. Separate LocationHistory table
-                    // 3. Last known location from medical records (if enhanced to include coordinates)
-                    // 
-                    // For now, if patient has no location data, we assume they're not in zone.
-                    // This check would be enhanced once patient location tracking is available.
+                    var outbreakZones = crisis.OutbreakZones;
+                    foreach (var zone in outbreakZones)
+                    {
+                        double distance = GeoHelper.CalculateDistanceKm(
+                            (double)patient.Latitude.Value,
+                            (double)patient.Longitude.Value,
+                            (double)zone.CenterLatitude,
+                            (double)zone.CenterLongitude
+                        );
 
-                    // Example: If PatientProfile had coordinates, we'd check like this:
-                    // foreach (var zone in outbreakZones)
-                    // {
-                    //     double distance = GeoHelper.CalculateDistanceKm(
-                    //         (double)patient.Latitude,
-                    //         (double)patient.Longitude,
-                    //         (double)zone.CenterLatitude,
-                    //         (double)zone.CenterLongitude
-                    //     );
-                    //     if (distance <= (double)zone.RadiusInKm)
-                    //     {
-                    //         isInOutbreakZone = true;
-                    //         zoneName = zone.ZoneName;
-                    //         break;
-                    //     }
-                    // }
+                        if (distance <= (double)zone.RadiusInKm)
+                        {
+                            isInOutbreakZone = true;
+                            zoneName = zone.ZoneName;
+                            break;
+                        }
+                    }
                 }
+                // If patient has no location data → assume not in zone (safe default)
 
-                // Generate recommendations based on risk level and crisis mode
+                // Generate recommendations based on risk level and triggered vitals/symptoms
                 var recommendations = RiskCalculatorHelper.GenerateRecommendations(riskLevel, triggeredFactors);
 
                 var result = new CrisisRiskResultDto
@@ -110,6 +113,10 @@ namespace Etmen_BLL.Repositories.Services
             }
         }
 
+        /// <summary>
+        /// Calculates the probability (0.0 – 1.0) that a geographic point is within an active outbreak.
+        /// Higher probability when the point is closer to the center of a zone and the zone has a higher risk level.
+        /// </summary>
         public async Task<ServiceResult<decimal>> CalculateOutbreakProbabilityAsync(decimal latitude, decimal longitude, int crisisConfigurationId)
         {
             try
@@ -117,23 +124,25 @@ namespace Etmen_BLL.Repositories.Services
                 if (crisisConfigurationId <= 0)
                     return ServiceResult<decimal>.Failure("Valid crisis configuration ID is required.");
 
-                // Validate coordinates
-                if (latitude < -90 || latitude > 90)
-                    return ServiceResult<decimal>.Failure("Invalid latitude coordinate.");
-                if (longitude < -180 || longitude > 180)
-                    return ServiceResult<decimal>.Failure("Invalid longitude coordinate.");
+                if (latitude < -90m || latitude > 90m)
+                    return ServiceResult<decimal>.Failure("Invalid latitude. Must be between -90 and 90.");
+
+                if (longitude < -180m || longitude > 180m)
+                    return ServiceResult<decimal>.Failure("Invalid longitude. Must be between -180 and 180.");
 
                 // Get all outbreak zones for this crisis
                 var zones = await _uow.OutbreakZones.GetByCrisisIdAsync(crisisConfigurationId);
 
-                if (!zones.Any())
+                var zoneList = zones as IList<Etmen_Domain.Entities.OutbreakZone> ?? zones.ToList();
+
+                if (zoneList.Count == 0)
                     return ServiceResult<decimal>.Success(0m); // No outbreak zones = no probability
 
                 decimal maxOutbreakProbability = 0m;
 
-                foreach (var zone in zones)
+                foreach (var zone in zoneList)
                 {
-                    // Calculate distance from point to zone center
+                    // Calculate distance from point to zone center using Haversine formula
                     double distanceKm = GeoHelper.CalculateDistanceKm(
                         (double)latitude,
                         (double)longitude,
@@ -141,23 +150,23 @@ namespace Etmen_BLL.Repositories.Services
                         (double)zone.CenterLongitude
                     );
 
-                    // Check if point is within zone radius
+                    // Only consider zones where the point falls within the radius
                     if (distanceKm <= (double)zone.RadiusInKm)
                     {
-                        // Calculate probability based on distance and zone risk level
-                        // Closer to center = higher probability
-                        // Risk level also influences probability
-                        decimal distanceRatio = (decimal)(1 - (distanceKm / (double)zone.RadiusInKm));
-                        decimal riskMultiplier = zone.RiskLevel / 10m; // Assuming risk level 1-10
-                        decimal zoneProbability = distanceRatio * riskMultiplier;
+                        // Proximity factor: 1.0 at center, 0.0 at the edge
+                        decimal distanceRatio = 1m - (decimal)(distanceKm / (double)zone.RadiusInKm);
 
+                        // Normalise RiskLevel to [0, 1]. Clamp to valid range to avoid bad data issues.
+                        int clampedRiskLevel = Math.Clamp(zone.RiskLevel, 0, 10);
+                        decimal riskMultiplier = clampedRiskLevel / 10m;
+
+                        decimal zoneProbability = distanceRatio * riskMultiplier;
                         maxOutbreakProbability = Math.Max(maxOutbreakProbability, zoneProbability);
                     }
                 }
 
                 // Cap probability at 1.0
                 decimal finalProbability = Math.Min(maxOutbreakProbability, 1.0m);
-
                 return ServiceResult<decimal>.Success(finalProbability);
             }
             catch (Exception ex)
@@ -166,6 +175,10 @@ namespace Etmen_BLL.Repositories.Services
             }
         }
 
+        /// <summary>
+        /// Returns the list of outbreak zones registered for a given crisis configuration.
+        /// Each zone can then be used by the caller to determine which patients fall inside it.
+        /// </summary>
         public async Task<ServiceResult<List<OutbreakZoneDto>>> GetPatientsInZoneAsync(int crisisConfigurationId)
         {
             try
@@ -173,7 +186,7 @@ namespace Etmen_BLL.Repositories.Services
                 if (crisisConfigurationId <= 0)
                     return ServiceResult<List<OutbreakZoneDto>>.Failure("Valid crisis configuration ID is required.");
 
-                // Get all outbreak zones for this crisis
+                // Retrieve all outbreak zones for this crisis
                 var zones = await _uow.OutbreakZones.GetByCrisisIdAsync(crisisConfigurationId);
 
                 var result = zones
@@ -184,9 +197,8 @@ namespace Etmen_BLL.Repositories.Services
             }
             catch (Exception ex)
             {
-                return ServiceResult<List<OutbreakZoneDto>>.Failure($"Failed to retrieve patients in zone: {ex.Message}");
+                return ServiceResult<List<OutbreakZoneDto>>.Failure($"Failed to retrieve outbreak zones: {ex.Message}");
             }
         }
-
     }
 }

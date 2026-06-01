@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Etmen_Domain.Enums;
 
@@ -38,6 +38,14 @@ namespace Etmen_Domain.Entities
         public string? Allergies { get; set; }
         [StringLength(500)]
         public string? CurrentMedications { get; set; }
+
+        // Location tracking – used by CrisisRiskEngineService to check outbreak zones.
+        // Updated via the patient's mobile app or a dedicated location endpoint.
+        [Column(TypeName = "decimal(9,6)")]
+        public decimal? Latitude { get; set; }
+
+        [Column(TypeName = "decimal(9,6)")]
+        public decimal? Longitude { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedAt { get; set; }

@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Etmen_Domain.Entities;
 
@@ -16,7 +16,7 @@ namespace Etmen_DAL.Configurations
             builder.HasOne(x => x.PatientProfile)
                 .WithMany(p => p.EmergencyRequests)
                 .HasForeignKey(x => x.PatientProfileId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.Restrict); // Cascade would cause multiple cascade paths (SQL Server Error 1785)
 
             builder.HasOne(x => x.RiskAssessment)
                 .WithMany()
