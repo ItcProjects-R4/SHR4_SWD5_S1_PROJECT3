@@ -26,94 +26,181 @@ namespace Etmen_PL.Controllers
         /// <summary>
         /// GET: /DoctorSlots/Index
         /// Renders calendar grid of slots
-        /// TODO: Get current doctor user ID
-        /// TODO: Call _doctorService.GetAvailableSlotsAsync(doctorId)
-        /// TODO: Return View with IEnumerable<AvailableSlotDto>
         /// </summary>
         [HttpGet]
         public async Task<IActionResult> Index()
         {
             try
             {
-                // TODO: Implementation
-                var slots = new List<object>();
-                return View(slots);
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized();
+
+                _logger.LogInformation("Doctor slots list accessed for user {UserId}", userId);
+
+                var profileResult = await _doctorService.GetProfileAsync(userId);
+                if (!profileResult.IsSuccess || profileResult.Data?.Id == 0)
+                {
+                    _logger.LogWarning("Unable to get doctor profile for user {UserId}", userId);
+                    ModelState.AddModelError(string.Empty, "Failed to retrieve doctor information");
+                    return View(new List<Etmen_BLL.DTOs.Doctor.DoctorAvailableSlotDto>());
+                }
+
+                var slotsResult = await _doctorService.GetAvailableSlotsAsync(profileResult.Data.Id);
+
+                if (!slotsResult.IsSuccess)
+                {
+                    _logger.LogWarning("Failed to fetch slots for doctor {UserId}", userId);
+                    ModelState.AddModelError(string.Empty, "Failed to load available slots");
+                    return View(new List<Etmen_BLL.DTOs.Nearby.AvailableSlotDto>());
+                }
+
+                return View(slotsResult.Data?.ToList() ?? new List<Etmen_BLL.DTOs.Nearby.AvailableSlotDto>());
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving available slots");
-                TempData["Error"] = "خطأ في تحميل الفتحات المتاحة";
-                return RedirectToAction("Index", "DoctorDashboard");
+                TempData["Error"] = "Error loading available slots";
+                return View(new List<Etmen_BLL.DTOs.Doctor.DoctorAvailableSlotDto>());
+            }
+        }
+
+        /// <summary>
+        /// GET: /DoctorSlots/Create
+        /// Show create slot form
+        /// </summary>
+        [HttpGet]
+        public IActionResult Create()
+        {
+            try
+            {
+                return View(new CreateAvailableSlotViewModel());
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading create slot form");
+                TempData["Error"] = "Error loading form";
+                return RedirectToAction(nameof(Index));
             }
         }
 
         /// <summary>
         /// POST: /DoctorSlots/Create
         /// Adds a single availability slot
-        /// TODO: Validate ModelState
-        /// TODO: Get current doctor user ID
-        /// TODO: Call _doctorService.AddSlotAsync(doctorId, dto)
-        /// TODO: Redirect to Index on success
         /// </summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(CreateAvailableSlotViewModel viewModel)
         {
             if (!ModelState.IsValid)
-                return RedirectToAction(nameof(Index));
+                return View(viewModel);
 
             try
             {
-                // TODO: Implementation
-                _logger.LogInformation("New slot created");
-                TempData["Success"] = "تم إضافة الفتحة بنجاح";
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized();
+
+                var slotDto = new Etmen_BLL.DTOs.Doctor.CreateAvailableSlotDto
+                {
+                    SlotDate = viewModel.SlotDate,
+                    SlotStart = viewModel.StartTime,
+                    SlotEnd = viewModel.EndTime
+                };
+
+                var result = await _doctorService.AddSlotAsync(userId, slotDto);
+
+                if (!result.IsSuccess)
+                {
+                    _logger.LogWarning("Failed to create slot for doctor {UserId}", userId);
+                    foreach (var error in result.Errors)
+                        ModelState.AddModelError(string.Empty, error);
+                    return View(viewModel);
+                }
+
+                _logger.LogInformation("New slot created for user {UserId}", userId);
+                TempData["Success"] = "Slot added successfully";
                 return RedirectToAction(nameof(Index));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error creating slot");
-                TempData["Error"] = "خطأ في إضافة الفتحة";
+                ModelState.AddModelError(string.Empty, "Error adding slot");
+                return View(viewModel);
+            }
+        }
+
+        /// <summary>
+        /// GET: /DoctorSlots/BulkCreate
+        /// Show bulk create slots form
+        /// </summary>
+        [HttpGet]
+        public IActionResult BulkCreate()
+        {
+            try
+            {
+                return View(new BulkCreateSlotsViewModel());
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading bulk create form");
+                TempData["Error"] = "Error loading form";
                 return RedirectToAction(nameof(Index));
             }
         }
 
         /// <summary>
-        /// POST: /DoctorSlots/CreateBulk
+        /// POST: /DoctorSlots/BulkCreate
         /// Auto-generates series of slots in range
-        /// TODO: Validate ModelState
-        /// TODO: Get current doctor user ID
-        /// TODO: Call _doctorService.BulkAddSlotsAsync(doctorId, dto)
-        /// TODO: Redirect to Index on success
         /// </summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> CreateBulk(BulkCreateSlotsViewModel viewModel)
+        public async Task<IActionResult> BulkCreate(BulkCreateSlotsViewModel viewModel)
         {
             if (!ModelState.IsValid)
-                return RedirectToAction(nameof(Index));
+                return View(viewModel);
 
             try
             {
-                // TODO: Implementation
-                _logger.LogInformation("Bulk slots created");
-                TempData["Success"] = "تم إضافة الفتحات بنجاح";
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized();
+
+                var bulkDto = new Etmen_BLL.DTOs.Doctor.BulkCreateSlotsDto
+                {
+                    StartDate = viewModel.StartDate,
+                    EndDate = viewModel.EndDate,
+                    DailyStartTime = viewModel.StartTime,
+                    DailyEndTime = viewModel.EndTime,
+                    SlotDurationMinutes = viewModel.SlotDurationMinutes,
+                    ExcludedDays = new List<DayOfWeek>()
+                };
+
+                var result = await _doctorService.BulkAddSlotsAsync(userId, bulkDto);
+
+                if (!result.IsSuccess)
+                {
+                    _logger.LogWarning("Failed to create bulk slots for doctor {UserId}", userId);
+                    foreach (var error in result.Errors)
+                        ModelState.AddModelError(string.Empty, error);
+                    return View(viewModel);
+                }
+
+                _logger.LogInformation("Bulk slots created for user {UserId}", userId);
+                TempData["Success"] = "Slots added successfully";
                 return RedirectToAction(nameof(Index));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error creating bulk slots");
-                TempData["Error"] = "خطأ في إضافة الفتحات";
-                return RedirectToAction(nameof(Index));
+                ModelState.AddModelError(string.Empty, "Error adding slots");
+                return View(viewModel);
             }
         }
 
         /// <summary>
         /// POST: /DoctorSlots/Delete
         /// Deletes an unbooked availability slot
-        /// TODO: Validate id parameter
-        /// TODO: Get current doctor user ID
-        /// TODO: Call _doctorService.DeleteSlotAsync(id)
-        /// TODO: Redirect to Index on success
         /// </summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -121,15 +208,33 @@ namespace Etmen_PL.Controllers
         {
             try
             {
-                // TODO: Implementation
-                _logger.LogInformation("Slot deleted");
-                TempData["Success"] = "تم حذف الفتحة بنجاح";
+                if (id <= 0)
+                {
+                    TempData["Error"] = "Invalid slot ID";
+                    return RedirectToAction(nameof(Index));
+                }
+
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized();
+
+                var result = await _doctorService.DeleteSlotAsync(userId, id);
+
+                if (!result.IsSuccess)
+                {
+                    _logger.LogWarning("Failed to delete slot {SlotId} for doctor {UserId}", id, userId);
+                    TempData["Error"] = result.Errors.FirstOrDefault() ?? "Failed to delete slot";
+                    return RedirectToAction(nameof(Index));
+                }
+
+                _logger.LogInformation("Slot {SlotId} deleted for user {UserId}", id, userId);
+                TempData["Success"] = "Slot deleted successfully";
                 return RedirectToAction(nameof(Index));
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error deleting slot");
-                TempData["Error"] = "خطأ في حذف الفتحة";
+                _logger.LogError(ex, "Error deleting slot {SlotId}", id);
+                TempData["Error"] = "Error deleting slot";
                 return RedirectToAction(nameof(Index));
             }
         }
