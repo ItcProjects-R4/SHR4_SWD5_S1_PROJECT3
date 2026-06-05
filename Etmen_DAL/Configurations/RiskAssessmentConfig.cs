@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Etmen_Domain.Entities;
 
@@ -8,7 +8,7 @@ namespace Etmen_DAL.Configurations
     {
         public void Configure(EntityTypeBuilder<RiskAssessment> builder)
         {
-            builder.HasCheckConstraint("CK_RiskAssessment_Score", "RiskScore >= 0 AND RiskScore <= 1");
+            builder.ToTable(t => t.HasCheckConstraint("CK_RiskAssessment_Score", "RiskScore >= 0 AND RiskScore <= 1"));
 
             builder.Property(r => r.RecommendationsJson).HasColumnType("nvarchar(max)");
 

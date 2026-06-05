@@ -46,7 +46,7 @@ namespace Etmen_PL.Controllers
                     return View(new List<Etmen_BLL.DTOs.Doctor.DoctorAvailableSlotDto>());
                 }
 
-                var slotsResult = await _doctorService.GetAvailableSlotsAsync(profileResult.Data.Id);
+                var slotsResult = await _doctorService.GetAvailableSlotsAsync(profileResult.Data!.Id);
 
                 if (!slotsResult.IsSuccess)
                 {

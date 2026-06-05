@@ -1,4 +1,4 @@
-﻿using Etmen_DAL.DbContext;
+using Etmen_DAL.DbContext;
 using Etmen_DAL.Repositories.Interfaces;
 using Etmen_Domain.Entities;
 using Etmen_Domain.Enums;
@@ -25,11 +25,11 @@ namespace Etmen_DAL.Repositories.Implementations
             => await _dbSet.Where(d => d.IsAvailable).Include(d => d.ApplicationUser).ToListAsync();
 
         public async Task<IEnumerable<DoctorProfile>> GetBySpecializationAsync(string specialization)
-            => await _dbSet.Where(d => d.Specialization.Contains(specialization) && d.IsAvailable)
+            => await _dbSet.Where(d => d.Specialization!.Contains(specialization) && d.IsAvailable)
                            .Include(d => d.ApplicationUser).ToListAsync();
 
         public async Task<IEnumerable<DoctorProfile>> SearchDoctorsAsync(string searchTerm)
-            => await _dbSet.Where(d => d.FullName.Contains(searchTerm) || d.Specialization.Contains(searchTerm) || d.Bio.Contains(searchTerm))
+            => await _dbSet.Where(d => d.FullName!.Contains(searchTerm) || d.Specialization!.Contains(searchTerm) || d.Bio!.Contains(searchTerm))
                            .Include(d => d.ApplicationUser).ToListAsync();
     }
 }

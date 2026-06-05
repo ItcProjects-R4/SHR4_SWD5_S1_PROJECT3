@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Etmen_Domain.Entities;
 
@@ -8,7 +8,7 @@ namespace Etmen_DAL.Configurations
     {
         public void Configure(EntityTypeBuilder<LabResult> builder)
         {
-            builder.HasCheckConstraint("CK_LabResult_File", "FileUrl IS NOT NULL OR FilePath IS NOT NULL");
+            builder.ToTable(t => t.HasCheckConstraint("CK_LabResult_File", "FileUrl IS NOT NULL OR FilePath IS NOT NULL"));
 
             builder.Property(l => l.TestName).HasMaxLength(200);
             builder.Property(l => l.OcrExtractedData).HasColumnType("nvarchar(max)");

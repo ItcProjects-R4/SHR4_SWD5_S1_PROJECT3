@@ -47,7 +47,7 @@ namespace Etmen_PL.Controllers
 
                 var viewModel = new DoctorProfileViewModel
                 {
-                    FullName = profileResult.Data?.FullName,
+                    FullName = profileResult.Data?.FullName ?? string.Empty,
                     Specialization = profileResult.Data?.Specialization,
                     LicenseNumber = profileResult.Data?.LicenseNumber,
                     YearsOfExperience = profileResult.Data?.YearsOfExperience,

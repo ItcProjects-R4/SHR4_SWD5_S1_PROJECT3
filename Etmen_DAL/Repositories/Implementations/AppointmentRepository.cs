@@ -1,4 +1,4 @@
-﻿using Etmen_DAL.DbContext;
+using Etmen_DAL.DbContext;
 using Etmen_DAL.Repositories.Interfaces;
 using Etmen_Domain.Entities;
 using Etmen_Domain.Enums;
@@ -11,7 +11,7 @@ namespace Etmen_DAL.Repositories.Implementations
         public AppointmentRepository(EtmenDbContext context) : base(context) { }
 
         public async Task<IEnumerable<Appointment>> GetByPatientIdAsync(int patientId)
-            => await _dbSet.Include(a => a.DoctorProfile).ThenInclude(d => d.ApplicationUser)
+            => await _dbSet.Include(a => a.DoctorProfile!).ThenInclude(d => d.ApplicationUser)
                            .Where(a => a.PatientProfileId == patientId).OrderByDescending(a => a.AppointmentDate).ToListAsync();
 
         public async Task<IEnumerable<Appointment>> GetByDoctorIdAsync(int doctorId)
@@ -19,7 +19,7 @@ namespace Etmen_DAL.Repositories.Implementations
                            .Where(a => a.DoctorProfileId == doctorId).OrderByDescending(a => a.AppointmentDate).ToListAsync();
 
         public async Task<IEnumerable<Appointment>> GetUpcomingAppointmentsAsync(int patientId)
-            => await _dbSet.Include(a => a.DoctorProfile).ThenInclude(d => d.ApplicationUser)
+            => await _dbSet.Include(a => a.DoctorProfile!).ThenInclude(d => d.ApplicationUser)
                            .Where(a => a.PatientProfileId == patientId && a.Status == AppointmentStatus.Scheduled && a.AppointmentDate >= DateTime.UtcNow.Date)
                            .OrderBy(a => a.AppointmentDate).ToListAsync();
 
@@ -29,7 +29,7 @@ namespace Etmen_DAL.Repositories.Implementations
 
         public async Task<Appointment?> GetWithDetailsAsync(int appointmentId)
             => await _dbSet.Include(a => a.PatientProfile).ThenInclude(p => p.ApplicationUser)
-                           .Include(a => a.DoctorProfile).ThenInclude(d => d.ApplicationUser)
+                           .Include(a => a.DoctorProfile!).ThenInclude(d => d.ApplicationUser)
                            .FirstOrDefaultAsync(a => a.Id == appointmentId);
 
         public async Task<IEnumerable<Appointment>> GetByStatusAsync(AppointmentStatus status)
