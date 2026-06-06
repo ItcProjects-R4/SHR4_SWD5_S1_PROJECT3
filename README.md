@@ -4,6 +4,13 @@ This document presents a detailed review of the Business Logic Layer (BLL) of th
 
 ---
 
+> [!IMPORTANT]
+> **👥 تقسيم العمل على المطورين (Team Work Division):**
+> تم تقسيم الكنترولرات الـ 24 على المطورين الثلاثة (كمال - يوسف - محمد) لتجنب تعارضات الدمج (Merge Conflicts). للتفاصيل الكاملة والخطوات، راجع الدليل المخصص:
+> 🔗 **[دليل تقسيم الكنترولرات (README_CONTROLLER_DIVISION.md)](file:///c:/Users/Kozmo0_2/source/repos/Etmen_DEPI_Project-ElSherka/README_CONTROLLER_DIVISION.md)**
+
+---
+
 ## Table of Contents
 1. [Controllers Plan](#1-controllers-plan)
 2. [ViewModels Plan](#2-viewmodels-plan)
