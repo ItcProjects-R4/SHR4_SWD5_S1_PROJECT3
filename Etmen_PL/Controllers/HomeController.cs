@@ -68,16 +68,15 @@ namespace Etmen_PL.Controllers
         private IActionResult RedirectToRoleDashboard()
         {
             if (User.IsInRole("Admin") || User.IsInRole("CrisisAdmin"))
-                return RedirectToAction("Index", "Dashboard", new { area = "Admin" });
+                return RedirectToAction("Index", "AdminDashboard");
 
             if (User.IsInRole("Doctor"))
-                return RedirectToAction("Index", "Dashboard", new { area = "Doctor" });
+                return RedirectToAction("Index", "DoctorDashboard");
 
             if (User.IsInRole("HospitalStaff"))
-                return RedirectToAction("Index", "Emergency", new { area = "Hospital" });
+                return RedirectToAction("Index", "HospitalQueue");
 
-            
-            return RedirectToAction("Index", "Dashboard", new { area = "Patient" });
+            return RedirectToAction("Index", "PatientDashboard");
         }
     }
 }

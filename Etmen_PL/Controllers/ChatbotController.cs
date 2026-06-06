@@ -1,4 +1,4 @@
-﻿using Etmen_BLL.Repositories.IServices;
+using Etmen_BLL.Repositories.IServices;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -7,7 +7,7 @@ namespace Etmen_PL.Controllers
     [Authorize]
     [Route("api/chatbot/[action]")]
     [ApiController]
-    public class ChatbotController : ControllerBase
+    public class ChatbotController : Controller
     {
         private readonly IChatbotService _chatbotService;
         private readonly ILogger<ChatbotController> _logger;
@@ -16,6 +16,17 @@ namespace Etmen_PL.Controllers
         {
             _chatbotService = chatbotService;
             _logger = logger;
+        }
+
+        /// <summary>
+        /// GET: /Chatbot
+        /// Renders the AI Chatbot page
+        /// </summary>
+        [HttpGet("/Chatbot")]
+        [Authorize(Roles = "Patient")]
+        public IActionResult Index()
+        {
+            return View();
         }
 
         [HttpPost]

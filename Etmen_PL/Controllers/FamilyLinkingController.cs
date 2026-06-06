@@ -1,6 +1,8 @@
 using Etmen_BLL.Repositories.IServices;
 using Etmen_PL.Models.ViewModels.Patient;
+using Etmen_Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Etmen_PL.Controllers
@@ -13,30 +15,46 @@ namespace Etmen_PL.Controllers
     public class FamilyLinkingController : Controller
     {
         private readonly IFamilyService _familyService;
+        private readonly IPatientService _patientService;
+        private readonly UserManager<ApplicationUser> _userManager;
         private readonly ILogger<FamilyLinkingController> _logger;
 
         public FamilyLinkingController(
             IFamilyService familyService,
+            IPatientService patientService,
+            UserManager<ApplicationUser> userManager,
             ILogger<FamilyLinkingController> logger)
         {
             _familyService = familyService;
+            _patientService = patientService;
+            _userManager = userManager;
             _logger = logger;
         }
 
         /// <summary>
         /// GET: /FamilyLinking/Index
         /// Lists family links and status
-        /// TODO: Get current user ID
-        /// TODO: Call _familyService.GetFamilyMembersAsync(userId)
-        /// TODO: Return View with List<FamilyDto>
         /// </summary>
         [HttpGet]
         public async Task<IActionResult> Index()
         {
             try
             {
-                // TODO: Implementation
-                var familyMembers = new List<object>();
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                    return RedirectToAction("Login", "Account");
+
+                var profileResult = await _patientService.GetProfileAsync(userId);
+                if (!profileResult.IsSuccess || profileResult.Data == null)
+                {
+                    TempData["Error"] = "فشل تحميل ملف المريض";
+                    return RedirectToAction("Index", "PatientDashboard");
+                }
+
+                var familyResult = await _familyService.GetFamilyMembersAsync(profileResult.Data.Id);
+                var familyMembers = familyResult.IsSuccess ? familyResult.Data : new List<Etmen_BLL.DTOs.Family.FamilyDto>();
+
+                ViewBag.FamilyInvite = new FamilyInviteViewModel();
                 return View(familyMembers);
             }
             catch (Exception ex)
@@ -50,23 +68,66 @@ namespace Etmen_PL.Controllers
         /// <summary>
         /// POST: /FamilyLinking/Invite
         /// Sends link invite
-        /// TODO: Validate ModelState
-        /// TODO: Get current user ID
-        /// TODO: Call _familyService.InviteFamilyMemberAsync(userId, dto)
-        /// TODO: Redirect to Index on success
         /// </summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Invite(FamilyInviteViewModel viewModel)
         {
             if (!ModelState.IsValid)
+            {
+                TempData["Error"] = "البيانات المدخلة غير صالحة";
                 return RedirectToAction(nameof(Index));
+            }
 
             try
             {
-                // TODO: Implementation
-                _logger.LogInformation("Family invite sent");
-                TempData["Success"] = "تم إرسال الدعوة بنجاح";
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                    return RedirectToAction("Login", "Account");
+
+                // Find recipient user by email
+                var recipientUser = await _userManager.FindByEmailAsync(viewModel.Email);
+                if (recipientUser == null)
+                {
+                    TempData["Error"] = "هذا البريد الإلكتروني غير مسجل في النظام";
+                    return RedirectToAction(nameof(Index));
+                }
+
+                // Get recipient's patient profile
+                var recipientProfileResult = await _patientService.GetProfileAsync(recipientUser.Id);
+                if (!recipientProfileResult.IsSuccess || recipientProfileResult.Data == null)
+                {
+                    TempData["Error"] = "المستخدم المدعو ليس لديه ملف طبي نشط";
+                    return RedirectToAction(nameof(Index));
+                }
+
+                // Check that they aren't inviting themselves
+                if (recipientUser.Id == userId)
+                {
+                    TempData["Error"] = "لا يمكنك إرسال دعوة ارتباط لنفسك";
+                    return RedirectToAction(nameof(Index));
+                }
+
+                var inviteDto = new Etmen_BLL.DTOs.Family.FamilyInviteDto
+                {
+                    LinkedPatientId = recipientProfileResult.Data.Id,
+                    Relationship = viewModel.Relationship,
+                    CanViewRecords = viewModel.CanViewRecords,
+                    CanViewRisk = viewModel.CanViewRisk,
+                    CanBookAppointments = viewModel.CanBookAppointments
+                };
+
+                var result = await _familyService.InviteFamilyMemberAsync(inviteDto);
+                if (result.IsSuccess)
+                {
+                    _logger.LogInformation("Family invite sent from patient of user {UserId} to user {RecipientId}", userId, recipientUser.Id);
+                    TempData["Success"] = "تم إرسال دعوة الارتباط العائلي بنجاح";
+                }
+                else
+                {
+                    TempData["Error"] = result.ErrorMessage ?? "فشل إرسال الدعوة";
+                }
+
                 return RedirectToAction(nameof(Index));
             }
             catch (Exception ex)
@@ -80,9 +141,6 @@ namespace Etmen_PL.Controllers
         /// <summary>
         /// GET: /FamilyLinking/Accept
         /// Completes link from token parameter
-        /// TODO: Validate token parameter
-        /// TODO: Call _familyService.AcceptFamilyInviteAsync(token)
-        /// TODO: Redirect to Index on success
         /// </summary>
         [HttpGet]
         [AllowAnonymous]
@@ -96,10 +154,23 @@ namespace Etmen_PL.Controllers
 
             try
             {
-                // TODO: Implementation
-                _logger.LogInformation("Family invite accepted");
-                TempData["Success"] = "تم قبول الدعوة بنجاح";
-                return RedirectToAction(nameof(Index));
+                var result = await _familyService.AcceptFamilyInviteAsync(token);
+                if (result.IsSuccess)
+                {
+                    _logger.LogInformation("Family invite accepted with token: {Token}", token);
+                    TempData["Success"] = "تم قبول دعوة الارتباط العائلي بنجاح";
+                    if (User.Identity?.IsAuthenticated == true)
+                    {
+                        return RedirectToAction(nameof(Index));
+                    }
+                    else
+                    {
+                        return RedirectToAction("Login", "Account");
+                    }
+                }
+
+                TempData["Error"] = result.ErrorMessage ?? "فشل قبول الدعوة. قد يكون الرابط منتهياً أو تم استخدامه بالفعل.";
+                return RedirectToAction("Index", "Home");
             }
             catch (Exception ex)
             {
@@ -112,9 +183,6 @@ namespace Etmen_PL.Controllers
         /// <summary>
         /// POST: /FamilyLinking/Remove
         /// Deletes family link
-        /// TODO: Validate id parameter
-        /// TODO: Call _familyService.RemoveFamilyMemberAsync(id)
-        /// TODO: Redirect to Index on success
         /// </summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -122,9 +190,16 @@ namespace Etmen_PL.Controllers
         {
             try
             {
-                // TODO: Implementation
-                _logger.LogInformation("Family link removed");
-                TempData["Success"] = "تم حذف الرابط بنجاح";
+                var result = await _familyService.RemoveFamilyMemberAsync(id);
+                if (result.IsSuccess)
+                {
+                    _logger.LogInformation("Family link {LinkId} removed", id);
+                    TempData["Success"] = "تم حذف الرابط بنجاح";
+                }
+                else
+                {
+                    TempData["Error"] = result.ErrorMessage ?? "فشل حذف الارتباط العائلي";
+                }
                 return RedirectToAction(nameof(Index));
             }
             catch (Exception ex)
@@ -138,22 +213,30 @@ namespace Etmen_PL.Controllers
         /// <summary>
         /// POST: /FamilyLinking/UpdatePermissions
         /// Adjusts record view settings
-        /// TODO: Validate ModelState
-        /// TODO: Call _familyService.UpdateFamilyPermissionsAsync(id, dto)
-        /// TODO: Redirect to Index on success
         /// </summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> UpdatePermissions(int id, FamilyInviteViewModel viewModel)
         {
-            if (!ModelState.IsValid)
-                return RedirectToAction(nameof(Index));
-
             try
             {
-                // TODO: Implementation
-                _logger.LogInformation("Family permissions updated");
-                TempData["Success"] = "تم تحديث الصلاحيات بنجاح";
+                var dto = new Etmen_BLL.DTOs.Family.FamilyDto
+                {
+                    CanViewRecords = viewModel.CanViewRecords,
+                    CanViewRisk = viewModel.CanViewRisk,
+                    CanBookAppointments = viewModel.CanBookAppointments
+                };
+
+                var result = await _familyService.UpdateFamilyPermissionsAsync(id, dto);
+                if (result.IsSuccess)
+                {
+                    _logger.LogInformation("Family permissions updated for link {LinkId}", id);
+                    TempData["Success"] = "تم تحديث الصلاحيات بنجاح";
+                }
+                else
+                {
+                    TempData["Error"] = result.ErrorMessage ?? "فشل تحديث الصلاحيات";
+                }
                 return RedirectToAction(nameof(Index));
             }
             catch (Exception ex)

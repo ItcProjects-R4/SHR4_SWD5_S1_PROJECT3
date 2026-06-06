@@ -13,30 +13,43 @@ namespace Etmen_PL.Controllers
     public class LabResultsController : Controller
     {
         private readonly ILabService _labService;
+        private readonly IPatientService _patientService;
         private readonly ILogger<LabResultsController> _logger;
 
         public LabResultsController(
             ILabService labService,
+            IPatientService patientService,
             ILogger<LabResultsController> logger)
         {
             _labService = labService;
+            _patientService = patientService;
             _logger = logger;
         }
 
         /// <summary>
         /// GET: /LabResults/Index
         /// Displays timeline of lab uploads
-        /// TODO: Get current user ID
-        /// TODO: Call _labService.GetPatientLabResultsAsync(userId)
-        /// TODO: Return View with IEnumerable<LabResultDto>
         /// </summary>
         [HttpGet]
         public async Task<IActionResult> Index()
         {
             try
             {
-                // TODO: Implementation
-                var results = new List<object>();
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                    return RedirectToAction("Login", "Account");
+
+                var profileResult = await _patientService.GetProfileAsync(userId);
+                if (!profileResult.IsSuccess || profileResult.Data == null)
+                {
+                    TempData["Error"] = "فشل تحميل ملف المريض";
+                    return RedirectToAction("Index", "PatientDashboard");
+                }
+
+                var labResult = await _labService.GetPatientLabResultsAsync(profileResult.Data.Id);
+                var results = labResult.IsSuccess ? labResult.Data : new List<Etmen_BLL.DTOs.Lab.LabResultDto>();
+
+                ViewBag.LabUpload = new LabUploadViewModel { PatientId = profileResult.Data.Id };
                 return View(results);
             }
             catch (Exception ex)
@@ -50,11 +63,6 @@ namespace Etmen_PL.Controllers
         /// <summary>
         /// POST: /LabResults/Upload
         /// Submits a PDF/image lab report with OCR processing flag
-        /// TODO: Validate ModelState and file
-        /// TODO: Save uploaded file to storage
-        /// TODO: Get current user ID
-        /// TODO: Call _labService.UploadLabResultAsync(userId, dto)
-        /// TODO: Redirect to Index on success
         /// </summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -62,19 +70,74 @@ namespace Etmen_PL.Controllers
         {
             if (!ModelState.IsValid || viewModel.LabFile == null)
             {
-                TempData["Error"] = "الملف مطلوب";
+                TempData["Error"] = "الملف والبيانات المطلوبة لرفع النتيجة غير صالحة";
                 return RedirectToAction(nameof(Index));
             }
 
             try
             {
-                // TODO: Validate file type (PDF, JPG, PNG only)
-                // TODO: Validate file size (max 10MB)
-                // TODO: Save file to wwwroot/uploads/lab-results/{userId}/{filename}
-                // TODO: Call _labService.UploadLabResultAsync()
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                    return RedirectToAction("Login", "Account");
 
-                _logger.LogInformation("Lab result uploaded");
-                TempData["Success"] = "تم تحميل نتيجة الاختبار بنجاح";
+                // Validate file type (PDF, JPG, PNG only)
+                var extension = Path.GetExtension(viewModel.LabFile.FileName).ToLower();
+                var allowedExtensions = new[] { ".pdf", ".jpg", ".jpeg", ".png" };
+                if (!allowedExtensions.Contains(extension))
+                {
+                    TempData["Error"] = "نوع الملف غير مدعوم. المسموح به هو PDF و JPG و PNG فقط";
+                    return RedirectToAction(nameof(Index));
+                }
+
+                // Validate file size (max 10MB)
+                if (viewModel.LabFile.Length > 10 * 1024 * 1024)
+                {
+                    TempData["Error"] = "حجم الملف كبير جداً. الحد الأقصى هو 10 ميجابايت";
+                    return RedirectToAction(nameof(Index));
+                }
+
+                // Save file to wwwroot/uploads/lab-results/{userId}/{filename}
+                var uploadFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "lab-results", userId);
+                if (!Directory.Exists(uploadFolder))
+                {
+                    Directory.CreateDirectory(uploadFolder);
+                }
+
+                var uniqueFileName = $"{Guid.NewGuid()}_{Path.GetFileName(viewModel.LabFile.FileName)}";
+                var filePath = Path.Combine(uploadFolder, uniqueFileName);
+
+                using (var fileStream = new FileStream(filePath, FileMode.Create))
+                {
+                    await viewModel.LabFile.CopyToAsync(fileStream);
+                }
+
+                var relativePath = $"/uploads/lab-results/{userId}/{uniqueFileName}";
+
+                var uploadDto = new Etmen_BLL.DTOs.Lab.LabUploadDto
+                {
+                    PatientId = viewModel.PatientId,
+                    TestName = viewModel.TestName,
+                    TestDate = viewModel.TestDate,
+                    FilePath = relativePath,
+                    UseOcr = viewModel.UseOcr
+                };
+
+                var result = await _labService.UploadLabResultAsync(uploadDto);
+                if (result.IsSuccess)
+                {
+                    _logger.LogInformation("Lab result uploaded and saved to: {Path} for user {UserId}", relativePath, userId);
+                    TempData["Success"] = "تم تحميل نتيجة الاختبار بنجاح" + (viewModel.UseOcr ? " وجاري تحليلها بالذكاء الاصطناعي" : "");
+                }
+                else
+                {
+                    // Cleanup file if DB upload failed
+                    if (System.IO.File.Exists(filePath))
+                    {
+                        System.IO.File.Delete(filePath);
+                    }
+                    TempData["Error"] = result.ErrorMessage ?? "فشل تسجيل نتيجة التحليل في النظام";
+                }
+
                 return RedirectToAction(nameof(Index));
             }
             catch (Exception ex)

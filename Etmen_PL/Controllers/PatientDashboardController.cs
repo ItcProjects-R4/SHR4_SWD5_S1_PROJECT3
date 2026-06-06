@@ -35,14 +35,35 @@ namespace Etmen_PL.Controllers
         {
             try
             {
-                // TODO: Get current user ID from User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
-                // TODO: Call _patientService.GetDashboardAsync(userId)
-                // TODO: Check if result.IsSuccess
-                // TODO: Map result.Data to PatientDashboardViewModel
-                // TODO: Return View(viewModel)
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    _logger.LogWarning("Unauthorized access attempt to PatientDashboard");
+                    return RedirectToAction("Login", "Account");
+                }
 
-                _logger.LogInformation("PatientDashboard Index accessed");
-                var viewModel = new PatientDashboardViewModel();
+                var result = await _patientService.GetDashboardAsync(userId);
+                if (!result.IsSuccess || result.Data == null)
+                {
+                    _logger.LogWarning("Failed to retrieve dashboard for user {UserId}: {Message}", userId, result.ErrorMessage);
+                    TempData["Error"] = result.ErrorMessage ?? "حدث خطأ أثناء تحميل لوحة التحكم";
+                    return RedirectToAction("Index", "Home");
+                }
+
+                _logger.LogInformation("PatientDashboard Index accessed for user {UserId}", userId);
+                
+                var viewModel = new PatientDashboardViewModel
+                {
+                    PatientName = result.Data.PatientName,
+                    LatestRiskAssessment = result.Data.LatestRiskAssessment,
+                    UnreadAlertsCount = result.Data.UnreadAlertsCount,
+                    UpcomingAppointmentsCount = result.Data.UpcomingAppointmentsCount,
+                    LatestBmi = result.Data.LatestBmi,
+                    LatestBmiCategory = result.Data.LatestBmiCategory,
+                    UpcomingAppointments = result.Data.UpcomingAppointments,
+                    RecentAlerts = result.Data.RecentAlerts
+                };
+
                 return View(viewModel);
             }
             catch (Exception ex)

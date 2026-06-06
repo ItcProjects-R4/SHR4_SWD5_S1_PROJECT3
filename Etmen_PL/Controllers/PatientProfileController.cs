@@ -36,8 +36,32 @@ namespace Etmen_PL.Controllers
         {
             try
             {
-                // TODO: Implementation
-                var viewModel = new PatientProfileViewModel();
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                    return RedirectToAction("Login", "Account");
+
+                var result = await _patientService.GetProfileAsync(userId);
+                if (!result.IsSuccess || result.Data == null)
+                {
+                    TempData["Error"] = result.ErrorMessage ?? "فشل تحميل الملف الشخصي";
+                    return RedirectToAction("Index", "PatientDashboard");
+                }
+
+                var viewModel = new PatientProfileViewModel
+                {
+                    FullName = result.Data.FullName ?? string.Empty,
+                    DateOfBirth = result.Data.DateOfBirth,
+                    Gender = result.Data.Gender,
+                    Height = result.Data.Height,
+                    Weight = result.Data.Weight,
+                    ActivityLevel = result.Data.ActivityLevel,
+                    BloodType = result.Data.BloodType,
+                    HasChronicDiseases = result.Data.HasChronicDiseases,
+                    ChronicDiseasesNotes = result.Data.ChronicDiseasesNotes,
+                    Allergies = result.Data.Allergies,
+                    CurrentMedications = result.Data.CurrentMedications
+                };
+
                 return View(viewModel);
             }
             catch (Exception ex)
@@ -51,11 +75,6 @@ namespace Etmen_PL.Controllers
         /// <summary>
         /// POST: /PatientProfile/Index
         /// Updates patient metrics (weight, allergies, etc.)
-        /// TODO: Validate ModelState
-        /// TODO: Get current user ID
-        /// TODO: Map PatientProfileViewModel to ProfileDto
-        /// TODO: Call _patientService.UpdateProfileAsync(userId, dto)
-        /// TODO: Check result.IsSuccess and redirect or return error
         /// </summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -66,9 +85,36 @@ namespace Etmen_PL.Controllers
 
             try
             {
-                // TODO: Implementation
-                _logger.LogInformation("Patient profile updated");
-                TempData["Success"] = "تم تحديث الملف الشخصي بنجاح";
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                    return RedirectToAction("Login", "Account");
+
+                var dto = new Etmen_BLL.DTOs.Patient.ProfileDto
+                {
+                    FullName = viewModel.FullName,
+                    DateOfBirth = viewModel.DateOfBirth,
+                    Gender = viewModel.Gender,
+                    Height = viewModel.Height,
+                    Weight = viewModel.Weight,
+                    ActivityLevel = viewModel.ActivityLevel,
+                    BloodType = viewModel.BloodType,
+                    HasChronicDiseases = viewModel.HasChronicDiseases,
+                    ChronicDiseasesNotes = viewModel.ChronicDiseasesNotes,
+                    Allergies = viewModel.Allergies,
+                    CurrentMedications = viewModel.CurrentMedications
+                };
+
+                var result = await _patientService.UpdateProfileAsync(userId, dto);
+                if (result.IsSuccess)
+                {
+                    _logger.LogInformation("Patient profile updated for user {UserId}", userId);
+                    TempData["Success"] = "تم تحديث الملف الشخصي بنجاح";
+                    return RedirectToAction(nameof(Index));
+                }
+
+                foreach (var error in result.Errors)
+                    ModelState.AddModelError(string.Empty, error);
+
                 return View(viewModel);
             }
             catch (Exception ex)

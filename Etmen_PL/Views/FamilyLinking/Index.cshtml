@@ -1,0 +1,417 @@
+@model IEnumerable<Etmen_BLL.DTOs.Family.FamilyDto>
+@{
+    ViewData["Title"] = "الارتباط العائلي الطوارئ — إطمن";
+    Layout = null;
+    var inviteModel = ViewBag.FamilyInvite as Etmen_PL.Models.ViewModels.Patient.FamilyInviteViewModel ?? new Etmen_PL.Models.ViewModels.Patient.FamilyInviteViewModel();
+}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"]</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.rtl.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+    <style>
+        :root {
+            --primary:        #1A6FBF;
+            --primary-dark:   #0D4C8A;
+            --primary-light:  #E8F4FD;
+            --accent:         #00C9A7;
+            --success:        #27AE60;
+            --warning:        #F39C12;
+            --danger:         #E74C3C;
+            --dark:           #0F1923;
+            --dark-2:         #1B2A38;
+            --text:           #2C3E50;
+            --text-muted:     #7F8C8D;
+            --border:         #DDE3EC;
+            --white:          #FFFFFF;
+        }
+
+        body {
+            font-family: 'Tajawal', sans-serif;
+            background-color: #F4F7FC;
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        /* ── NAVBAR ── */
+        .dashboard-nav {
+            background: var(--dark);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding: 0.75rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+        }
+        .nav-logo-icon {
+            width: 40px; height: 40px;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.1rem;
+            color: white;
+        }
+        .nav-logo-text {
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: white;
+        }
+        .nav-logo-text span { color: var(--accent); }
+
+        .nav-user-badge {
+            background: rgba(255,255,255,0.07);
+            border: 1px solid rgba(255,255,255,0.12);
+            color: white;
+            padding: 6px 14px;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-logout {
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.2);
+            color: rgba(255,255,255,0.8);
+            padding: 6px 14px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+        .btn-logout:hover {
+            background: rgba(231, 76, 60, 0.1);
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+
+        /* ── SIDEBAR ── */
+        .sidebar {
+            background: white;
+            border-left: 1px solid var(--border);
+            min-height: calc(100vh - 65px);
+            padding: 2rem 1rem;
+        }
+        .sidebar-link {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: 10px;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            transition: all 0.2s;
+        }
+        .sidebar-link:hover, .sidebar-link.active {
+            background: var(--primary-light);
+            color: var(--primary);
+        }
+        .sidebar-link i {
+            font-size: 1.1rem;
+            width: 24px;
+            text-align: center;
+        }
+
+        .content-area {
+            padding: 2rem;
+        }
+
+        .premium-card {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.02);
+            margin-bottom: 2rem;
+            height: 100%;
+        }
+
+        .form-label {
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: var(--text);
+            margin-bottom: 0.5rem;
+        }
+
+        .form-control, .form-select {
+            border: 1.5px solid var(--border);
+            border-radius: 12px;
+            padding: 12px 16px;
+            font-family: 'Tajawal', sans-serif;
+            font-size: 0.95rem;
+            transition: all 0.2s;
+        }
+        .form-control:focus, .form-select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-light);
+        }
+
+        .btn-submit {
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            box-shadow: 0 4px 15px rgba(26, 111, 191, 0.25);
+            transition: all 0.25s;
+        }
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(26, 111, 191, 0.4);
+        }
+
+        .badge-perm {
+            font-size: 0.75rem;
+            padding: 5px 10px;
+            border-radius: 50px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background-color: var(--primary-light);
+            color: var(--primary);
+        }
+        .badge-perm.inactive {
+            background-color: #F0F3F7;
+            color: var(--text-muted);
+            opacity: 0.6;
+        }
+
+        .btn-danger-outline {
+            background: transparent;
+            border: 1.5px solid rgba(231, 76, 60, 0.3);
+            color: var(--danger);
+            padding: 8px 16px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+        .btn-danger-outline:hover {
+            background: var(--danger);
+            color: white;
+            border-color: var(--danger);
+        }
+
+        .family-item {
+            border-bottom: 1px solid #ECEFF4;
+            padding: 1.5rem 0;
+        }
+        .family-item:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ── NAVBAR ── -->
+    <nav class="dashboard-nav d-flex align-items-center justify-content-between">
+        <a href="/" class="nav-logo">
+            <div class="nav-logo-icon"><i class="fas fa-heartbeat"></i></div>
+            <span class="nav-logo-text">إط<span>من</span></span>
+        </a>
+        <div class="d-flex align-items-center gap-3">
+            <span class="nav-user-badge"><i class="fas fa-user-circle"></i> الملف الشخصي</span>
+            <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn-logout"><i class="fas fa-sign-out-alt"></i> خروج</button>
+            </form>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- ── SIDEBAR ── -->
+            <div class="col-lg-2 col-md-3 d-none d-md-block sidebar">
+                <a href="/PatientDashboard" class="sidebar-link">
+                    <i class="fas fa-chart-pie"></i> لوحة التحكم
+                </a>
+                <a href="/PatientProfile" class="sidebar-link">
+                    <i class="fas fa-user-md"></i> الملف الشخصي والحيوي
+                </a>
+                <a href="/LabResults" class="sidebar-link">
+                    <i class="fas fa-file-medical-alt"></i> رفع التحاليل (OCR)
+                </a>
+                <a href="/FamilyLinking" class="sidebar-link active">
+                    <i class="fas fa-users"></i> الارتباط العائلي
+                </a>
+                <a href="/Chatbot" class="sidebar-link">
+                    <i class="fas fa-robot"></i> استشارة الذكاء الاصطناعي
+                </a>
+                <a href="/" class="sidebar-link">
+                    <i class="fas fa-home"></i> الرئيسية العامة
+                </a>
+            </div>
+
+            <!-- ── MAIN CONTENT ── -->
+            <div class="col-lg-10 col-md-9 content-area">
+                <div class="d-flex align-items-center justify-content-between mb-4">
+                    <h2 class="fw-bold mb-0">إدارة الارتباط العائلي الطوارئ</h2>
+                    <span class="badge bg-primary px-3 py-2" style="border-radius:8px;">حماية متكاملة للعائلة</span>
+                </div>
+
+                <!-- Alerts -->
+                @if (TempData["Success"] != null)
+                {
+                    <div class="alert alert-success border-0 shadow-sm mb-4" style="border-radius: 12px;">
+                        <i class="fas fa-check-circle me-2"></i> @TempData["Success"]
+                    </div>
+                }
+                @if (TempData["Error"] != null)
+                {
+                    <div class="alert alert-danger border-0 shadow-sm mb-4" style="border-radius: 12px;">
+                        <i class="fas fa-exclamation-circle me-2"></i> @TempData["Error"]
+                    </div>
+                }
+
+                <div class="row g-4">
+                    <!-- Right: Invite Form -->
+                    <div class="col-lg-5">
+                        <div class="premium-card">
+                            <h4 class="fw-bold mb-4 text-primary"><i class="fas fa-user-plus"></i> إرسال دعوة ارتباط جديدة</h4>
+                            <p class="text-muted small mb-4">اربط حسابك بأحد أفراد عائلتك لتمكينهم من حجز مواعيد لك أو تتبع حالتك في الأزمات وحالات الاستغاثة الطبية.</p>
+                            
+                            <form method="post" asp-controller="FamilyLinking" asp-action="Invite">
+                                @Html.AntiForgeryToken()
+
+                                <!-- Recipient Email -->
+                                <div class="mb-3">
+                                    <label for="Email" class="form-label">البريد الإلكتروني للقريب</label>
+                                    <input type="email" id="Email" name="Email" class="form-control" placeholder="example@email.com" required />
+                                    <span class="text-muted small mt-1 d-block">يجب أن يكون لدى قريبك حساب مسجل بالفعل في إطمن.</span>
+                                </div>
+
+                                <!-- Relationship Type -->
+                                <div class="mb-4">
+                                    <label for="Relationship" class="form-label">صلة القرابة</label>
+                                    <select id="Relationship" name="Relationship" class="form-select" required>
+                                        <option value="">اختر صلة القرابة</option>
+                                        <option value="Father">أب</option>
+                                        <option value="Mother">أم</option>
+                                        <option value="Spouse">زوج / زوجة</option>
+                                        <option value="Son">ابن</option>
+                                        <option value="Daughter">ابنة</option>
+                                        <option value="Brother">أخ</option>
+                                        <option value="Sister">أخت</option>
+                                        <option value="Other">مرافق آخر</option>
+                                    </select>
+                                </div>
+
+                                <!-- Permissions checkboxes -->
+                                <h6 class="fw-bold mb-3"><i class="fas fa-shield-alt text-accent"></i> الصلاحيات الممنوحة للقريب</h6>
+                                
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="CanViewRecords" name="CanViewRecords" value="true">
+                                    <label class="form-check-label fw-semibold" for="CanViewRecords">رؤية التقارير والملفات الطبية</label>
+                                </div>
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="CanViewRisk" name="CanViewRisk" value="true">
+                                    <label class="form-check-label fw-semibold" for="CanViewRisk">رؤية مؤشر تقييم المخاطر وتنبيهات الطوارئ</label>
+                                </div>
+                                <div class="form-check mb-4">
+                                    <input class="form-check-input" type="checkbox" id="CanBookAppointments" name="CanBookAppointments" value="true">
+                                    <label class="form-check-label fw-semibold" for="CanBookAppointments">إمكانية حجز مواعيد وتنسيق الاستشارات نيابة عني</label>
+                                </div>
+
+                                <button type="submit" class="btn-submit w-100"><i class="fas fa-paper-plane"></i> إرسال دعوة الارتباط</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Left: Links List -->
+                    <div class="col-lg-7">
+                        <div class="premium-card">
+                            <h4 class="fw-bold mb-4 text-primary"><i class="fas fa-users-cog"></i> أفراد العائلة المرتبطين حالياً</h4>
+
+                            @if (Model != null && Model.Any())
+                            {
+                                <div class="d-flex flex-column">
+                                    @foreach (var link in Model)
+                                    {
+                                        string relAr = link.Relationship switch {
+                                            "Father" => "أب",
+                                            "Mother" => "أم",
+                                            "Spouse" => "زوج / زوجة",
+                                            "Son" => "ابن",
+                                            "Daughter" => "ابنة",
+                                            "Brother" => "أخ",
+                                            "Sister" => "أخت",
+                                            _ => link.Relationship
+                                        };
+
+                                        <div class="family-item d-flex flex-md-row flex-column justify-content-between align-items-md-center gap-3">
+                                            <div>
+                                                <div class="d-flex align-items-center gap-2 mb-2">
+                                                    <span class="fw-bold fs-5 text-dark">@link.LinkedPatientName</span>
+                                                    <span class="badge bg-secondary">@relAr</span>
+                                                    @if (link.IsAccepted)
+                                                    {
+                                                        <span class="badge bg-success-subtle text-success fw-semibold"><i class="fas fa-check"></i> متصل</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="badge bg-warning-subtle text-warning fw-semibold"><i class="fas fa-clock"></i> قيد الانتظار</span>
+                                                    }
+                                                </div>
+                                                
+                                                <div class="d-flex flex-wrap gap-2">
+                                                    <span class="badge-perm @(link.CanViewRecords ? "" : "inactive")">
+                                                        <i class="fas @(link.CanViewRecords ? "fa-eye" : "fa-eye-slash")"></i> التقارير
+                                                    </span>
+                                                    <span class="badge-perm @(link.CanViewRisk ? "" : "inactive")">
+                                                        <i class="fas @(link.CanViewRisk ? "fa-shield-heart" : "fa-ban")"></i> تقييم المخاطر
+                                                    </span>
+                                                    <span class="badge-perm @(link.CanBookAppointments ? "" : "inactive")">
+                                                        <i class="fas @(link.CanBookAppointments ? "fa-calendar" : "fa-calendar-times")"></i> الحجز
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            <div class="d-flex gap-2 align-items-center justify-content-start">
+                                                <!-- Action form to remove link -->
+                                                <form method="post" asp-controller="FamilyLinking" asp-action="Remove" asp-route-id="@link.Id" onsubmit="return confirm('هل أنت متأكد من رغبتك في إلغاء الارتباط العائلي مع هذا الحساب؟')">
+                                                    @Html.AntiForgeryToken()
+                                                    <button type="submit" class="btn-danger-outline"><i class="fas fa-user-minus"></i> إلغاء الارتباط</button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="text-center py-5 text-muted">
+                                    <i class="fas fa-users-slash mb-3 fs-1 text-black-50"></i>
+                                    <p class="fw-semibold mb-1">لا يوجد أفراد عائلة مرتبطين بحسابك حالياً</p>
+                                    <p class="small text-muted mb-0">يمكنك إرسال دعوة بالبريد الإلكتروني باستخدام النموذج الجانبي لإنشاء أول ارتباط.</p>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

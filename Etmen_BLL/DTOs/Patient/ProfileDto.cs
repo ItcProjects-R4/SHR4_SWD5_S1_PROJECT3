@@ -1,9 +1,10 @@
-﻿using Etmen_Domain.Enums;
+using Etmen_Domain.Enums;
 
 namespace Etmen_BLL.DTOs.Patient
 {
     public class ProfileDto
     {
+        public int Id { get; set; }
         public string FullName { get; set; } = string.Empty;
         public DateTime? DateOfBirth { get; set; }
         public string? Gender { get; set; }

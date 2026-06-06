@@ -4,8 +4,11 @@ namespace Etmen_PL.Models.ViewModels.Patient
 {
     public class FamilyInviteViewModel
     {
-        [Required]
         public int LinkedPatientId { get; set; }
+
+        [Required(ErrorMessage = "البريد الإلكتروني مطلوب")]
+        [EmailAddress(ErrorMessage = "البريد الإلكتروني غير صالح")]
+        public string Email { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "نوع العلاقة مطلوب")]
         [StringLength(50)]

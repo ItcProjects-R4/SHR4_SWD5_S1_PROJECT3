@@ -1,0 +1,587 @@
+@{
+    ViewData["Title"] = "استشارة الذكاء الاصطناعي — إطمن";
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"]</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.rtl.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+    <style>
+        :root {
+            --primary:        #1A6FBF;
+            --primary-dark:   #0D4C8A;
+            --primary-light:  #E8F4FD;
+            --accent:         #00C9A7;
+            --accent-light:   #E6FAF5;
+            --success:        #27AE60;
+            --warning:        #F39C12;
+            --danger:         #E74C3C;
+            --dark:           #0F1923;
+            --dark-2:         #1B2A38;
+            --text:           #2C3E50;
+            --text-muted:     #7F8C8D;
+            --border:         #DDE3EC;
+            --white:          #FFFFFF;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Tajawal', sans-serif;
+            background: #F4F7FC;
+            color: var(--text);
+            margin: 0; padding: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* ═══ TOP NAV ═══ */
+        .dashboard-nav {
+            background: var(--dark);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding: 0.75rem 2rem;
+            flex-shrink: 0;
+        }
+        .nav-logo { display:flex; align-items:center; gap:10px; text-decoration:none; }
+        .nav-logo-icon {
+            width:40px; height:40px;
+            background: linear-gradient(135deg,var(--primary),var(--accent));
+            border-radius:10px; display:flex; align-items:center; justify-content:center;
+            font-size:1.1rem; color:white;
+        }
+        .nav-logo-text { font-size:1.4rem; font-weight:800; color:white; }
+        .nav-logo-text span { color:var(--accent); }
+        .btn-logout {
+            background:transparent; border:1px solid rgba(255,255,255,0.2);
+            color:rgba(255,255,255,0.8); padding:6px 14px; border-radius:8px;
+            font-size:0.85rem; font-weight:600; transition:all 0.2s; text-decoration:none;
+        }
+        .btn-logout:hover { background:rgba(231,76,60,0.1); border-color:var(--danger); color:var(--danger); }
+
+        /* ═══ LAYOUT ═══ */
+        .main-wrapper {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* ═══ SIDEBAR ═══ */
+        .sidebar {
+            background:white; border-left:1px solid var(--border);
+            width: 240px;
+            padding:2rem 1rem;
+            flex-shrink: 0;
+            overflow-y: auto;
+        }
+        .sidebar-link {
+            display:flex; align-items:center; gap:12px; padding:12px 16px;
+            border-radius:10px; color:var(--text-muted); text-decoration:none;
+            font-weight:600; margin-bottom:0.5rem; transition:all 0.2s;
+        }
+        .sidebar-link:hover, .sidebar-link.active { background:var(--primary-light); color:var(--primary); }
+        .sidebar-link i { font-size:1.1rem; width:24px; text-align:center; }
+
+        /* ═══ CHAT CONTAINER ═══ */
+        .chat-wrapper {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            padding: 0;
+        }
+
+        .chat-header {
+            background: white;
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 2rem;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            flex-shrink: 0;
+        }
+        .chat-avatar {
+            width: 48px; height: 48px;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            border-radius: 14px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.3rem; color: white;
+            box-shadow: 0 4px 12px rgba(26,111,191,0.25);
+        }
+        .chat-header-info h5 { margin: 0; font-weight: 800; font-size: 1.1rem; }
+        .chat-header-info p { margin: 0; font-size: 0.8rem; color: var(--text-muted); }
+        .status-dot {
+            display: inline-block;
+            width: 8px; height: 8px;
+            background: var(--accent);
+            border-radius: 50%;
+            margin-left: 6px;
+            animation: pulse-dot 2s infinite;
+        }
+        @@keyframes pulse-dot {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        /* ═══ MESSAGES AREA ═══ */
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.2rem;
+            scroll-behavior: smooth;
+        }
+        .chat-messages::-webkit-scrollbar { width: 6px; }
+        .chat-messages::-webkit-scrollbar-track { background: transparent; }
+        .chat-messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+        .msg-row {
+            display: flex;
+            gap: 10px;
+            max-width: 80%;
+            animation: msgSlide 0.35s ease-out;
+        }
+        @@keyframes msgSlide {
+            from { opacity: 0; transform: translateY(12px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .msg-row.bot { align-self: flex-start; }
+        .msg-row.user { align-self: flex-end; flex-direction: row-reverse; }
+
+        .msg-avatar {
+            width: 36px; height: 36px;
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+            font-size: 0.85rem;
+        }
+        .msg-row.bot .msg-avatar { background: var(--primary-light); color: var(--primary); }
+        .msg-row.user .msg-avatar { background: var(--accent-light); color: var(--accent); }
+
+        .msg-bubble {
+            padding: 14px 18px;
+            border-radius: 16px;
+            font-size: 0.95rem;
+            line-height: 1.7;
+            position: relative;
+        }
+        .msg-row.bot .msg-bubble {
+            background: white;
+            border: 1px solid var(--border);
+            border-top-right-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+        }
+        .msg-row.user .msg-bubble {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            border-top-left-radius: 4px;
+            box-shadow: 0 4px 14px rgba(26,111,191,0.2);
+        }
+
+        .msg-time {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-top: 6px;
+        }
+        .msg-row.user .msg-time { text-align: left; color: rgba(255,255,255,0.6); }
+
+        /* ═══ TYPING INDICATOR ═══ */
+        .typing-indicator {
+            display: none;
+            align-self: flex-start;
+            padding: 0 0 0 46px;
+        }
+        .typing-indicator.show { display: flex; }
+        .typing-dots {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            background: white;
+            padding: 14px 20px;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            border-top-right-radius: 4px;
+        }
+        .typing-dots span {
+            width: 8px; height: 8px;
+            background: var(--primary);
+            border-radius: 50%;
+            opacity: 0.4;
+            animation: typeBounce 1.4s infinite;
+        }
+        .typing-dots span:nth-child(2) { animation-delay: 0.15s; }
+        .typing-dots span:nth-child(3) { animation-delay: 0.3s; }
+        @@keyframes typeBounce {
+            0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+            30% { transform: translateY(-6px); opacity: 1; }
+        }
+
+        /* ═══ INPUT AREA ═══ */
+        .chat-input-area {
+            background: white;
+            border-top: 1px solid var(--border);
+            padding: 1rem 2rem;
+            flex-shrink: 0;
+        }
+        .chat-input-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .chat-input {
+            flex: 1;
+            border: 2px solid var(--border);
+            border-radius: 14px;
+            padding: 14px 18px;
+            font-family: 'Tajawal', sans-serif;
+            font-size: 1rem;
+            outline: none;
+            transition: all 0.25s;
+            resize: none;
+            min-height: 50px;
+            max-height: 120px;
+        }
+        .chat-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-light); }
+        .chat-input::placeholder { color: #B0BEC5; }
+
+        .btn-send {
+            width: 50px; height: 50px;
+            border: none;
+            border-radius: 14px;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            color: white;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.25s;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 15px rgba(26,111,191,0.25);
+            flex-shrink: 0;
+        }
+        .btn-send:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(26,111,191,0.35); }
+        .btn-send:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+        /* ═══ SUGGESTIONS ═══ */
+        .suggestions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+            max-width: 900px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .suggestion-chip {
+            background: var(--primary-light);
+            color: var(--primary);
+            border: 1.5px solid transparent;
+            border-radius: 50px;
+            padding: 8px 18px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            font-family: 'Tajawal', sans-serif;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .suggestion-chip:hover { background: var(--primary); color: white; transform: translateY(-1px); }
+
+        /* ═══ WELCOME SCREEN ═══ */
+        .welcome-screen {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 2rem;
+        }
+        .welcome-icon {
+            width: 90px; height: 90px;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            border-radius: 24px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 2.5rem; color: white;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 12px 40px rgba(26,111,191,0.2);
+            animation: float 3s ease-in-out infinite;
+        }
+        @@keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+        .welcome-screen h3 { font-weight: 800; font-size: 1.6rem; margin-bottom: 0.5rem; }
+        .welcome-screen p { color: var(--text-muted); font-size: 1rem; max-width: 500px; }
+
+        .welcome-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            margin-top: 2rem;
+            max-width: 650px;
+            width: 100%;
+        }
+        .welcome-card {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 1.2rem;
+            cursor: pointer;
+            transition: all 0.25s;
+            text-align: center;
+        }
+        .welcome-card:hover { border-color: var(--primary); box-shadow: 0 6px 20px rgba(0,0,0,0.05); transform: translateY(-3px); }
+        .welcome-card i { font-size: 1.5rem; color: var(--primary); margin-bottom: 0.5rem; display: block; }
+        .welcome-card span { font-weight: 700; font-size: 0.85rem; color: var(--text); }
+
+        /* ═══ DISCLAIMER ═══ */
+        .disclaimer {
+            text-align: center;
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            padding: 0.5rem;
+            background: #FAFBFC;
+            border-top: 1px solid var(--border);
+        }
+
+        /* ═══ RESPONSIVE ═══ */
+        @@media (max-width: 768px) {
+            .sidebar { display: none; }
+            .msg-row { max-width: 95%; }
+            .chat-input-area { padding: 0.8rem 1rem; }
+            .chat-messages { padding: 1rem; }
+            .welcome-cards { grid-template-columns: 1fr 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ═══ TOP NAV ═══ -->
+    <nav class="dashboard-nav d-flex align-items-center justify-content-between">
+        <a href="/" class="nav-logo">
+            <div class="nav-logo-icon"><i class="fas fa-heartbeat"></i></div>
+            <span class="nav-logo-text">إط<span>من</span></span>
+        </a>
+        <div class="d-flex align-items-center gap-3">
+            <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn-logout"><i class="fas fa-sign-out-alt"></i> خروج</button>
+            </form>
+        </div>
+    </nav>
+
+    <div class="main-wrapper">
+        <!-- ═══ SIDEBAR ═══ -->
+        <div class="sidebar d-none d-md-block">
+            <a href="/PatientDashboard" class="sidebar-link"><i class="fas fa-chart-pie"></i> لوحة التحكم</a>
+            <a href="/PatientProfile" class="sidebar-link"><i class="fas fa-user-md"></i> الملف الشخصي والحيوي</a>
+            <a href="/LabResults" class="sidebar-link"><i class="fas fa-file-medical-alt"></i> رفع التحاليل (OCR)</a>
+            <a href="/FamilyLinking" class="sidebar-link"><i class="fas fa-users"></i> الارتباط العائلي</a>
+            <a href="/Chatbot" class="sidebar-link active"><i class="fas fa-robot"></i> استشارة الذكاء الاصطناعي</a>
+            <a href="/" class="sidebar-link"><i class="fas fa-home"></i> الرئيسية العامة</a>
+        </div>
+
+        <!-- ═══ CHAT ═══ -->
+        <div class="chat-wrapper">
+            <!-- Chat Header -->
+            <div class="chat-header">
+                <div class="chat-avatar"><i class="fas fa-robot"></i></div>
+                <div class="chat-header-info">
+                    <h5>المستشار الصحي الذكي <span class="status-dot"></span></h5>
+                    <p>مدعوم بالذكاء الاصطناعي — يقدم إرشادات صحية عامة وليس بديلاً عن الطبيب</p>
+                </div>
+            </div>
+
+            <!-- Messages -->
+            <div class="chat-messages" id="chatMessages">
+                <!-- Welcome Screen (hidden after first message) -->
+                <div class="welcome-screen" id="welcomeScreen">
+                    <div class="welcome-icon"><i class="fas fa-robot"></i></div>
+                    <h3>مرحباً بك في المستشار الصحي الذكي</h3>
+                    <p>اطرح أي سؤال طبي أو صحي وسأحاول مساعدتك بأفضل ما لديّ. اختر من الموضوعات أدناه أو اكتب سؤالك مباشرة.</p>
+
+                    <div class="welcome-cards">
+                        <div class="welcome-card" onclick="useSuggestion('ما هي أسباب الصداع المتكرر وكيفية علاجه؟')">
+                            <i class="fas fa-head-side-virus"></i>
+                            <span>الصداع المتكرر</span>
+                        </div>
+                        <div class="welcome-card" onclick="useSuggestion('ما هو المعدل الطبيعي لضغط الدم وكيف أحافظ عليه؟')">
+                            <i class="fas fa-heartbeat"></i>
+                            <span>ضغط الدم الطبيعي</span>
+                        </div>
+                        <div class="welcome-card" onclick="useSuggestion('ما هي النصائح الغذائية لمريض السكري؟')">
+                            <i class="fas fa-apple-alt"></i>
+                            <span>تغذية مريض السكري</span>
+                        </div>
+                        <div class="welcome-card" onclick="useSuggestion('كيف أحسّن جودة نومي؟')">
+                            <i class="fas fa-bed"></i>
+                            <span>تحسين جودة النوم</span>
+                        </div>
+                        <div class="welcome-card" onclick="useSuggestion('ما هي فوائد الرياضة اليومية وأفضل التمارين للمبتدئين؟')">
+                            <i class="fas fa-running"></i>
+                            <span>الرياضة والتمارين</span>
+                        </div>
+                        <div class="welcome-card" onclick="useSuggestion('كيف أتعامل مع القلق والتوتر النفسي؟')">
+                            <i class="fas fa-brain"></i>
+                            <span>الصحة النفسية</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Typing indicator -->
+                <div class="typing-indicator" id="typingIndicator">
+                    <div class="typing-dots">
+                        <span></span><span></span><span></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Input Area -->
+            <div class="chat-input-area">
+                <div class="chat-input-row">
+                    <textarea class="chat-input" id="chatInput" placeholder="اكتب سؤالك الطبي هنا..." rows="1"></textarea>
+                    <button class="btn-send" id="btnSend" onclick="sendMessage()" title="إرسال">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+                <div class="suggestions" id="suggestionsArea">
+                    <button class="suggestion-chip" onclick="useSuggestion('ما أعراض نقص فيتامين د؟')">أعراض نقص فيتامين د</button>
+                    <button class="suggestion-chip" onclick="useSuggestion('كيف أخفض الكوليسترول بشكل طبيعي؟')">تخفيض الكوليسترول</button>
+                    <button class="suggestion-chip" onclick="useSuggestion('ما هي أسباب آلام أسفل الظهر؟')">آلام أسفل الظهر</button>
+                </div>
+            </div>
+
+            <!-- Disclaimer -->
+            <div class="disclaimer">
+                <i class="fas fa-info-circle"></i>
+                هذا المستشار يقدم إرشادات عامة ولا يُعد بديلاً عن استشارة الطبيب المتخصص. في الحالات الطارئة، يُرجى التوجه لأقرب مستشفى.
+            </div>
+        </div>
+    </div>
+
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const chatMessages = document.getElementById('chatMessages');
+        const chatInput    = document.getElementById('chatInput');
+        const btnSend      = document.getElementById('btnSend');
+        const typing       = document.getElementById('typingIndicator');
+        const welcome      = document.getElementById('welcomeScreen');
+        const suggestions  = document.getElementById('suggestionsArea');
+
+        let isSending = false;
+
+        // Auto-resize textarea
+        chatInput.addEventListener('input', function () {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+        });
+
+        // Send on Enter (Shift+Enter for new line)
+        chatInput.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        function useSuggestion(text) {
+            chatInput.value = text;
+            chatInput.focus();
+            sendMessage();
+        }
+
+        function getNow() {
+            return new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+        }
+
+        function appendMessage(content, sender) {
+            // Hide welcome screen on first message
+            if (welcome) welcome.style.display = 'none';
+
+            const row = document.createElement('div');
+            row.className = 'msg-row ' + sender;
+
+            const avatarIcon = sender === 'bot' ? 'fa-robot' : 'fa-user';
+            row.innerHTML = `
+                <div class="msg-avatar"><i class="fas ${avatarIcon}"></i></div>
+                <div>
+                    <div class="msg-bubble">${formatMessage(content)}</div>
+                    <div class="msg-time">${getNow()}</div>
+                </div>
+            `;
+
+            // Insert before typing indicator
+            chatMessages.insertBefore(row, typing);
+            scrollToBottom();
+        }
+
+        function formatMessage(text) {
+            // Basic markdown-like formatting
+            return text
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/\n/g, '<br>');
+        }
+
+        function scrollToBottom() {
+            requestAnimationFrame(() => {
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            });
+        }
+
+        function setLoading(loading) {
+            isSending = loading;
+            btnSend.disabled = loading;
+            typing.classList.toggle('show', loading);
+            if (loading) scrollToBottom();
+        }
+
+        async function sendMessage() {
+            const text = chatInput.value.trim();
+            if (!text || isSending) return;
+
+            // Hide suggestions after first use
+            suggestions.style.display = 'none';
+
+            appendMessage(text, 'user');
+            chatInput.value = '';
+            chatInput.style.height = 'auto';
+
+            setLoading(true);
+
+            try {
+                const response = await fetch('/api/chatbot/Ask', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: text })
+                });
+
+                const data = await response.json();
+
+                if (data.success && data.reply) {
+                    appendMessage(data.reply, 'bot');
+                } else {
+                    appendMessage(data.reply || 'عذراً، لم أتمكن من معالجة طلبك. حاول مرة أخرى.', 'bot');
+                }
+            } catch (err) {
+                console.error('Chat error:', err);
+                appendMessage('حدث خطأ في الاتصال. تأكد من اتصالك بالإنترنت وحاول مرة أخرى.', 'bot');
+            } finally {
+                setLoading(false);
+            }
+
+            chatInput.focus();
+        }
+    </script>
+</body>
+</html>
