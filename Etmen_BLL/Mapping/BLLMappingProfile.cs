@@ -146,10 +146,10 @@ namespace Etmen_BLL.Mapping
                 .Ignore(dest => dest.Id)
                 .Ignore(dest => dest.PatientProfileId)
                 .Ignore(dest => dest.PatientProfile)
-                .Ignore(dest => dest.DoctorProfile)
+                .Ignore(dest => dest.DoctorProfile!)
                 .Ignore(dest => dest.Status)
                 .Ignore(dest => dest.CreatedAt)
-                .Ignore(dest => dest.UpdatedAt);
+                .Ignore(dest => dest.UpdatedAt!);
         }
 
         // ── Medical Records ───────────────────────────────────────────────────────
@@ -230,14 +230,14 @@ namespace Etmen_BLL.Mapping
                 .Map(dest => dest.EmergencyType,       src => src.EmergencyType)
                 .Map(dest => dest.Description,         src => src.Description)
                 .Ignore(dest => dest.Id)
-                .Ignore(dest => dest.HealthcareProviderId)
-                .Ignore(dest => dest.HealthcareProvider)
+                .Ignore(dest => dest.HealthcareProviderId!)
+                .Ignore(dest => dest.HealthcareProvider!)
                 .Ignore(dest => dest.PatientProfile)
                 .Ignore(dest => dest.Status)
                 .Ignore(dest => dest.RequestedAt)
-                .Ignore(dest => dest.AcceptedAt)
-                .Ignore(dest => dest.CompletedAt)
-                .Ignore(dest => dest.ResponseNotes);
+                .Ignore(dest => dest.AcceptedAt!)
+                .Ignore(dest => dest.CompletedAt!)
+                .Ignore(dest => dest.ResponseNotes!);
         }
 
         // ── Family ────────────────────────────────────────────────────────────────

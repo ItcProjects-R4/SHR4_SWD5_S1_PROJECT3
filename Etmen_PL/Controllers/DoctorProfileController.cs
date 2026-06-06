@@ -26,35 +26,49 @@ namespace Etmen_PL.Controllers
         /// <summary>
         /// GET: /DoctorProfile/Index
         /// Renders profile editor form
-        /// TODO: Get current doctor user ID
-        /// TODO: Call _doctorService.GetProfileAsync(doctorId)
-        /// TODO: Map DoctorProfileDto to DoctorProfileViewModel
-        /// TODO: Return View(viewModel)
         /// </summary>
         [HttpGet]
         public async Task<IActionResult> Index()
         {
             try
             {
-                // TODO: Implementation
-                var viewModel = new DoctorProfileViewModel();
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized();
+
+                var profileResult = await _doctorService.GetProfileAsync(userId);
+
+                if (!profileResult.IsSuccess)
+                {
+                    _logger.LogWarning("Failed to fetch profile for doctor {UserId}", userId);
+                    ModelState.AddModelError(string.Empty, "Failed to load profile");
+                    return View(new DoctorProfileViewModel());
+                }
+
+                var viewModel = new DoctorProfileViewModel
+                {
+                    FullName = profileResult.Data?.FullName ?? string.Empty,
+                    Specialization = profileResult.Data?.Specialization,
+                    LicenseNumber = profileResult.Data?.LicenseNumber,
+                    YearsOfExperience = profileResult.Data?.YearsOfExperience,
+                    Bio = profileResult.Data?.Bio,
+                    ConsultationFee = profileResult.Data?.ConsultationFee,
+                    IsAvailable = profileResult.Data?.IsAvailable ?? true
+                };
+
                 return View(viewModel);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error loading doctor profile");
-                TempData["Error"] = "خطأ في تحميل الملف الشخصي";
-                return RedirectToAction("Index", "DoctorDashboard");
+                TempData["Error"] = "Error loading profile";
+                return View(new DoctorProfileViewModel());
             }
         }
 
         /// <summary>
         /// POST: /DoctorProfile/Index
         /// Updates availability, fees, specialization
-        /// TODO: Validate ModelState
-        /// TODO: Get current doctor user ID
-        /// TODO: Call _doctorService.UpdateProfileAsync(doctorId, dto)
-        /// TODO: Return View(viewModel) with updated data
         /// </summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -65,15 +79,39 @@ namespace Etmen_PL.Controllers
 
             try
             {
-                // TODO: Implementation
-                _logger.LogInformation("Doctor profile updated");
-                TempData["Success"] = "تم تحديث الملف الشخصي بنجاح";
-                return View(viewModel);
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized();
+
+                var profileDto = new Etmen_BLL.DTOs.Doctor.DoctorProfileDto
+                {
+                    FullName = viewModel.FullName,
+                    Specialization = viewModel.Specialization,
+                    LicenseNumber = viewModel.LicenseNumber,
+                    YearsOfExperience = viewModel.YearsOfExperience,
+                    Bio = viewModel.Bio,
+                    ConsultationFee = viewModel.ConsultationFee,
+                    IsAvailable = viewModel.IsAvailable
+                };
+
+                var updateResult = await _doctorService.UpdateProfileAsync(userId, profileDto);
+
+                if (!updateResult.IsSuccess)
+                {
+                    _logger.LogWarning("Failed to update profile for doctor {UserId}", userId);
+                    foreach (var error in updateResult.Errors)
+                        ModelState.AddModelError(string.Empty, error);
+                    return View(viewModel);
+                }
+
+                _logger.LogInformation("Doctor profile updated successfully for user {UserId}", userId);
+                TempData["Success"] = "Profile updated successfully";
+                return RedirectToAction(nameof(Index));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error updating doctor profile");
-                ModelState.AddModelError(string.Empty, "خطأ في تحديث الملف الشخصي");
+                ModelState.AddModelError(string.Empty, "Error updating profile");
                 return View(viewModel);
             }
         }

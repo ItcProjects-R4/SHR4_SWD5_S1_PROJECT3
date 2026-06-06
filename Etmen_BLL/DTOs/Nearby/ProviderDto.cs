@@ -1,4 +1,4 @@
-﻿namespace Etmen_BLL.DTOs.Nearby
+namespace Etmen_BLL.DTOs.Nearby
 {
     public class ProviderDto
     {
@@ -10,7 +10,7 @@
         public int? AvailableBeds { get; set; }
         public bool IsEmergencyCenter { get; set; }
         public decimal DistanceKm { get; set; }
-        public object Latitude { get; internal set; }
-        public object Longitude { get; internal set; }
+        public decimal Latitude { get; set; }
+        public decimal Longitude { get; set; }
     }
 }

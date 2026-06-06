@@ -1,4 +1,4 @@
-﻿using Etmen_DAL.Repositories.Interfaces;
+using Etmen_DAL.Repositories.Interfaces;
 using Etmen_DAL.Helpers;
 using Etmen_Domain.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -42,7 +42,7 @@ namespace Etmen_DAL.Repositories.Implementations
 
         public async Task<IEnumerable<HealthcareProvider>> SearchProvidersAsync(string searchTerm, decimal? latitude, decimal? longitude)
         {
-            var query = _dbSet.Where(p => p.IsActive && (p.Name.Contains(searchTerm) || p.Address.Contains(searchTerm))).AsEnumerable();
+            var query = _dbSet.Where(p => p.IsActive && (p.Name.Contains(searchTerm) || p.Address!.Contains(searchTerm))).AsEnumerable();
             return (latitude.HasValue && longitude.HasValue)
                 ? query.OrderBy(p => GeoHelper.CalculateDistance(latitude.Value, longitude.Value, p.Latitude, p.Longitude))
                 : query;

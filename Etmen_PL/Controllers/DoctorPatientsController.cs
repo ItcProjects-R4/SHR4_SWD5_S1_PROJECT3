@@ -33,7 +33,6 @@ namespace Etmen_PL.Controllers
         /// <summary>
         /// GET: /DoctorPatients/Search
         /// Displays patient search lookup page
-        /// TODO: Return View with empty PatientSearchViewModel
         /// </summary>
         [HttpGet]
         public IActionResult Search()
@@ -45,51 +44,112 @@ namespace Etmen_PL.Controllers
         /// <summary>
         /// POST: /DoctorPatients/Search
         /// Returns patients matching keyword (AJAX)
-        /// TODO: Validate searchTerm parameter
-        /// TODO: Get current doctor user ID
-        /// TODO: Call _doctorService.SearchPatientsAsync(searchTerm)
-        /// TODO: Return PartialView with search results
         /// </summary>
         [HttpPost]
         public async Task<IActionResult> Search(string searchTerm)
         {
             if (string.IsNullOrWhiteSpace(searchTerm))
-                return PartialView("_PatientList", new List<object>());
+                return PartialView("_PatientList", new List<Etmen_BLL.DTOs.Doctor.PatientSearchDto>());
 
             try
             {
-                // TODO: Implementation
-                var results = new List<object>();
-                return PartialView("_PatientList", results);
+                var searchResult = await _doctorService.SearchPatientsAsync(searchTerm);
+
+                if (!searchResult.IsSuccess)
+                {
+                    _logger.LogWarning("Search failed for term: {SearchTerm}", searchTerm);
+                    return PartialView("_PatientList", new List<Etmen_BLL.DTOs.Doctor.PatientSearchDto>());
+                }
+
+                return PartialView("_PatientList", searchResult.Data ?? new List<Etmen_BLL.DTOs.Doctor.PatientSearchDto>());
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error searching patients");
-                return PartialView("_PatientList", new List<object>());
+                _logger.LogError(ex, "Error searching patients with term {SearchTerm}", searchTerm);
+                return PartialView("_PatientList", new List<Etmen_BLL.DTOs.Doctor.PatientSearchDto>());
             }
         }
 
         /// <summary>
         /// GET: /DoctorPatients/Details
         /// Renders patient clinical records, AI summary, and deterioration warnings
-        /// TODO: Validate patientProfileId parameter
-        /// TODO: Call _patientService.GetProfileAsync(patientProfileId)
-        /// TODO: Call _criticalIntelligenceService.GenerateMedicalSummaryAsync(patientProfileId)
-        /// TODO: Call _criticalIntelligenceService.PredictDeteriorationAsync(patientProfileId)
-        /// TODO: Return View with comprehensive patient data
         /// </summary>
         [HttpGet]
         public async Task<IActionResult> Details(int patientProfileId)
         {
             try
             {
-                // TODO: Implementation
-                return View();
+                if (patientProfileId <= 0)
+                {
+                    TempData["Error"] = "معرف مريض غير صالح";
+                    return RedirectToAction(nameof(Search));
+                }
+
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized();
+
+                _logger.LogInformation("Doctor {UserId} accessing patient {PatientId} details", userId, patientProfileId);
+
+                // Get patient profile
+                var profileResult = await _patientService.GetProfileAsync(patientProfileId.ToString());
+                if (!profileResult.IsSuccess)
+                {
+                    _logger.LogWarning("Failed to fetch patient profile {PatientId}", patientProfileId);
+                    TempData["Error"] = "Failed to load patient data";
+                    return RedirectToAction(nameof(Search));
+                }
+
+                // Get AI medical summary
+                var summaryResult = await _criticalIntelligenceService.GenerateMedicalSummaryAsync(patientProfileId);
+                var summary = summaryResult.IsSuccess ? summaryResult.Data : null;
+
+                // Get deterioration prediction
+                var deteriorationResult = await _criticalIntelligenceService.PredictDeteriorationAsync(patientProfileId);
+                var deterioration = deteriorationResult.IsSuccess ? deteriorationResult.Data : null;
+
+                var viewModel = new Etmen_PL.Models.ViewModels.Patient.PatientDashboardViewModel
+                {
+                    PatientName = profileResult.Data?.FullName ?? "",
+                    RecentAlerts = new List<Etmen_BLL.DTOs.Patient.RecentAlertDto>(),
+                    UpcomingAppointments = new List<Etmen_BLL.DTOs.Patient.RecentAppointmentDto>()
+                };
+
+                return View(viewModel);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving patient details");
-                TempData["Error"] = "خطأ في تحميل بيانات المريض";
+                _logger.LogError(ex, "Error retrieving patient details for {PatientProfileId}", patientProfileId);
+                TempData["Error"] = "Error loading patient data";
+                return RedirectToAction(nameof(Search));
+            }
+        }
+
+        /// <summary>
+        /// GET: /DoctorPatients/AddMedicalRecord
+        /// Show form to add medical record for patient
+        /// </summary>
+        [HttpGet]
+        public IActionResult AddMedicalRecord(int patientProfileId)
+        {
+            try
+            {
+                if (patientProfileId <= 0)
+                {
+                    TempData["Error"] = "Invalid patient ID";
+                    return RedirectToAction(nameof(Search));
+                }
+
+                var viewModel = new MedicalRecordCreateViewModel
+                {
+                };
+
+                return View(viewModel);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading add medical record form");
+                TempData["Error"] = "Error loading form";
                 return RedirectToAction(nameof(Search));
             }
         }
@@ -97,30 +157,60 @@ namespace Etmen_PL.Controllers
         /// <summary>
         /// POST: /DoctorPatients/AddMedicalRecord
         /// Documents diagnosis and treatment notes for a patient
-        /// TODO: Validate ModelState
-        /// TODO: Get current doctor user ID
-        /// TODO: Call _doctorService.AddMedicalRecordForPatientAsync(patientProfileId, dto)
-        /// TODO: Redirect to Details on success
         /// </summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AddMedicalRecord(int patientProfileId, MedicalRecordCreateViewModel viewModel)
         {
             if (!ModelState.IsValid)
-                return RedirectToAction(nameof(Details), new { patientProfileId });
+                return View(viewModel);
 
             try
             {
-                // TODO: Implementation
-                _logger.LogInformation("Medical record added for patient");
-                TempData["Success"] = "تم إضافة السجل الطبي بنجاح";
+                if (patientProfileId <= 0)
+                {
+                    TempData["Error"] = "Invalid patient ID";
+                    return RedirectToAction(nameof(Search));
+                }
+
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized();
+
+                var recordDto = new Etmen_BLL.DTOs.Medical.MedicalRecordCreateDto
+                {
+                    PatientId = patientProfileId,
+                    RecordDate = DateTime.UtcNow,
+                    SystolicBP = viewModel.SystolicBP,
+                    DiastolicBP = viewModel.DiastolicBP,
+                    BloodSugar = viewModel.BloodSugar,
+                    HeartRate = viewModel.HeartRate,
+                    Temperature = viewModel.Temperature,
+                    OxygenSaturation = viewModel.OxygenSaturation,
+                    Symptoms = viewModel.Symptoms,
+                    Notes = viewModel.Notes
+                };
+
+                var result = await _doctorService.AddMedicalRecordForPatientAsync(userId, recordDto);
+
+                if (!result.IsSuccess)
+                {
+                    _logger.LogWarning("Failed to add medical record for patient {PatientId}", patientProfileId);
+                    foreach (var error in result.Errors)
+                        ModelState.AddModelError(string.Empty, error);
+                    return View(viewModel);
+                }
+
+                _logger.LogInformation("Medical record added for patient {PatientId} by doctor {UserId}", 
+                    patientProfileId, userId);
+                TempData["Success"] = "Medical record added successfully";
                 return RedirectToAction(nameof(Details), new { patientProfileId });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error adding medical record");
-                TempData["Error"] = "خطأ في إضافة السجل الطبي";
-                return RedirectToAction(nameof(Details), new { patientProfileId });
+                _logger.LogError(ex, "Error adding medical record for patient {PatientId}", patientProfileId);
+                ModelState.AddModelError(string.Empty, "Error adding medical record");
+                return View(viewModel);
             }
         }
     }
