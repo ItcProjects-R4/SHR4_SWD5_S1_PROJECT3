@@ -1,3 +1,4 @@
+using Etmen_BLL.DTOs.HospitalStaff;
 using Etmen_BLL.Repositories.IServices;
 using Etmen_PL.Models.ViewModels.Hospital;
 using Microsoft.AspNetCore.Authorization;
@@ -7,7 +8,7 @@ namespace Etmen_PL.Controllers
 {
     /// <summary>
     /// Hospital Queue Controller
-    /// Monitors incoming ambulances and manages bed availability
+    /// Monitors incoming ambulances and manages bed availability.
     /// </summary>
     [Authorize(Roles = "HospitalStaff")]
     public class HospitalQueueController : Controller
@@ -25,108 +26,186 @@ namespace Etmen_PL.Controllers
 
         /// <summary>
         /// GET: /HospitalQueue/Index
-        /// Lists active ambulance triages
-        /// TODO: Get current hospital provider ID from user claims
-        /// TODO: Call _hospitalStaffService.GetQueueAsync(providerId)
-        /// TODO: Return View(viewModel)
+        /// Lists active ambulance triages.
         /// </summary>
         [HttpGet]
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(int? providerId)
         {
             try
             {
-                // TODO: Implementation
-                var viewModel = new HospitalQueueViewModel();
-                return View(viewModel);
+                var result = await _hospitalStaffService.GetQueueAsync(providerId);
+                if (!result.IsSuccess || result.Data == null)
+                {
+                    _logger.LogWarning("Failed to retrieve hospital queue for provider {ProviderId}: {Message}", providerId, result.ErrorMessage);
+                    TempData["Error"] = result.ErrorMessage ?? "Unable to load hospital queue.";
+                    return View(new HospitalQueueViewModel { ProviderId = providerId });
+                }
+
+                return View(MapQueue(result.Data));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving hospital queue");
-                TempData["Error"] = "خطأ في تحميل قائمة الانتظار";
+                TempData["Error"] = "Error loading hospital queue.";
                 return RedirectToAction("Index", "Home");
             }
         }
 
         /// <summary>
         /// GET: /HospitalQueue/Details
-        /// Displays detailed medical context of the emergency patient
-        /// TODO: Validate id parameter
-        /// TODO: Call _hospitalStaffService.GetRequestDetailAsync(id)
-        /// TODO: Return View(viewModel)
+        /// Displays detailed medical context of the emergency patient.
         /// </summary>
         [HttpGet]
-        public async Task<IActionResult> Details(int id)
+        public async Task<IActionResult> Details(int id, int? providerId)
         {
             try
             {
-                // TODO: Implementation
-                return View();
+                if (id <= 0)
+                {
+                    TempData["Error"] = "Valid emergency request id is required.";
+                    return RedirectToAction(nameof(Index));
+                }
+
+                var result = await _hospitalStaffService.GetRequestDetailAsync(id, providerId);
+                if (!result.IsSuccess || result.Data == null)
+                {
+                    _logger.LogWarning("Failed to retrieve emergency request {RequestId}: {Message}", id, result.ErrorMessage);
+                    TempData["Error"] = result.ErrorMessage ?? "Unable to load request details.";
+                    return RedirectToAction(nameof(Index), new { providerId });
+                }
+
+                return View(MapDetail(result.Data));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving request details");
-                TempData["Error"] = "خطأ في تحميل التفاصيل";
+                TempData["Error"] = "Error loading request details.";
                 return RedirectToAction(nameof(Index));
             }
         }
 
         /// <summary>
         /// POST: /HospitalQueue/Respond
-        /// Hospital staff accepts or rejects the request
-        /// TODO: Validate ModelState
-        /// TODO: Get current hospital provider ID
-        /// TODO: Call _hospitalStaffService.RespondToRequestAsync(providerId, dto)
-        /// TODO: Redirect to Index on success
+        /// Hospital staff accepts, rejects, escalates, completes, or cancels a request.
         /// </summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Respond(HospitalRespondViewModel viewModel)
         {
             if (!ModelState.IsValid)
-                return RedirectToAction(nameof(Index));
+                return RedirectToAction(nameof(Index), new { providerId = viewModel.ProviderId });
 
             try
             {
-                // TODO: Implementation
-                _logger.LogInformation("Response provided to emergency request");
-                TempData["Success"] = "تم تسجيل الرد بنجاح";
-                return RedirectToAction(nameof(Index));
+                var dto = new HospitalStaffEmergencyRespondDto
+                {
+                    RequestId = viewModel.RequestId,
+                    ProviderId = viewModel.ProviderId,
+                    Status = viewModel.Status,
+                    ResponseNotes = viewModel.ResponseNotes
+                };
+
+                var result = await _hospitalStaffService.RespondToRequestAsync(dto);
+                if (!result.IsSuccess)
+                {
+                    _logger.LogWarning("Failed to respond to emergency request {RequestId}: {Message}", viewModel.RequestId, result.ErrorMessage);
+                    TempData["Error"] = result.ErrorMessage ?? "Unable to save response.";
+                    return RedirectToAction(nameof(Details), new { id = viewModel.RequestId, providerId = viewModel.ProviderId });
+                }
+
+                _logger.LogInformation("Response provided to emergency request {RequestId}", viewModel.RequestId);
+                TempData["Success"] = "Response saved successfully.";
+                return RedirectToAction(nameof(Index), new { providerId = viewModel.ProviderId });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error responding to request");
-                TempData["Error"] = "خطأ في تسجيل الرد";
-                return RedirectToAction(nameof(Index));
+                TempData["Error"] = "Error saving response.";
+                return RedirectToAction(nameof(Index), new { providerId = viewModel.ProviderId });
             }
         }
 
         /// <summary>
         /// POST: /HospitalQueue/UpdateBeds
-        /// Modifies the hospital's available emergency beds configuration
-        /// TODO: Validate ModelState
-        /// TODO: Call _hospitalStaffService.UpdateBedsAsync(dto)
-        /// TODO: Redirect to Index on success
+        /// Modifies the hospital's available emergency beds configuration.
         /// </summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> UpdateBeds(HospitalBedsUpdateViewModel viewModel)
         {
             if (!ModelState.IsValid)
-                return RedirectToAction(nameof(Index));
+                return RedirectToAction(nameof(Index), new { providerId = viewModel.ProviderId });
 
             try
             {
-                // TODO: Implementation
-                _logger.LogInformation("Hospital beds updated");
-                TempData["Success"] = "تم تحديث الأسرة المتاحة بنجاح";
-                return RedirectToAction(nameof(Index));
+                var dto = new HospitalStaffBedsUpdateDto
+                {
+                    ProviderId = viewModel.ProviderId,
+                    AvailableBeds = viewModel.AvailableBeds
+                };
+
+                var result = await _hospitalStaffService.UpdateBedsAsync(dto);
+                if (!result.IsSuccess)
+                {
+                    _logger.LogWarning("Failed to update beds for provider {ProviderId}: {Message}", viewModel.ProviderId, result.ErrorMessage);
+                    TempData["Error"] = result.ErrorMessage ?? "Unable to update beds.";
+                    return RedirectToAction(nameof(Index), new { providerId = viewModel.ProviderId });
+                }
+
+                _logger.LogInformation("Hospital beds updated for provider {ProviderId}", viewModel.ProviderId);
+                TempData["Success"] = "Available beds updated successfully.";
+                return RedirectToAction(nameof(Index), new { providerId = viewModel.ProviderId });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error updating beds");
-                TempData["Error"] = "خطأ في تحديث الأسرة";
-                return RedirectToAction(nameof(Index));
+                TempData["Error"] = "Error updating beds.";
+                return RedirectToAction(nameof(Index), new { providerId = viewModel.ProviderId });
             }
         }
+
+        private static HospitalQueueViewModel MapQueue(HospitalStaffQueueDto dto) => new()
+        {
+            ProviderId = dto.ProviderId,
+            ProviderName = dto.ProviderName,
+            PendingCount = dto.PendingCount,
+            AcceptedCount = dto.AcceptedCount,
+            EscalatedCount = dto.EscalatedCount,
+            AvailableBeds = dto.AvailableBeds,
+            Items = dto.Items.Select(item => new HospitalQueueItemViewModel
+            {
+                RequestId = item.RequestId,
+                PatientProfileId = item.PatientProfileId,
+                PatientName = item.PatientName,
+                PatientPhone = item.PatientPhone,
+                EmergencyType = item.EmergencyType,
+                Status = item.Status.ToString(),
+                RequestedAt = item.RequestedAt,
+                WaitingMinutes = item.WaitingMinutes,
+                IsAutoGenerated = item.IsAutoGenerated,
+                PriorityScore = item.PriorityScore
+            }).ToList()
+        };
+
+        private static HospitalEmergencyDetailViewModel MapDetail(HospitalStaffEmergencyDetailDto dto) => new()
+        {
+            RequestId = dto.RequestId,
+            Status = dto.Status.ToString(),
+            EmergencyType = dto.EmergencyType,
+            Description = dto.Description,
+            RequestedAt = dto.RequestedAt,
+            AcceptedAt = dto.AcceptedAt,
+            ResponseNotes = dto.ResponseNotes,
+            PatientName = dto.PatientName,
+            PatientPhone = dto.PatientPhone,
+            BloodType = dto.BloodType,
+            HasChronicDiseases = dto.HasChronicDiseases,
+            ChronicDiseasesNotes = dto.ChronicDiseasesNotes,
+            Allergies = dto.Allergies,
+            CurrentMedications = dto.CurrentMedications,
+            Latitude = dto.Latitude,
+            Longitude = dto.Longitude,
+            AssignedProviderAvailableBeds = dto.AssignedProviderAvailableBeds
+        };
     }
 }

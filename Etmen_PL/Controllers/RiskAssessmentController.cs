@@ -1,13 +1,16 @@
+using Etmen_BLL.DTOs.Risk;
 using Etmen_BLL.Repositories.IServices;
 using Etmen_PL.Models.ViewModels.Patient;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
+using System.Text.Json;
 
 namespace Etmen_PL.Controllers
 {
     /// <summary>
     /// Risk Assessment Controller
-    /// Processes self-assessments and displays recommendations
+    /// Processes self-assessments and displays recommendations.
     /// </summary>
     [Authorize(Roles = "Patient")]
     public class RiskAssessmentController : Controller
@@ -25,24 +28,17 @@ namespace Etmen_PL.Controllers
 
         /// <summary>
         /// GET: /RiskAssessment/Index
-        /// Renders assessment inputs questionnaire
-        /// TODO: Return View with new RiskAssessmentInputViewModel
+        /// Renders assessment inputs questionnaire.
         /// </summary>
         [HttpGet]
         public IActionResult Index()
         {
-            var viewModel = new RiskAssessmentInputViewModel();
-            return View(viewModel);
+            return View(new RiskAssessmentInputViewModel());
         }
 
         /// <summary>
         /// POST: /RiskAssessment/Index
-        /// Computes risk and schedules triage
-        /// TODO: Validate ModelState
-        /// TODO: Get current user ID and location
-        /// TODO: Call _patientService.AssessRiskAsync(userId, dto)
-        /// TODO: Store result in TempData as JSON
-        /// TODO: Redirect to Result action
+        /// Computes risk and schedules triage when escalation is needed.
         /// </summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -53,34 +49,61 @@ namespace Etmen_PL.Controllers
 
             try
             {
-                // TODO: Implementation
-                _logger.LogInformation("Risk assessment submitted");
-                TempData["RiskResult"] = "{}"; // Store serialized result
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrWhiteSpace(userId))
+                    return RedirectToAction("Login", "Account");
+
+                var dto = new RiskInputDto
+                {
+                    Symptoms = viewModel.Symptoms,
+                    HeartRate = viewModel.HeartRate,
+                    SystolicBP = viewModel.SystolicBP,
+                    DiastolicBP = viewModel.DiastolicBP,
+                    Temperature = viewModel.Temperature,
+                    OxygenSaturation = viewModel.OxygenSaturation,
+                    BloodSugar = viewModel.BloodSugar,
+                    Latitude = viewModel.Latitude,
+                    Longitude = viewModel.Longitude
+                };
+
+                var result = await _patientService.AssessRiskAsync(userId, dto);
+                if (!result.IsSuccess || result.Data == null)
+                {
+                    _logger.LogWarning("Failed to assess risk for user {UserId}: {Message}", userId, result.ErrorMessage);
+                    ModelState.AddModelError(string.Empty, result.ErrorMessage ?? "Unable to assess risk.");
+                    return View(viewModel);
+                }
+
+                _logger.LogInformation("Risk assessment submitted for user {UserId}", userId);
+                TempData["RiskResult"] = JsonSerializer.Serialize(result.Data);
                 return RedirectToAction(nameof(Result));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error assessing risk");
-                ModelState.AddModelError(string.Empty, "خطأ في تقييم المخاطر");
+                ModelState.AddModelError(string.Empty, "Error assessing risk.");
                 return View(viewModel);
             }
         }
 
         /// <summary>
         /// GET: /RiskAssessment/Result
-        /// Renders calculated risk category and recommendations
-        /// TODO: Read RiskResult from TempData
-        /// TODO: Return View with RiskResultDto
+        /// Renders calculated risk category and recommendations.
         /// </summary>
         [HttpGet]
         public IActionResult Result()
         {
             try
             {
-                // TODO: Implementation
-                var resultJson = TempData["RiskResult"]?.ToString() ?? "{}";
-                // TODO: Deserialize and return to view
-                return View();
+                var resultJson = TempData["RiskResult"]?.ToString();
+                if (string.IsNullOrWhiteSpace(resultJson))
+                    return RedirectToAction(nameof(Index));
+
+                var result = JsonSerializer.Deserialize<RiskResultDto>(resultJson);
+                if (result == null)
+                    return RedirectToAction(nameof(Index));
+
+                return View(result);
             }
             catch (Exception ex)
             {
@@ -91,24 +114,31 @@ namespace Etmen_PL.Controllers
 
         /// <summary>
         /// GET: /RiskAssessment/History
-        /// Lists previous risk scores
-        /// TODO: Get current user ID
-        /// TODO: Call _patientService.GetRiskHistoryAsync(userId)
-        /// TODO: Return View with IEnumerable<RiskResultDto>
+        /// Lists previous risk scores.
         /// </summary>
         [HttpGet]
         public async Task<IActionResult> History()
         {
             try
             {
-                // TODO: Implementation
-                var history = new List<object>();
-                return View(history);
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrWhiteSpace(userId))
+                    return RedirectToAction("Login", "Account");
+
+                var result = await _patientService.GetRiskHistoryAsync(userId);
+                if (!result.IsSuccess)
+                {
+                    _logger.LogWarning("Failed to retrieve risk history for user {UserId}: {Message}", userId, result.ErrorMessage);
+                    TempData["Error"] = result.ErrorMessage ?? "Unable to load risk history.";
+                    return RedirectToAction("Index", "PatientDashboard");
+                }
+
+                return View(result.Data ?? Enumerable.Empty<RiskResultDto>());
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving risk history");
-                TempData["Error"] = "خطأ في تحميل سجل المخاطر";
+                TempData["Error"] = "Error loading risk history.";
                 return RedirectToAction("Index", "PatientDashboard");
             }
         }
