@@ -1,0 +1,116 @@
+@model Etmen_BLL.DTOs.Doctor.DoctorAppointmentDto
+@{
+    ViewData["Title"] = "تفاصيل الموعد";
+    Layout = "~/Views/Shared/_DoctorLayout.cshtml";
+}
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="dr-card animate__animated animate__fadeInUp">
+            <div class="dr-card-header">
+                <h5 class="dr-card-title"><i class="fas fa-info-circle"></i> تفاصيل الموعد</h5>
+                <a href="/DoctorAppointments" class="btn-outline-custom btn-sm py-1 px-3" style="font-size:0.75rem;">
+                    <i class="fas fa-arrow-left ms-1"></i> العودة
+                </a>
+            </div>
+
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <small class="text-muted fw-bold d-block mb-1">اسم المريض</small>
+                        <div class="fw-bold fs-6">
+                            <a href="/DoctorPatients/Details/@Model.PatientId" class="text-decoration-none" style="color:var(--primary);">
+                                @Model.PatientName
+                            </a>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <small class="text-muted fw-bold d-block mb-1">رقم الهاتف</small>
+                        <div class="fw-bold" dir="ltr" style="direction:ltr;">@(Model.PatientPhone ?? "-")</div>
+                    </div>
+                    <div class="mb-3">
+                        <small class="text-muted fw-bold d-block mb-1">البريد الإلكتروني</small>
+                        <div class="fw-bold">@(Model.PatientEmail ?? "-")</div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <small class="text-muted fw-bold d-block mb-1">تاريخ الموعد</small>
+                        <div class="fw-bold">@Model.AppointmentDate.ToString("dddd، dd MMMM yyyy", new System.Globalization.CultureInfo("ar-SA"))</div>
+                    </div>
+                    <div class="mb-3">
+                        <small class="text-muted fw-bold d-block mb-1">الوقت</small>
+                        <div class="fw-bold">@Model.StartTime.ToString(@"hh\:mm") - @Model.EndTime.ToString(@"hh\:mm")</div>
+                    </div>
+                    <div class="mb-3">
+                        <small class="text-muted fw-bold d-block mb-1">الحالة</small>
+                        <span class="status-badge @(Model.Status switch { 
+                            "Confirmed" => "confirmed", "Pending" => "pending", 
+                            "Completed" => "completed", "Cancelled" => "cancelled",
+                            _ => "pending" 
+                        })">
+                            <span class="dot"></span>
+                            @(Model.Status switch { 
+                                "Confirmed" => "مؤكد", "Pending" => "معلق",
+                                "Completed" => "مكتمل", "Cancelled" => "ملغي", _ => Model.Status 
+                            })
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            @if (!string.IsNullOrEmpty(Model.Symptoms))
+            {
+                <hr />
+                <div>
+                    <small class="text-muted fw-bold d-block mb-2">الأعراض المسجلة</small>
+                    <div class="p-3 rounded-3" style="background:#F8FAFC;">
+                        <p class="mb-0">@Model.Symptoms</p>
+                    </div>
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(Model.Notes))
+            {
+                <hr />
+                <div>
+                    <small class="text-muted fw-bold d-block mb-2">ملاحظات</small>
+                    <div class="p-3 rounded-3" style="background:#F8FAFC;">
+                        <p class="mb-0">@Model.Notes</p>
+                    </div>
+                </div>
+            }
+
+            <hr />
+            <div class="d-flex gap-2 flex-wrap">
+                <a href="/DoctorAppointments/UpdateStatus/@Model.Id" class="btn-primary-custom">
+                    <i class="fas fa-edit"></i> تحديث الحالة
+                </a>
+                <a href="/DoctorPatients/AddMedicalRecord/@Model.PatientId" class="btn-success-custom">
+                    <i class="fas fa-notes-medical"></i> إضافة سجل طبي
+                </a>
+                <a href="/DoctorPatients/Details/@Model.PatientId" class="btn-outline-custom">
+                    <i class="fas fa-user"></i> ملف المريض
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="dr-card animate__animated animate__fadeInUp" style="animation-delay:0.15s;">
+            <div class="dr-card-header">
+                <h5 class="dr-card-title"><i class="fas fa-clock"></i> معلومات إضافية</h5>
+            </div>
+            <div class="d-flex flex-column gap-3">
+                <div>
+                    <small class="text-muted fw-bold d-block mb-1">تاريخ الإنشاء</small>
+                    <div class="fw-bold">@Model.CreatedAt.ToString("dd/MM/yyyy HH:mm")</div>
+                </div>
+                <div>
+                    <small class="text-muted fw-bold d-block mb-1">معرف الموعد</small>
+                    <div class="fw-bold" style="direction:ltr;text-align:left;">#@Model.Id</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

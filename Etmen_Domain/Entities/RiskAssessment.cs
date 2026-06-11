@@ -18,7 +18,7 @@ namespace Etmen_Domain.Entities
         public decimal RiskScore { get; set; }
         public RiskLevel RiskLevel { get; set; }
 
-        [StringLength(1000)]
+        [StringLength(2000)]
         public string? Symptoms { get; set; }
         public string? RecommendationsJson { get; set; }
         public bool IsEmergency { get; set; }

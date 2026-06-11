@@ -1,26 +1,27 @@
 using Etmen_BLL.Repositories.IServices;
 using Etmen_BLL.DTOs.Chat;
 using Etmen_PL.Models.ViewModels.Chat;
+using Etmen_Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Etmen_PL.Controllers
 {
-    /// <summary>
-    /// Chat Controller
-    /// Manages peer-to-peer messaging between users
-    /// </summary>
     [Authorize]
     public class ChatController : Controller
     {
         private readonly IChatService _chatService;
+        private readonly UserManager<ApplicationUser> _userManager;
         private readonly ILogger<ChatController> _logger;
 
         public ChatController(
             IChatService chatService,
+            UserManager<ApplicationUser> userManager,
             ILogger<ChatController> logger)
         {
             _chatService = chatService;
+            _userManager = userManager;
             _logger = logger;
         }
 
@@ -99,9 +100,11 @@ namespace Etmen_PL.Controllers
                 // Mark thread as read
                 await _chatService.MarkThreadReadAsync(userId, otherUserId);
 
+                var otherUser = await _userManager.FindByIdAsync(otherUserId);
                 var viewModel = new ChatThreadViewModel
                 {
                     OtherUserId = otherUserId,
+                    OtherUserName = otherUser?.UserName ?? "مستخدم",
                     Messages = messagesResult.Data?.ToList() ?? new List<ChatMessageDto>()
                 };
 

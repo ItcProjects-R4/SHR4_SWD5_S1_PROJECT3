@@ -82,6 +82,49 @@
         border-radius: 0 8px 8px 0;
         display: flex; align-items: center; padding: 0 12px;
     }
+
+    .error-summary-alert {
+        background: linear-gradient(135deg, #FEF2F2 0%, #FEE2E2 100%);
+        border: 2px solid #DC2626;
+        border-radius: 14px;
+        padding: 1rem 1.25rem;
+        color: #991B1B;
+        display: none;
+        animation: errorShake 0.5s ease;
+    }
+    .error-summary-alert.show {
+        display: flex;
+    }
+    @@keyframes errorShake {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-8px); }
+        75% { transform: translateX(8px); }
+    }
+    .form-group-medical.has-error {
+        border-color: #DC2626 !important;
+        background: #FEF2F2 !important;
+        box-shadow: 0 0 0 3px rgba(220,38,38,0.1) !important;
+    }
+    .form-group-medical.has-error .input-unit-badge {
+        background: #FCA5A5;
+        color: #991B1B;
+    }
+    .field-error-text {
+        color: #DC2626;
+        font-size: 0.8rem;
+        font-weight: 600;
+        margin-top: 4px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+    .field-error-text i {
+        font-size: 0.75rem;
+    }
+    .input-validation-error {
+        border-color: #DC2626 !important;
+        background-color: #FEF2F2 !important;
+    }
 </style>
 
 <div class="row g-4 justify-content-center">
@@ -109,7 +152,15 @@
             <!-- Main Form -->
             <form method="post" asp-controller="RiskAssessment" asp-action="Index" id="assessmentForm">
                 @Html.AntiForgeryToken()
-                <div asp-validation-summary="ModelOnly" class="text-danger mb-4"></div>
+                <div id="errorSummaryContainer" class="error-summary-alert align-items-start gap-3 mb-4 @(ViewData.ModelState.ErrorCount > 0 ? "show" : "")">
+                    <i class="fas fa-exclamation-circle mt-1" style="font-size: 1.25rem;"></i>
+                    <div>
+                        <h6 class="fw-bold mb-1" style="color: #991B1B;">توجد أخطاء في البيانات المدخلة</h6>
+                        <div asp-validation-summary="ModelOnly" class="mb-0 small" style="color: #991B1B; list-style: none; padding: 0; margin: 0;"></div>
+                        <ul id="clientErrors" class="mb-0 small" style="color: #991B1B; padding-right: 1rem; margin-top: 4px; display: none;"></ul>
+                    </div>
+                    <button type="button" class="btn-close me-auto" data-bs-dismiss="alert" aria-label="Close" onclick="this.parentElement.classList.remove('show')"></button>
+                </div>
 
                 <!-- STEP 1: Vitals -->
                 <div id="step-1-content">
@@ -118,73 +169,73 @@
                     <div class="row g-4 mb-4">
                         <!-- Pulse -->
                         <div class="col-md-6">
-                            <div class="form-group-medical">
+                            <div class="form-group-medical" id="field-heartRate">
                                 <label asp-for="HeartRate" class="form-label fw-bold">معدل نبضات القلب</label>
                                 <div class="input-group">
                                     <input asp-for="HeartRate" type="number" class="form-control" placeholder="مثال: 72" required />
                                     <span class="input-unit-badge">نبضة/دقيقة</span>
                                 </div>
-                                <span asp-validation-for="HeartRate" class="text-danger small"></span>
+                                <span asp-validation-for="HeartRate" class="field-error-text"></span>
                             </div>
                         </div>
 
                         <!-- Temperature -->
                         <div class="col-md-6">
-                            <div class="form-group-medical">
+                            <div class="form-group-medical" id="field-temperature">
                                 <label asp-for="Temperature" class="form-label fw-bold">درجة حرارة الجسم</label>
                                 <div class="input-group">
                                     <input asp-for="Temperature" type="number" step="0.1" class="form-control" placeholder="مثال: 37.0" required />
                                     <span class="input-unit-badge">مئوية °C</span>
                                 </div>
-                                <span asp-validation-for="Temperature" class="text-danger small"></span>
+                                <span asp-validation-for="Temperature" class="field-error-text"></span>
                             </div>
                         </div>
 
                         <!-- BP Systolic -->
                         <div class="col-md-6">
-                            <div class="form-group-medical">
+                            <div class="form-group-medical" id="field-systolicBP">
                                 <label asp-for="SystolicBP" class="form-label fw-bold">ضغط الدم الانقباضي (العالي)</label>
                                 <div class="input-group">
                                     <input asp-for="SystolicBP" type="number" class="form-control" placeholder="مثال: 120" required />
                                     <span class="input-unit-badge">mmHg</span>
                                 </div>
-                                <span asp-validation-for="SystolicBP" class="text-danger small"></span>
+                                <span asp-validation-for="SystolicBP" class="field-error-text"></span>
                             </div>
                         </div>
 
                         <!-- BP Diastolic -->
                         <div class="col-md-6">
-                            <div class="form-group-medical">
+                            <div class="form-group-medical" id="field-diastolicBP">
                                 <label asp-for="DiastolicBP" class="form-label fw-bold">ضغط الدم الانبساطي (المنخفض)</label>
                                 <div class="input-group">
                                     <input asp-for="DiastolicBP" type="number" class="form-control" placeholder="مثال: 80" required />
                                     <span class="input-unit-badge">mmHg</span>
                                 </div>
-                                <span asp-validation-for="DiastolicBP" class="text-danger small"></span>
+                                <span asp-validation-for="DiastolicBP" class="field-error-text"></span>
                             </div>
                         </div>
 
                         <!-- Oxygen -->
                         <div class="col-md-6">
-                            <div class="form-group-medical">
+                            <div class="form-group-medical" id="field-oxygenSaturation">
                                 <label asp-for="OxygenSaturation" class="form-label fw-bold">تشبع الأكسجين في الدم</label>
                                 <div class="input-group">
                                     <input asp-for="OxygenSaturation" type="number" class="form-control" placeholder="مثال: 98" required />
                                     <span class="input-unit-badge">% SpO2</span>
                                 </div>
-                                <span asp-validation-for="OxygenSaturation" class="text-danger small"></span>
+                                <span asp-validation-for="OxygenSaturation" class="field-error-text"></span>
                             </div>
                         </div>
 
                         <!-- Blood Sugar -->
                         <div class="col-md-6">
-                            <div class="form-group-medical">
+                            <div class="form-group-medical" id="field-bloodSugar">
                                 <label asp-for="BloodSugar" class="form-label fw-bold">مستوى السكر في الدم</label>
                                 <div class="input-group">
                                     <input asp-for="BloodSugar" type="number" class="form-control" placeholder="مثال: 100" />
                                     <span class="input-unit-badge">mg/dL</span>
                                 </div>
-                                <span asp-validation-for="BloodSugar" class="text-danger small"></span>
+                                <span asp-validation-for="BloodSugar" class="field-error-text"></span>
                             </div>
                         </div>
                     </div>
@@ -200,10 +251,10 @@
                 <div id="step-2-content" style="display:none;">
                     <h5 class="fw-bold mb-4 text-primary"><i class="fas fa-virus"></i> الخطوة 2: الأعراض الحالية وموقعك الجغرافي</h5>
                     
-                    <div class="mb-4">
+                    <div class="mb-4" id="field-symptoms">
                         <label asp-for="Symptoms" class="form-label fw-bold">اكتب الأعراض التي تشعر بها حالياً بالتفصيل</label>
                         <textarea asp-for="Symptoms" class="form-control" rows="4" style="border-radius:12px;" placeholder="اكتب الأعراض مثل: سعال جاف، ضيق تنفس، إرهاق شديد، ألم بالمفاصل..."></textarea>
-                        <span asp-validation-for="Symptoms" class="text-danger small"></span>
+                        <span asp-validation-for="Symptoms" class="field-error-text"></span>
                     </div>
 
                     <!-- Hidden location fields -->
@@ -232,24 +283,46 @@
 
 @section Scripts {
     <script>
+        // Highlight invalid fields on load (after server-side validation)
+        $(document).ready(function() {
+            $('.input-validation-error').each(function() {
+                var $container = $(this).closest('.form-group-medical');
+                if ($container.length) {
+                    $container.addClass('has-error');
+                }
+            });
+            if ($('.input-validation-error').length > 0) {
+                $('#errorSummaryContainer').addClass('show');
+            }
+        });
+
         function goToStep(stepNum) {
             if (stepNum === 2) {
                 // Perform simple validation on Step 1 fields
                 var step1Fields = $('#step-1-content').find('input[required]');
                 var valid = true;
+                var errorList = [];
                 step1Fields.each(function() {
+                    var fieldName = $(this).closest('.form-group-medical').find('label').text().trim();
                     if ($(this).val().trim() === '') {
-                        $(this).addClass('is-invalid');
+                        $(this).closest('.form-group-medical').addClass('has-error');
+                        errorList.push(fieldName || 'حقل مطلوب');
                         valid = false;
                     } else {
-                        $(this).removeClass('is-invalid');
+                        $(this).closest('.form-group-medical').removeClass('has-error');
                     }
                 });
 
                 if (!valid) {
-                    TempData = { Error: "يرجى ملء جميع الحقول الإلزامية للمؤشرات الحيوية" };
+                    var alertContainer = $('#errorSummaryContainer');
+                    alertContainer.addClass('show');
+                    var listHtml = '<li>' + errorList.join('</li><li>') + '</li>';
+                    $('#clientErrors').html(listHtml).show();
                     return;
                 }
+
+                $('#clientErrors').hide();
+                $('#errorSummaryContainer').removeClass('show');
 
                 // Show step 2
                 $('#step-1-content').hide();

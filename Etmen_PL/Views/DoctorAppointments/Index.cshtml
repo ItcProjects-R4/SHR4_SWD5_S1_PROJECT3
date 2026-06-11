@@ -1,0 +1,85 @@
+@model List<Etmen_BLL.DTOs.Doctor.DoctorAppointmentDto>
+@{
+    ViewData["Title"] = "المواعيد";
+    Layout = "~/Views/Shared/_DoctorLayout.cshtml";
+}
+
+<div class="dr-card animate__animated animate__fadeInUp">
+    <div class="dr-card-header">
+        <h5 class="dr-card-title"><i class="fas fa-calendar-alt"></i> جميع المواعيد</h5>
+        <a href="/DoctorAppointments/Index" class="btn-primary-custom btn-sm py-1 px-3" style="font-size:0.75rem;" onclick="location.reload();">
+            <i class="fas fa-sync-alt"></i> تحديث
+        </a>
+    </div>
+
+    @if (Model.Any())
+    {
+        <div class="table-responsive-custom">
+            <table class="dr-table">
+                <thead>
+                    <tr>
+                        <th>المريض</th>
+                        <th>رقم الهاتف</th>
+                        <th>التاريخ</th>
+                        <th>الوقت</th>
+                        <th>الأعراض</th>
+                        <th>الحالة</th>
+                        <th>الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var apt in Model)
+                    {
+                        <tr>
+                            <td class="fw-bold">
+                                <a href="/DoctorPatients/Details/@apt.PatientId" class="text-decoration-none" style="color:var(--primary);">
+                                    @apt.PatientName
+                                </a>
+                            </td>
+                            <td dir="ltr" style="direction:ltr;">@(apt.PatientPhone ?? "-")</td>
+                            <td>@apt.AppointmentDate.ToString("dd/MM/yyyy")</td>
+                            <td>@apt.StartTime.ToString(@"hh\:mm") - @apt.EndTime.ToString(@"hh\:mm")</td>
+                            <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="@apt.Symptoms">
+                                @(apt.Symptoms ?? "-")
+                            </td>
+                            <td>
+                                <span class="status-badge @(apt.Status switch { 
+                                    "Confirmed" => "confirmed", "Pending" => "pending", 
+                                    "Completed" => "completed", "Cancelled" => "cancelled",
+                                    "InProgress" => "in-progress", "NoShow" => "no-show",
+                                    _ => "pending" 
+                                })">
+                                    <span class="dot"></span>
+                                    @(apt.Status switch { 
+                                        "Confirmed" => "مؤكد", "Pending" => "معلق",
+                                        "Completed" => "مكتمل", "Cancelled" => "ملغي",
+                                        "InProgress" => "قيد التنفيذ", "NoShow" => "لم يحضر",
+                                        _ => apt.Status 
+                                    })
+                                </span>
+                            </td>
+                            <td>
+                                <div class="d-flex gap-1">
+                                    <a href="/DoctorAppointments/Details/@apt.Id" class="table-action-btn" title="التفاصيل">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="/DoctorAppointments/UpdateStatus/@apt.Id" class="table-action-btn" title="تحديث الحالة">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else
+    {
+        <div class="empty-state">
+            <div class="empty-state-icon"><i class="far fa-calendar-check"></i></div>
+            <div class="empty-state-text">لا توجد مواعيد مسجلة</div>
+            <p class="text-muted small mt-2">عند حجز مرضاك للمواعيد، ستظهر هنا</p>
+        </div>
+    }
+</div>

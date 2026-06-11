@@ -14,14 +14,16 @@
             _ => "#1A6FBF"
         };
     }
+
+    int percentage = (int)Math.Round(Model.RiskScore * 100);
 }
 
 <style>
     /* Circular Gauge Animation */
     .gauge-container {
         position: relative;
-        width: 200px;
-        height: 200px;
+        width: 220px;
+        height: 220px;
         margin: 0 auto 2rem;
     }
     .gauge-svg {
@@ -41,7 +43,8 @@
         stroke-linecap: round;
         stroke-dasharray: 565.48; /* 2 * PI * r (r=90) */
         stroke-dashoffset: 565.48;
-        transition: stroke-dashoffset 1.5s ease-in-out;
+        transition: stroke-dashoffset 2s cubic-bezier(0.4, 0, 0.2, 1);
+        filter: drop-shadow(0 0 8px @hexColor);
     }
     .gauge-text {
         position: absolute;
@@ -49,21 +52,103 @@
         transform: translate(-50%, -50%);
         text-align: center;
     }
+    .gauge-glow {
+        animation: gaugePulse 2s ease-in-out infinite;
+    }
+    @@keyframes gaugePulse {
+        0%, 100% { filter: drop-shadow(0 0 8px @hexColor); }
+        50% { filter: drop-shadow(0 0 20px @hexColor); }
+    }
 
+    /* Severity Scale */
+    .severity-scale {
+        display: flex;
+        height: 8px;
+        border-radius: 10px;
+        overflow: hidden;
+        margin: 1rem auto;
+        max-width: 300px;
+        position: relative;
+    }
+    .severity-segment {
+        flex: 1;
+        transition: opacity 0.3s;
+    }
+    .severity-segment.active {
+        opacity: 1;
+        animation: segmentPulse 1s ease-in-out;
+    }
+    .severity-segment.inactive {
+        opacity: 0.3;
+    }
+    .severity-indicator {
+        position: absolute;
+        top: -6px;
+        width: 20px;
+        height: 20px;
+        background: white;
+        border: 3px solid @hexColor;
+        border-radius: 50%;
+        transform: translateX(-50%);
+        transition: left 2s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        z-index: 2;
+    }
+    @@keyframes segmentPulse {
+        0%, 100% { transform: scaleY(1); }
+        50% { transform: scaleY(1.3); }
+    }
+
+    /* Symptom Tags */
     .symptom-tag {
         display: inline-flex;
         align-items: center;
-        gap: 6px;
-        background: #F1F5F9;
-        border: 1px solid var(--border);
-        color: var(--text);
-        padding: 6px 14px;
+        gap: 8px;
+        padding: 8px 16px;
         border-radius: 50px;
         font-size: 0.85rem;
         font-weight: 700;
         margin: 4px;
+        transition: all 0.3s ease;
+        cursor: default;
+        opacity: 0;
+        transform: translateY(10px);
+        animation: tagAppear 0.4s ease forwards;
+    }
+    .symptom-tag:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .symptom-tag.normal {
+        background: linear-gradient(135deg, #D4EDDA 0%, #C3E6CB 100%);
+        border: 1px solid #28A745;
+        color: #155724;
+    }
+    .symptom-tag.abnormal {
+        background: linear-gradient(135deg, #FFF3CD 0%, #FFEEBA 100%);
+        border: 1px solid #FFC107;
+        color: #856404;
+    }
+    .symptom-tag.danger {
+        background: linear-gradient(135deg, #F8D7DA 0%, #F5C6CB 100%);
+        border: 1px solid #DC3545;
+        color: #721C24;
+    }
+    .symptom-tag.severe {
+        background: linear-gradient(135deg, #C0392B 0%, #E74C3C 100%);
+        border: none;
+        color: white;
+        animation: tagAppear 0.4s ease forwards, severePulse 2s ease-in-out infinite;
+    }
+    @@keyframes tagAppear {
+        to { opacity: 1; transform: translateY(0); }
+    }
+    @@keyframes severePulse {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.4); }
+        50% { box-shadow: 0 0 0 8px rgba(231, 76, 60, 0); }
     }
 
+    /* Recommendation Boxes */
     .recommendation-box {
         background: #F8FAFC;
         border-right: 5px solid @hexColor;
@@ -71,6 +156,76 @@
         padding: 1.25rem;
         margin-bottom: 1rem;
         box-shadow: 0 4px 15px rgba(0,0,0,0.01);
+        opacity: 0;
+        transform: translateX(20px);
+        animation: recSlide 0.5s ease forwards;
+        transition: all 0.3s ease;
+    }
+    .recommendation-box:hover {
+        transform: translateX(-4px);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.05);
+    }
+    @@keyframes recSlide {
+        to { opacity: 1; transform: translateX(0); }
+    }
+
+    /* Risk Banner */
+    .risk-banner {
+        position: relative;
+        overflow: hidden;
+    }
+    .risk-banner::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
+        animation: shimmer 3s infinite;
+    }
+    @@keyframes shimmer {
+        0% { transform: translateX(-100%) rotate(45deg); }
+        100% { transform: translateX(100%) rotate(45deg); }
+    }
+
+    /* Emergency Pulse */
+    .emergency-pulse {
+        animation: emergencyGlow 1.5s ease-in-out infinite;
+    }
+    @@keyframes emergencyGlow {
+        0%, 100% { box-shadow: 0 0 20px rgba(231, 76, 60, 0.3); }
+        50% { box-shadow: 0 0 40px rgba(231, 76, 60, 0.6); }
+    }
+
+    /* Section Headers */
+    .section-header {
+        position: relative;
+        padding-bottom: 0.5rem;
+    }
+    .section-header::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        width: 60px;
+        height: 3px;
+        background: linear-gradient(90deg, @hexColor, transparent);
+        border-radius: 2px;
+    }
+
+    /* Stats Row */
+    .stat-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1rem;
+        text-align: center;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        transition: all 0.3s ease;
+    }
+    .stat-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.1);
     }
 </style>
 
@@ -81,24 +236,56 @@
             <!-- Result Gauge -->
             <div class="gauge-container">
                 <svg class="gauge-svg">
-                    <circle class="gauge-track" cx="100" cy="100" r="90" />
-                    <circle class="gauge-fill" id="riskGaugeFill" cx="100" cy="100" r="90" />
+                    <circle class="gauge-track" cx="110" cy="110" r="90" />
+                    <circle class="gauge-fill gauge-glow" id="riskGaugeFill" cx="110" cy="110" r="90" />
                 </svg>
                 <div class="gauge-text">
-                    <span class="fs-4 text-muted fw-bold">النتيجة</span>
-                    <h1 class="fw-black mb-0 display-4" style="color: @hexColor">@Math.Round(Model.RiskScore)%</h1>
+                    <span class="fs-5 text-muted fw-bold">النتيجة</span>
+                    <h1 class="fw-black mb-0 display-3" style="color: @hexColor">@percentage%</h1>
+                    <span class="small fw-bold" style="color: @hexColor">@Model.RiskLabel</span>
+                </div>
+            </div>
+
+            <!-- Severity Scale -->
+            <div class="severity-scale mb-4">
+                <div class="severity-segment @(percentage <= 25 ? "active" : "inactive")" style="background: #27AE60;"></div>
+                <div class="severity-segment @(percentage > 25 && percentage <= 50 ? "active" : "inactive")" style="background: #F39C12;"></div>
+                <div class="severity-segment @(percentage > 50 && percentage <= 75 ? "active" : "inactive")" style="background: #E67E22;"></div>
+                <div class="severity-segment @(percentage > 75 ? "active" : "inactive")" style="background: #E74C3C;"></div>
+                <div class="severity-indicator" id="severityIndicator"></div>
+            </div>
+
+            <!-- Quick Stats -->
+            <div class="row g-3 mb-4">
+                <div class="col-4">
+                    <div class="stat-card">
+                        <div class="fs-4 fw-bold" style="color: @hexColor">@percentage%</div>
+                        <div class="small text-muted fw-bold">درجة الخطر</div>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <div class="stat-card">
+                        <div class="fs-4 fw-bold text-primary">@Model.TriggeredSymptoms.Count</div>
+                        <div class="small text-muted fw-bold">مؤشر تم رصده</div>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <div class="stat-card">
+                        <div class="fs-4 fw-bold @(Model.IsEmergency ? "text-danger" : "text-success")">@(Model.IsEmergency ? "طارئ" : "مستقر")</div>
+                        <div class="small text-muted fw-bold">الحالة الحالية</div>
+                    </div>
                 </div>
             </div>
 
             <!-- Risk Label Banner -->
-            <div class="p-3 mb-4 rounded-4 text-white d-inline-block px-5" style="background-color: @hexColor; box-shadow: 0 8px 25px rgba(0,0,0,0.1);">
+            <div class="p-3 mb-4 rounded-4 text-white d-inline-block px-5 risk-banner" style="background-color: @hexColor; box-shadow: 0 8px 25px rgba(0,0,0,0.15);">
                 <h4 class="fw-black mb-0"><i class="fas fa-notes-medical"></i> مستوى الخطر: @Model.RiskLabel</h4>
             </div>
 
             <!-- Outbreak / System Alert Notice -->
             @if (Model.IsEmergency)
             {
-                <div class="alert alert-danger d-flex align-items-center gap-3 py-3 px-4 text-start mb-5 animate__animated animate__flash animate__infinite" style="animation-duration: 3s; border-radius: 16px;">
+                <div class="alert alert-danger d-flex align-items-center gap-3 py-3 px-4 text-start mb-5 animate__animated animate__flash animate__infinite emergency-pulse" style="animation-duration: 3s; border-radius: 16px;">
                     <span class="fs-2 text-danger"><i class="fas fa-exclamation-triangle"></i></span>
                     <div>
                         <h6 class="fw-bold mb-1 text-danger">تحذير طبي عاجل!</h6>
@@ -115,7 +302,7 @@
 
             @if (Model.WasAutoEscalated)
             {
-                <div class="alert alert-warning py-3 px-4 text-start mb-4" style="border-radius:12px;">
+                <div class="alert alert-warning py-3 px-4 text-start mb-4 animate__animated animate__shakeX" style="border-radius:12px;">
                     <i class="fas fa-share-square"></i> <strong>تصعيد آلي للحالة:</strong> @Model.EscalationMessage
                 </div>
             }
@@ -124,11 +311,44 @@
             @if (Model.TriggeredSymptoms.Any())
             {
                 <div class="text-start mb-5">
-                    <h5 class="fw-bold text-dark mb-3"><i class="fas fa-viruses text-secondary"></i> الأعراض التي تم رصدها:</h5>
+                    <h5 class="fw-bold text-dark mb-3 section-header"><i class="fas fa-viruses text-secondary"></i> المؤشرات الحيوية والأعراض التي تم رصدها:</h5>
                     <div class="d-flex flex-wrap">
-                        @foreach (var symptom in Model.TriggeredSymptoms)
-                        {
-                            <span class="symptom-tag"><i class="fas fa-check text-danger"></i> @symptom</span>
+                        @{
+                            int delay = 0;
+                            foreach (var symptom in Model.TriggeredSymptoms)
+                            {
+                                string tagClass = "normal";
+                                string icon = "fa-check-circle";
+                                
+                                if (symptom.Contains("غير طبيعي") || symptom.Contains("منخفض"))
+                                {
+                                    tagClass = symptom.Contains("خطير") ? "severe" : "danger";
+                                    icon = "fa-exclamation-triangle";
+                                }
+                                else if (symptom.Contains("عرض:"))
+                                {
+                                    tagClass = symptom.Contains("خطير") ? "severe" : "abnormal";
+                                    icon = symptom.Contains("خطير") ? "fa-exclamation-triangle" : "fa-virus";
+                                }
+                                else if (symptom.Contains("عرض خطير:"))
+                                {
+                                    tagClass = "severe";
+                                    icon = "fa-exclamation-triangle";
+                                }
+                                else if (symptom.Contains("ضغط الدم") || symptom.Contains("معدل ضربات") || symptom.Contains("درجة الحرارة") || symptom.Contains("تشبع") || symptom.Contains("السكر"))
+                                {
+                                    tagClass = "normal";
+                                    icon = symptom.Contains("ضغط الدم") ? "fa-heartbeat" : 
+                                           symptom.Contains("معدل ضربات") ? "fa-heartbeat" : 
+                                           symptom.Contains("درجة الحرارة") ? "fa-thermometer-half" : 
+                                           symptom.Contains("تشبع") ? "fa-lungs" : "fa-tint";
+                                }
+
+                                <span class="symptom-tag @tagClass" style="animation-delay: @(delay * 100)ms;">
+                                    <i class="fas @icon"></i> @symptom
+                                </span>
+                                delay++;
+                            }
                         }
                     </div>
                 </div>
@@ -136,14 +356,16 @@
 
             <!-- Clinical Recommendations -->
             <div class="text-start mb-5">
-                <h5 class="fw-bold text-dark mb-3"><i class="fas fa-file-invoice-dollar text-primary"></i> التوصيات الطبية والنصائح الوقائية:</h5>
+                <h5 class="fw-bold text-dark mb-3 section-header"><i class="fas fa-file-invoice-dollar text-primary"></i> التوصيات الطبية والنصائح الوقائية:</h5>
                 @if (Model.Recommendations.Any())
                 {
+                    int recDelay = 0;
                     @foreach (var rec in Model.Recommendations)
                     {
-                        <div class="recommendation-box">
+                        <div class="recommendation-box" style="animation-delay: @(recDelay * 150)ms;">
                             <p class="mb-0 fw-bold text-dark"><i class="fas fa-info-circle text-primary me-2"></i> @rec</p>
                         </div>
+                        recDelay++;
                     }
                 }
                 else
@@ -157,7 +379,7 @@
             <!-- Nearest Emergency Center suggestion -->
             @if (!string.IsNullOrEmpty(Model.NearestEmergencyCenter))
             {
-                <div class="alert alert-info py-3 px-4 text-start mb-5 d-flex align-items-center gap-3" style="border-radius: 12px;">
+                <div class="alert alert-info py-3 px-4 text-start mb-5 d-flex align-items-center gap-3 animate__animated animate__fadeIn" style="border-radius: 12px;">
                     <div class="fs-3 text-primary"><i class="fas fa-hospital-user"></i></div>
                     <div>
                         <span class="fw-bold d-block">أقرب مركز طوارئ متاح لك:</span>
@@ -232,14 +454,22 @@
     <script>
         $(document).ready(function() {
             var score = @Model.RiskScore;
-            var maxOffset = 565.48; // Circumference
-            // Calculate progress offset
-            var offset = maxOffset - (score / 100 * maxOffset);
+            var maxOffset = 565.48; // Circumference (2 * PI * 90)
+            
+            // Calculate progress offset (score is 0-1, multiply by 100 for percentage)
+            var offset = maxOffset - (score * maxOffset);
             
             // Set dashoffset dynamically with delay to trigger animation
             setTimeout(function() {
                 $('#riskGaugeFill').css('stroke-dashoffset', offset);
-            }, 100);
+            }, 300);
+
+            // Animate severity indicator
+            var percentage = @percentage;
+            var indicatorPosition = (percentage / 100) * 100;
+            setTimeout(function() {
+                $('#severityIndicator').css('left', indicatorPosition + '%');
+            }, 500);
         });
 
         function loadAiExplanation(id) {

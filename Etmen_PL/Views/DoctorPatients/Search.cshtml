@@ -1,0 +1,151 @@
+@using Etmen_PL.Models.ViewModels.Doctor
+@model PatientSearchViewModel
+@{
+    ViewData["Title"] = "بحث المرضى";
+    Layout = "~/Views/Shared/_DoctorLayout.cshtml";
+}
+
+<div class="row g-4">
+    <div class="col-12">
+        <div class="glass-panel animate__animated animate__fadeInUp" style="background:linear-gradient(135deg, rgba(10,28,44,0.95), rgba(14,96,121,0.88)), url('https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&w=1200&q=80') center/cover; color:white; border:none; padding:2.5rem;">
+            <div class="row align-items-center">
+                <div class="col-lg-8">
+                    <h3 class="fw-bold mb-2"><i class="fas fa-search ms-2" style="color:var(--accent);"></i> بحث عن مريض</h3>
+                    <p class="mb-0" style="color:rgba(255,255,255,0.7);">ابحث عن مرضاك بسهولة بالاسم أو رقم الهاتف</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12">
+        <div class="dr-card animate__animated animate__fadeInUp" style="animation-delay:0.1s;">
+            <form id="searchForm" method="post" asp-action="Search">
+                @Html.AntiForgeryToken()
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-8">
+                        <label class="form-label">البحث</label>
+                        <div class="input-group">
+                            <input type="text" name="searchTerm" id="searchTerm" class="form-control form-control-lg" placeholder="ابحث باسم المريض أو رقم الهاتف..." value="@Model.SearchTerm" autocomplete="off" />
+                            <button type="submit" class="btn-primary-custom px-4">
+                                <i class="fas fa-search"></i> بحث
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">تصفية</label>
+                        <select class="form-select" id="filterBy">
+                            <option value="">الكل</option>
+                            <option value="Name">الاسم</option>
+                            <option value="Phone">رقم الهاتف</option>
+                        </select>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="col-12">
+        <div class="dr-card animate__animated animate__fadeInUp" style="animation-delay:0.2s;">
+            <div class="dr-card-header">
+                <h5 class="dr-card-title"><i class="fas fa-users"></i> نتائج البحث</h5>
+                <span class="text-muted small fw-bold" id="resultsCount">@Model.SearchResults.Count @(Model.SearchResults.Count == 1 ? "نتيجة" : "نتائج")</span>
+            </div>
+
+            <div id="searchResults">
+                @if (Model.SearchResults.Any())
+                {
+                    <div class="table-responsive-custom">
+                        <table class="dr-table">
+                            <thead>
+                                <tr>
+                                    <th>الاسم</th>
+                                    <th>رقم الهاتف</th>
+                                    <th>البريد الإلكتروني</th>
+                                    <th>تاريخ الميلاد</th>
+                                    <th>فصيلة الدم</th>
+                                    <th>أمراض مزمنة</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var pt in Model.SearchResults)
+                                {
+                                    <tr>
+                                        <td class="fw-bold">@pt.FullName</td>
+                                        <td dir="ltr" style="direction:ltr;">@(pt.PhoneNumber ?? "-")</td>
+                                        <td>@(pt.Email ?? "-")</td>
+                                        <td>@(pt.DateOfBirth?.ToString("dd/MM/yyyy") ?? "-")</td>
+                                        <td>
+                                            @if (!string.IsNullOrEmpty(pt.BloodType))
+                                            {
+                                                <span class="badge rounded-pill px-3 py-2" style="background:var(--primary-light);color:var(--primary);font-weight:700;">
+                                                    @pt.BloodType
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">-</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            @if (pt.HasChronicDiseases)
+                                            {
+                                                <span class="status-badge confirmed"><span class="dot"></span> نعم</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">لا</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <a href="/DoctorPatients/Details/@pt.Id" class="table-action-btn" title="عرض الملف">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="empty-state">
+                        <div class="empty-state-icon"><i class="fas fa-search"></i></div>
+                        <div class="empty-state-text">ابحث عن مريض للبدء</div>
+                        <p class="text-muted small mt-2">اكتب اسم المريض أو رقم هاتفه لعرض النتائج</p>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Real-time search on typing (with debounce)
+        let searchTimer;
+        $('#searchTerm').on('input', function() {
+            clearTimeout(searchTimer);
+            const term = $(this).val().trim();
+            if (term.length < 1) {
+                $('#searchResults').html(`
+                    <div class="empty-state">
+                        <div class="empty-state-icon"><i class="fas fa-search"></i></div>
+                        <div class="empty-state-text">ابحث عن مريض للبدء</div>
+                        <p class="text-muted small mt-2">اكتب اسم المريض أو رقم هاتفه لعرض النتائج</p>
+                    </div>
+                `);
+                $('#resultsCount').text('0 نتائج');
+                return;
+            }
+            searchTimer = setTimeout(function() {
+                $.post('/DoctorPatients/Search', { searchTerm: term, __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').val() }, function(data) {
+                    $('#searchResults').html(data);
+                    const count = $(data).find('tbody tr').length;
+                    $('#resultsCount').text(count + (count === 1 ? ' نتيجة' : ' نتائج'));
+                });
+            }, 400);
+        });
+    </script>
+}

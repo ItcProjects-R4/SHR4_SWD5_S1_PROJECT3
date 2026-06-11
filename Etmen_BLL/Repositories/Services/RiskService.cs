@@ -34,28 +34,91 @@ namespace Etmen_BLL.Repositories.Services
         public async Task<ServiceResult<RiskResultDto>> CalculateRiskAsync(RiskInputDto dto)
         {
             if (dto is null)
-                return ServiceResult<RiskResultDto>.Failure("Risk input data is required.");
+                return ServiceResult<RiskResultDto>.Failure("بيانات الإدخال مطلوبة.");
 
-            var (riskScore, isEmergency, triggeredFactors) = RiskCalculatorHelper.Calculate(
-                dto.SystolicBP,
-                dto.DiastolicBP,
-                dto.HeartRate,
-                dto.Temperature,
-                dto.OxygenSaturation,
-                dto.BloodSugar,
-                dto.Symptoms);
+            // Validate required vital signs
+            var missingFields = new List<string>();
+            if (!dto.HeartRate.HasValue)
+                missingFields.Add("معدل نبضات القلب");
+            if (!dto.SystolicBP.HasValue)
+                missingFields.Add("ضغط الدم الانقباضي");
+            if (!dto.DiastolicBP.HasValue)
+                missingFields.Add("ضغط الدم الانبساطي");
+            if (!dto.Temperature.HasValue)
+                missingFields.Add("درجة الحرارة");
+            if (!dto.OxygenSaturation.HasValue)
+                missingFields.Add("نسبة تشبّع الأكسجين");
+            if (!dto.BloodSugar.HasValue)
+                missingFields.Add("مستوى السكر في الدم");
 
-            var riskLevel = RiskCalculatorHelper.GetRiskLevel(riskScore);
-            return ServiceResult<RiskResultDto>.Success(new RiskResultDto
+            if (missingFields.Count > 0)
             {
-                RiskScore = riskScore,
-                RiskLevel = riskLevel,
-                RiskColor = RiskLevelMapper.ToColor(riskLevel),
-                RiskLabel = RiskLevelMapper.ToArabicLabel(riskLevel),
-                IsEmergency = isEmergency,
-                Recommendations = RiskCalculatorHelper.GenerateRecommendations(riskLevel, triggeredFactors),
-                TriggeredSymptoms = triggeredFactors
-            });
+                var fields = string.Join("، ", missingFields);
+                return ServiceResult<RiskResultDto>.Failure($"يرجى إدخال الحقول التالية: {fields}");
+            }
+
+            // Validate vital sign ranges
+            var hr = dto.HeartRate.GetValueOrDefault();
+            var sbp = dto.SystolicBP.GetValueOrDefault();
+            var dbp = dto.DiastolicBP.GetValueOrDefault();
+            var temp = dto.Temperature.GetValueOrDefault();
+            var spo2 = dto.OxygenSaturation.GetValueOrDefault();
+            var bs = dto.BloodSugar.GetValueOrDefault();
+
+            var invalidFields = new List<string>();
+            if (hr < 20 || hr > 300)
+                invalidFields.Add("معدل نبضات القلب غير صحيح (يجب أن يكون بين 20 و 300)");
+            if (sbp < 40 || sbp > 300)
+                invalidFields.Add("ضغط الدم الانقباضي غير صحيح (يجب أن يكون بين 40 و 300)");
+            if (dbp < 20 || dbp > 200)
+                invalidFields.Add("ضغط الدم الانبساطي غير صحيح (يجب أن يكون بين 20 و 200)");
+            if (temp < 30 || temp > 45)
+                invalidFields.Add("درجة الحرارة غير صحيحة (يجب أن تكون بين 30 و 45 درجة مئوية)");
+            if (spo2 < 30 || spo2 > 100)
+                invalidFields.Add("نسبة الأكسجين غير صحيحة (يجب أن تكون بين 30% و 100%)");
+            if (bs < 20 || bs > 600)
+                invalidFields.Add("مستوى السكر غير صحيح (يجب أن يكون بين 20 و 600 mg/dL)");
+
+            if (invalidFields.Count > 0)
+            {
+                var fields = string.Join("، ", invalidFields);
+                return ServiceResult<RiskResultDto>.Failure($"بيانات غير صالحة: {fields}");
+            }
+
+            // Validate blood pressure logic (systolic must be higher than diastolic)
+            if (sbp <= dbp)
+            {
+                return ServiceResult<RiskResultDto>.Failure("خطأ في بيانات ضغط الدم: الضغط الانقباضي (العليا) يجب أن يكون أعلى من الانبساطي (السفلي).");
+            }
+
+            try
+            {
+                var (riskScore, isEmergency, triggeredFactors) = RiskCalculatorHelper.Calculate(
+                    dto.SystolicBP,
+                    dto.DiastolicBP,
+                    dto.HeartRate,
+                    dto.Temperature,
+                    dto.OxygenSaturation,
+                    dto.BloodSugar,
+                    dto.Symptoms);
+
+                var riskLevel = RiskCalculatorHelper.GetRiskLevel(riskScore);
+                return ServiceResult<RiskResultDto>.Success(new RiskResultDto
+                {
+                    RiskScore = riskScore,
+                    RiskLevel = riskLevel,
+                    RiskColor = RiskLevelMapper.ToColor(riskLevel),
+                    RiskLabel = RiskLevelMapper.ToArabicLabel(riskLevel),
+                    IsEmergency = isEmergency,
+                    Recommendations = RiskCalculatorHelper.GenerateRecommendations(riskLevel, triggeredFactors),
+                    TriggeredSymptoms = triggeredFactors
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error calculating risk score");
+                return ServiceResult<RiskResultDto>.Failure("حدث خطأ أثناء حساب تقييم المخاطر. يرجى التحقق من صحة البيانات المدخلة.");
+            }
         }
 
         public async Task<ServiceResult<List<RiskResultDto>>> GetPatientRiskHistoryAsync(int patientProfileId)

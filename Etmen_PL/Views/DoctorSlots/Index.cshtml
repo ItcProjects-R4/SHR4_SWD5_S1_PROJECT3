@@ -1,0 +1,93 @@
+@model List<Etmen_BLL.DTOs.Nearby.AvailableSlotDto>
+@{
+    ViewData["Title"] = "أوقات العمل";
+    Layout = "~/Views/Shared/_DoctorLayout.cshtml";
+}
+
+<div class="row g-4">
+    <div class="col-12">
+        <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center">
+            <div>
+                <h5 class="fw-bold mb-1"><i class="fas fa-clock ms-2" style="color:var(--primary);"></i> إدارة أوقات العمل</h5>
+                <p class="text-muted small mb-0">أضف وأدر أوقات توفرك للمواعيد</p>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="/DoctorSlots/Create" class="btn-primary-custom">
+                    <i class="fas fa-plus"></i> إضافة موعد
+                </a>
+                <a href="/DoctorSlots/BulkCreate" class="btn-outline-custom">
+                    <i class="fas fa-calendar-plus"></i> إضافة متعددة
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12">
+        <div class="dr-card animate__animated animate__fadeInUp">
+            @if (Model.Any())
+            {
+                <div class="table-responsive-custom">
+                    <table class="dr-table">
+                        <thead>
+                            <tr>
+                                <th>التاريخ</th>
+                                <th>من</th>
+                                <th>إلى</th>
+                                <th>الحالة</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var slot in Model.OrderBy(s => s.Date).ThenBy(s => s.StartTime))
+                            {
+                                <tr>
+                                    <td class="fw-bold">@slot.Date.ToString("dddd، dd MMMM yyyy", new System.Globalization.CultureInfo("ar-SA"))</td>
+                                    <td>@slot.StartTime.ToString(@"hh\:mm")</td>
+                                    <td>@slot.EndTime.ToString(@"hh\:mm")</td>
+                                    <td>
+                                        @if (slot.IsBooked)
+                                        {
+                                            <span class="status-badge cancelled"><span class="dot"></span> محجوز</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="status-badge completed"><span class="dot"></span> متاح</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (!slot.IsBooked)
+                                        {
+                                            <form asp-action="Delete" asp-controller="DoctorSlots" method="post" style="display:inline;" onsubmit="return confirm('هل أنت متأكد من حذف هذا الموعد؟');">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="id" value="@slot.Id" />
+                                                <button type="submit" class="table-action-btn danger" title="حذف">
+                                                    <i class="fas fa-trash-alt"></i>
+                                                </button>
+                                            </form>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="empty-state">
+                    <div class="empty-state-icon"><i class="far fa-clock"></i></div>
+                    <div class="empty-state-text">لا توجد أوقات عمل مسجلة</div>
+                    <p class="text-muted small mt-2">أضف أوقات عملك ليتمكن المرضى من حجز المواعيد</p>
+                    <div class="mt-3 d-flex gap-2 justify-content-center">
+                        <a href="/DoctorSlots/Create" class="btn-primary-custom">
+                            <i class="fas fa-plus"></i> إضافة موعد
+                        </a>
+                        <a href="/DoctorSlots/BulkCreate" class="btn-outline-custom">
+                            <i class="fas fa-calendar-plus"></i> إضافة متعددة
+                        </a>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>

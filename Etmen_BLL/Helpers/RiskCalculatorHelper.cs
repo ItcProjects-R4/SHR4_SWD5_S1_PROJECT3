@@ -9,18 +9,56 @@ namespace Etmen_BLL.Helpers
     /// </summary>
     public static class RiskCalculatorHelper
     {
-        // ── Vital thresholds ──────────────────────────────────────────────────────
-        private const decimal NormalSystolicMin    = 90m;
-        private const decimal NormalSystolicMax    = 140m;
-        private const decimal NormalDiastolicMin   = 60m;
-        private const decimal NormalDiastolicMax   = 90m;
-        private const decimal NormalHeartRateMin   = 60m;
-        private const decimal NormalHeartRateMax   = 100m;
-        private const decimal NormalTempMin        = 36.0m;
-        private const decimal NormalTempMax        = 37.5m;
-        private const decimal NormalOxygenMin      = 95m;
-        private const decimal NormalBloodSugarMin  = 70m;
-        private const decimal NormalBloodSugarMax  = 180m;
+        // ── Clinical severity thresholds (based on AHA/WHO guidelines) ────────────
+        // Systolic BP tiers - AHA guidelines (mmHg)
+        private const decimal SBP_CRITICAL_LOW    = 70m;
+        private const decimal SBP_MODERATE_LOW    = 80m;
+        private const decimal SBP_MILD_LOW        = 89m;
+        private const decimal SBP_NORMAL          = 120m;   // <120 normal
+        private const decimal SBP_ELEVATED        = 130m;   // 120-129 elevated
+        private const decimal SBP_STAGE1          = 140m;   // 130-139 Stage 1 HTN
+        private const decimal SBP_STAGE2          = 180m;   // 140-179 Stage 2 HTN
+                                                            // >=180 crisis
+
+        // Diastolic BP tiers - AHA guidelines (mmHg)
+        private const decimal DBP_CRITICAL_LOW    = 40m;
+        private const decimal DBP_MODERATE_LOW    = 50m;
+        private const decimal DBP_MILD_LOW        = 59m;
+        private const decimal DBP_NORMAL          = 80m;    // <80 normal
+        private const decimal DBP_ELEVATED        = 90m;    // 80-89 elevated
+        private const decimal DBP_STAGE2          = 120m;   // 90-119 Stage 2 HTN
+                                                            // >=120 crisis
+
+        // Heart rate tiers (bpm)
+        private const decimal HR_CRITICAL_LOW     = 40m;
+        private const decimal HR_MODERATE_LOW     = 49m;
+        private const decimal HR_MILD_LOW         = 59m;
+        private const decimal HR_NORMAL_MIN       = 60m;
+        private const decimal HR_NORMAL_MAX       = 100m;
+        private const decimal HR_MILD_HIGH        = 120m;
+        private const decimal HR_MODERATE_HIGH    = 140m;
+
+        // Temperature tiers (°C)
+        private const decimal TEMP_CRITICAL_LOW   = 35.0m;
+        private const decimal TEMP_MODERATE_LOW   = 35.5m;
+        private const decimal TEMP_NORMAL_MIN     = 36.0m;
+        private const decimal TEMP_NORMAL_MAX     = 37.5m;
+        private const decimal TEMP_MILD_FEVER     = 38.5m;
+        private const decimal TEMP_MODERATE_FEVER = 39.5m;
+
+        // Oxygen saturation tiers (%)
+        private const decimal SPO2_NORMAL_MIN     = 95m;
+        private const decimal SPO2_MILD           = 90m;
+        private const decimal SPO2_MODERATE       = 85m;
+
+        // Blood sugar tiers (mg/dL)
+        private const decimal BS_CRITICAL_LOW     = 50m;
+        private const decimal BS_MODERATE_LOW     = 69m;
+        private const decimal BS_NORMAL_MIN       = 70m;
+        private const decimal BS_NORMAL_MAX       = 180m;
+        private const decimal BS_MILD_HIGH        = 220m;
+        private const decimal BS_MODERATE_HIGH    = 300m;
+        private const decimal BS_SEVERE_HIGH      = 400m;
 
         // ── High-risk symptom keywords (Arabic + English) ─────────────────────────
         private static readonly HashSet<string> HighRiskSymptoms = new(StringComparer.OrdinalIgnoreCase)
@@ -39,6 +77,8 @@ namespace Etmen_BLL.Helpers
 
         /// <summary>
         /// Computes a composite risk score (0.0 – 1.0) from patient vitals and symptoms.
+        /// Uses tier-based clinical scoring (AHA/WHO guidelines) with max-weighted aggregation
+        /// so that a single severe abnormality elevates the overall score appropriately.
         /// </summary>
         public static (decimal Score, bool IsEmergency, List<string> TriggeredFactors) Calculate(
             decimal? systolicBP,
@@ -50,59 +90,67 @@ namespace Etmen_BLL.Helpers
             string? symptomsRaw)
         {
             var triggeredFactors = new List<string>();
-            decimal totalScore = 0;
-            int factors = 0;
+            var scores = new List<decimal>();
 
-            // ── Vital scoring ─────────────────────────────────────────────────────
+            // ── Vital scoring (tier-based) ─────────────────────────────────────────
             if (systolicBP.HasValue)
             {
-                var score = ScoreVital(systolicBP.Value, NormalSystolicMin, NormalSystolicMax);
-                totalScore += score;
-                factors++;
-                if (score > 0.5m) triggeredFactors.Add($"ضغط الدم الانقباضي غير طبيعي ({systolicBP} mmHg)");
+                var score = ScoreSystolicBP(systolicBP.Value);
+                scores.Add(score);
+                var status = GetStatus(score);
+                triggeredFactors.Add($"ضغط الدم الانقباضي: {systolicBP} mmHg{status}");
             }
 
             if (diastolicBP.HasValue)
             {
-                var score = ScoreVital(diastolicBP.Value, NormalDiastolicMin, NormalDiastolicMax);
-                totalScore += score;
-                factors++;
-                if (score > 0.5m) triggeredFactors.Add($"ضغط الدم الانبساطي غير طبيعي ({diastolicBP} mmHg)");
+                var score = ScoreDiastolicBP(diastolicBP.Value);
+                scores.Add(score);
+                var status = GetStatus(score);
+                triggeredFactors.Add($"ضغط الدم الانبساطي: {diastolicBP} mmHg{status}");
             }
 
             if (heartRate.HasValue)
             {
-                var score = ScoreVital(heartRate.Value, NormalHeartRateMin, NormalHeartRateMax);
-                totalScore += score;
-                factors++;
-                if (score > 0.5m) triggeredFactors.Add($"معدل ضربات القلب غير طبيعي ({heartRate} bpm)");
+                var score = ScoreHeartRate(heartRate.Value);
+                scores.Add(score);
+                var status = GetStatus(score);
+                triggeredFactors.Add($"معدل ضربات القلب: {heartRate} bpm{status}");
             }
 
             if (temperature.HasValue)
             {
-                var score = ScoreVital(temperature.Value, NormalTempMin, NormalTempMax);
-                totalScore += score;
-                factors++;
-                if (score > 0.5m) triggeredFactors.Add($"درجة الحرارة غير طبيعية ({temperature}°C)");
+                var score = ScoreTemperature(temperature.Value);
+                scores.Add(score);
+                var status = GetStatus(score);
+                triggeredFactors.Add($"درجة الحرارة: {temperature}°C{status}");
             }
 
             if (oxygenSaturation.HasValue)
             {
-                // Oxygen: lower is worse; anything below 95% is risky
-                decimal score = oxygenSaturation.Value >= NormalOxygenMin ? 0 :
-                                oxygenSaturation.Value >= 90m ? 0.6m :
-                                oxygenSaturation.Value >= 85m ? 0.85m : 1.0m;
-                totalScore += score;
-                factors++;
-                if (score > 0.4m) triggeredFactors.Add($"تشبع الأكسجين منخفض ({oxygenSaturation}%)");
+                var score = ScoreOxygen(oxygenSaturation.Value);
+                scores.Add(score);
+                var status = GetOxygenStatus(score);
+                triggeredFactors.Add($"تشبع الأكسجين: {oxygenSaturation}%{status}");
             }
 
             if (bloodSugar.HasValue)
             {
-                var score = ScoreVital(bloodSugar.Value, NormalBloodSugarMin, NormalBloodSugarMax);
-                totalScore += score;
-                factors++;
-                if (score > 0.5m) triggeredFactors.Add($"مستوى السكر في الدم غير طبيعي ({bloodSugar} mg/dL)");
+                var score = ScoreBloodSugar(bloodSugar.Value);
+                scores.Add(score);
+                var status = GetStatus(score);
+                triggeredFactors.Add($"مستوى السكر في الدم: {bloodSugar} mg/dL{status}");
+            }
+
+            // ── Aggregate vital scores ─────────────────────────────────────────────
+            // Weighted: 60% max severity + 40% average across all vitals
+            // This ensures a single severe finding elevates the score while
+            // multiple moderate findings also contribute appropriately.
+            decimal vitalScore = 0;
+            if (scores.Count > 0)
+            {
+                var maxScore = scores.Max();
+                var avgScore = scores.Average();
+                vitalScore = Math.Min(Math.Round((0.6m * maxScore) + (0.4m * avgScore), 2), 1.0m);
             }
 
             // ── Symptom scoring ───────────────────────────────────────────────────
@@ -124,13 +172,16 @@ namespace Etmen_BLL.Helpers
                         symptomScore = Math.Max(symptomScore, 0.5m);
                         triggeredFactors.Add($"عرض: {symptom}");
                     }
+                    else
+                    {
+                        triggeredFactors.Add($"عرض: {symptom}");
+                    }
                 }
             }
 
-            totalScore += symptomScore;
-            factors = Math.Max(factors, 1); // avoid div by zero
-
-            var finalScore = Math.Min(Math.Round(totalScore / factors, 2), 1.0m);
+            // ── Final score ───────────────────────────────────────────────────────
+            // Take the max between vital and symptom scores
+            var finalScore = Math.Min(Math.Round(Math.Max(vitalScore, symptomScore), 2), 1.0m);
             bool isEmergency = finalScore >= 0.8m || oxygenSaturation < 90m || systolicBP > 180m;
 
             return (finalScore, isEmergency, triggeredFactors);
@@ -205,23 +256,167 @@ namespace Etmen_BLL.Helpers
                     break;
             }
 
+            foreach (var factor in triggeredFactors)
+            {
+                var isAbnormal = factor.Contains("(غير طبيعي)") || factor.Contains("(منخفض)")
+                    || factor.Contains("(شديد)") || factor.Contains("(مرتفع قليلاً)")
+                    || factor.Contains("(نقص أكسجة)") || factor.Contains("(منخفض قليلاً)");
+
+                if (isAbnormal)
+                {
+                    if (factor.Contains("ضغط الدم الانقباضي") || factor.Contains("ضغط الدم الانبساطي"))
+                    {
+                        if (factor.Contains("(شديد)"))
+                            recs.Add("ارتفاع ضغط الدم شديد الخطورة. يجب مراجعة الطوارئ فوراً لخفض الضغط");
+                        else
+                            recs.Add("ينصح بقياس ضغط الدم بانتظام وتجنب الأطعمة المالحة والدهون المشبعة");
+                    }
+
+                    if (factor.Contains("معدل ضربات القلب"))
+                    {
+                        if (factor.Contains("(شديد)"))
+                            recs.Add("اضطراب شديد في معدل ضربات القلب. يجب التوجه للطوارئ فوراً");
+                        else
+                            recs.Add("تجنب الكافيين والمنبهات، واحصل على قسط كاف من الراحة والاسترخاء");
+                    }
+
+                    if (factor.Contains("درجة الحرارة"))
+                    {
+                        if (factor.Contains("(شديد)"))
+                            recs.Add("حمى شديدة. توجه للطوارئ أو استشر طبيبك فوراً");
+                        else
+                            recs.Add("شرب السوائل الدافئة بكثرة وقياس درجة الحرارة كل 4 ساعات، مع إمكانية استخدام خافضات الحرارة");
+                    }
+
+                    if (factor.Contains("تشبع الأكسجين"))
+                    {
+                        if (factor.Contains("(نقص أكسجة حاد)"))
+                            recs.Add("نقص أكسجة حاد! يجب التوجه للطوارئ فوراً للحصول على الأكسجين");
+                        else
+                            recs.Add("الجلوس في وضعية مريحة نصف جالسة مع تهوية جيدة للغرفة، واستشارة الطبيب فوراً");
+                    }
+
+                    if (factor.Contains("السكر"))
+                    {
+                        if (factor.Contains("(شديد)"))
+                            recs.Add("ارتفاع/انخفاض السكر شديد الخطورة. توجه للطوارئ فوراً");
+                        else
+                            recs.Add("مراقبة مستوى السكر في الدم بانتظام وتجنب الحلويات والمشروبات السكرية");
+                    }
+                }
+
+                if (factor.Contains("عرض خطير"))
+                {
+                    recs.Add("انتبه جيداً للأعراض الخطيرة المدخلة واستشر الطبيب فور ظهور أي منها");
+                }
+            }
+
             return recs;
         }
 
         // ── Private helpers ───────────────────────────────────────────────────────
 
-        /// <summary>
-        /// Scores a vital value: 0 = normal, 1 = critically abnormal.
-        /// </summary>
-        private static decimal ScoreVital(decimal value, decimal min, decimal max)
+        /// <summary>Returns a severity label suffix for a given score.</summary>
+        private static string GetStatus(decimal score) => score switch
         {
-            if (value >= min && value <= max) return 0m;
+            >= 0.7m => " (شديد)",
+            >= 0.4m => " (غير طبيعي)",
+            >= 0.2m => " (مرتفع قليلاً)",
+            _       => ""
+        };
 
-            var deviation = value < min
-                ? (min - value) / min
-                : (value - max) / max;
+        /// <summary>Returns an oxygen-specific severity label suffix.</summary>
+        private static string GetOxygenStatus(decimal score) => score switch
+        {
+            >= 0.7m => " (نقص أكسجة حاد)",
+            >= 0.4m => " (نقص أكسجة)",
+            >= 0.2m => " (منخفض قليلاً)",
+            _       => ""
+        };
 
-            return Math.Min(Math.Round(deviation, 2), 1.0m);
-        }
+        /// <summary>
+        /// Clinically-accurate systolic BP scoring based on AHA hypertension stages.
+        /// Normal: <120, Elevated: 120-129, Stage 1: 130-139, Stage 2: 140-179, Crisis: >=180
+        /// </summary>
+        private static decimal ScoreSystolicBP(decimal value) => value switch
+        {
+            < SBP_CRITICAL_LOW   => 1.0m,  // < 70:  critical hypotension
+            < SBP_MODERATE_LOW   => 0.7m,  // 70-79: moderate hypotension
+            < SBP_MILD_LOW       => 0.4m,  // 80-89: mild hypotension
+            < SBP_NORMAL         => 0m,    // 90-119: normal
+            < SBP_ELEVATED       => 0.2m,  // 120-129: elevated
+            < SBP_STAGE1         => 0.4m,  // 130-139: Stage 1 HTN
+            < SBP_STAGE2         => 0.6m,  // 140-179: Stage 2 HTN
+            _                    => 0.9m   // >= 180: hypertensive crisis
+        };
+
+        /// <summary>
+        /// Diastolic BP scoring based on AHA hypertension stages.
+        /// Normal: <80, Elevated: 80-89, Stage 2: 90-119, Crisis: >=120
+        /// </summary>
+        private static decimal ScoreDiastolicBP(decimal value) => value switch
+        {
+            < DBP_CRITICAL_LOW   => 1.0m,  // < 40:  critical
+            < DBP_MODERATE_LOW   => 0.7m,  // 40-49: moderate low
+            < DBP_MILD_LOW       => 0.4m,  // 50-59: mild low
+            < DBP_NORMAL         => 0m,    // 60-79: normal
+            < DBP_ELEVATED       => 0.2m,  // 80-89: elevated
+            < DBP_STAGE2         => 0.5m,  // 90-119: Stage 2 HTN
+            _                    => 0.9m   // >= 120: critical
+        };
+
+        /// <summary>
+        /// Heart rate scoring: tachycardia and bradycardia tiers.
+        /// </summary>
+        private static decimal ScoreHeartRate(decimal value) => value switch
+        {
+            < HR_CRITICAL_LOW    => 1.0m,  // < 40:  severe bradycardia
+            < HR_MODERATE_LOW    => 0.7m,  // 40-49: moderate bradycardia
+            < HR_MILD_LOW        => 0.4m,  // 50-59: mild bradycardia
+            <= HR_NORMAL_MAX     => 0m,    // 60-100: normal
+            <= HR_MILD_HIGH      => 0.5m,  // 101-120: mild tachycardia
+            <= HR_MODERATE_HIGH  => 0.7m,  // 121-140: moderate tachycardia
+            _                    => 1.0m   // > 140: severe tachycardia
+        };
+
+        /// <summary>
+        /// Temperature scoring based on fever and hypothermia severity.
+        /// </summary>
+        private static decimal ScoreTemperature(decimal value) => value switch
+        {
+            < TEMP_CRITICAL_LOW  => 1.0m,  // < 35:  severe hypothermia
+            < TEMP_MODERATE_LOW  => 0.6m,  // 35.0-35.5: moderate hypothermia
+            < TEMP_NORMAL_MIN    => 0.3m,  // 35.6-35.9: mild hypothermia
+            <= TEMP_NORMAL_MAX   => 0m,    // 36.0-37.5: normal
+            <= TEMP_MILD_FEVER   => 0.4m,  // 37.6-38.5: mild fever
+            <= TEMP_MODERATE_FEVER => 0.7m, // 38.6-39.5: moderate fever
+            _                    => 0.9m   // > 39.5: high fever
+        };
+
+        /// <summary>
+        /// Oxygen saturation scoring for hypoxemia severity.
+        /// </summary>
+        private static decimal ScoreOxygen(decimal value) => value switch
+        {
+            >= SPO2_NORMAL_MIN   => 0m,    // >= 95%: normal
+            >= SPO2_MILD         => 0.5m,  // 90-94%: mild hypoxemia
+            >= SPO2_MODERATE     => 0.8m,  // 85-89%: moderate hypoxemia
+            _                    => 1.0m   // < 85%: severe hypoxemia
+        };
+
+        /// <summary>
+        /// Blood sugar scoring for hypo/hyperglycemia severity.
+        /// </summary>
+        private static decimal ScoreBloodSugar(decimal value) => value switch
+        {
+            < BS_CRITICAL_LOW    => 1.0m,  // < 50:  severe hypoglycemia
+            < BS_MODERATE_LOW    => 0.6m,  // 50-69: moderate hypoglycemia
+            < BS_NORMAL_MIN      => 0.3m,  // 70-79: mild hypoglycemia
+            <= BS_NORMAL_MAX     => 0m,    // 70-180: normal
+            <= BS_MILD_HIGH      => 0.5m,  // 181-220: mild hyperglycemia
+            <= BS_MODERATE_HIGH  => 0.65m, // 221-300: moderate hyperglycemia
+            <= BS_SEVERE_HIGH    => 0.8m,  // 301-400: severe hyperglycemia
+            _                    => 1.0m   // > 400: critical hyperglycemia
+        };
     }
 }

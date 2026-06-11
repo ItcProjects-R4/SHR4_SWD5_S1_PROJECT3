@@ -1,0 +1,125 @@
+@using Etmen_PL.Models.ViewModels.Emergency
+@model DoctorPanicInboxViewModel
+@{
+    ViewData["Title"] = "حالات الطوارئ";
+    Layout = "~/Views/Shared/_DoctorLayout.cshtml";
+}
+
+<div class="row g-4">
+    <div class="col-12">
+        <div class="glass-panel animate__animated animate__fadeInUp" style="background:linear-gradient(135deg, rgba(120,20,20,0.92), rgba(200,40,40,0.85)), url('https://images.unsplash.com/photo-1587745416684-47953f16fdd1?auto=format&fit=crop&w=1200&q=80') center/cover; color:white; border:none; padding:2rem;">
+            <div class="row align-items-center">
+                <div class="col-lg-8">
+                    <h3 class="fw-bold mb-2">
+                        <i class="fas fa-exclamation-triangle ms-2" style="color:var(--warning); animation: redFlash 1.8s infinite;"></i>
+                        صندوق حالات الطوارئ
+                    </h3>
+                    <p class="mb-0" style="color:rgba(255,255,255,0.7);">حالات حرجة تحتاج إلى متابعة فورية</p>
+                </div>
+                <div class="col-lg-4 text-lg-start text-center mt-3 mt-lg-0">
+                    <div class="d-inline-flex align-items-center gap-3 px-4 py-2 rounded-pill" style="background:rgba(255,255,255,0.12);backdrop-filter:blur(10px);">
+                        <div class="text-center">
+                            <div class="fw-bold fs-4">@Model.TotalCriticalCases</div>
+                            <small style="font-size:0.7rem;color:rgba(255,255,255,0.6);">إجمالي الحالات</small>
+                        </div>
+                        <div style="width:1px;height:30px;background:rgba(255,255,255,0.2);"></div>
+                        <div class="text-center">
+                            <div class="fw-bold fs-4" style="color:var(--warning);">@Model.UnassignedCriticalCases</div>
+                            <small style="font-size:0.7rem;color:rgba(255,255,255,0.6);">غير مخصصة</small>
+                        </div>
+                        <div style="width:1px;height:30px;background:rgba(255,255,255,0.2);"></div>
+                        <div class="text-center">
+                            <div class="fw-bold fs-4" style="color:var(--accent);">@Model.AssignedToDoctor</div>
+                            <small style="font-size:0.7rem;color:rgba(255,255,255,0.6);">مخصصة لك</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12">
+        <div class="dr-card animate__animated animate__fadeInUp" style="animation-delay:0.1s;">
+            <div class="dr-card-header">
+                <h5 class="dr-card-title"><i class="fas fa-list"></i> قائمة الحالات الحرجة</h5>
+                <a href="/DoctorPanicInbox" class="btn-outline-custom btn-sm py-1 px-3" style="font-size:0.75rem;" onclick="location.reload();">
+                    <i class="fas fa-sync-alt"></i> تحديث
+                </a>
+            </div>
+
+            @if (Model.Items.Any())
+            {
+                <div class="d-flex flex-column gap-2">
+                    @foreach (var item in Model.Items.OrderByDescending(i => i.PriorityScore))
+                    {
+                        <div class="critical-card animate__animated animate__fadeInUp" style="border-right-color: @(item.RiskLevel.ToString() switch { "Emergency" => "#E74C3C", "Critical" => "#F39C12", "High" => "#F39C12", _ => "#E74C3C" });">
+                            <div class="row align-items-center">
+                                <div class="col-md-5">
+                                    <div class="d-flex align-items-center gap-3">
+                                        <div class="sidebar-user-avatar flex-shrink-0" style="width:44px;height:44px;background:linear-gradient(135deg,var(--danger),#c0392b);">
+                                            <i class="fas fa-user"></i>
+                                        </div>
+                                        <div>
+                                            <h6 class="fw-bold mb-0">@item.PatientName</h6>
+                                            <small class="text-muted">
+                                                <i class="far fa-clock ms-1"></i> @item.RequestedAt.ToString("dd/MM/yyyy HH:mm")
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 mt-2 mt-md-0">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="priority-badge @(item.RiskLevel.ToString() switch { "Emergency" => "critical", "Critical" => "high", "High" => "high", _ => "medium" })">
+                                            @(item.RiskLevel.ToString() switch { "Emergency" => "طارئ", "Critical" => "خطير", "High" => "مرتفع", _ => item.RiskLevel.ToString() })
+                                        </span>
+                                        <span class="fw-bold small" style="color:var(--primary);">@item.RiskScore.ToString("P0")</span>
+                                    </div>
+                                    @if (!string.IsNullOrEmpty(item.Symptoms))
+                                    {
+                                        <small class="text-muted d-block mt-1" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="@item.Symptoms">
+                                            @item.Symptoms
+                                        </small>
+                                    }
+                                </div>
+                                <div class="col-md-2 mt-2 mt-md-0">
+                                    <span class="fw-bold small" style="color:var(--warning);">
+                                        <i class="fas fa-arrow-up"></i> أولوية @item.PriorityScore
+                                    </span>
+                                </div>
+                                <div class="col-md-2 mt-2 mt-md-0 text-md-start">
+                                    <div class="d-flex gap-1 justify-content-md-start">
+                                        @if (item.IsAssignedToCurrentDoctor)
+                                        {
+                                            <span class="status-badge in-progress"><span class="dot"></span> مخصص لك</span>
+                                        }
+                                        else
+                                        {
+                                            <form asp-action="AssignToMe" method="post" style="display:inline;">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="id" value="@item.EmergencyRequestId" />
+                                                <button type="submit" class="btn-primary-custom btn-sm py-1 px-3" style="font-size:0.75rem;">
+                                                    <i class="fas fa-hand-paper"></i> تولي الحالة
+                                                </button>
+                                            </form>
+                                        }
+                                        <a href="/DoctorPatients/Details/@item.PatientProfileId" class="table-action-btn" title="ملف المريض">
+                                            <i class="fas fa-user-md"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="empty-state">
+                    <div class="empty-state-icon" style="color:var(--success);"><i class="fas fa-check-circle"></i></div>
+                    <div class="empty-state-text">لا توجد حالات طوارئ نشطة</div>
+                    <p class="text-muted small mt-2">كل الحالات تحت السيطرة. سيتم إشعارك فور وجود حالة جديدة.</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>

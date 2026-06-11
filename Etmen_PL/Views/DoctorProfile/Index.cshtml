@@ -1,0 +1,124 @@
+@using Etmen_PL.Models.ViewModels.Doctor
+@model DoctorProfileViewModel
+@{
+    ViewData["Title"] = "الملف الشخصي";
+    Layout = "~/Views/Shared/_DoctorLayout.cshtml";
+}
+
+<div class="row g-4">
+    <div class="col-lg-4">
+        <div class="dr-card animate__animated animate__fadeInUp text-center">
+            <div class="sidebar-user-avatar mx-auto mb-3" style="width:90px;height:90px;background:linear-gradient(135deg,var(--primary),var(--accent));font-size:2.5rem;">
+                <i class="fas fa-user-md"></i>
+            </div>
+            <h4 class="fw-bold mb-1">د. @Model.FullName</h4>
+            <p class="text-muted mb-3">
+                @(Model.Specialization ?? "طبيب عام")
+                @if (Model.YearsOfExperience.HasValue)
+                {
+                    <span class="mx-2">•</span> <text>@Model.YearsOfExperience.Value سنة خبرة</text>
+                }
+            </p>
+
+            @if (!string.IsNullOrEmpty(Model.Email) || !string.IsNullOrEmpty(Model.PhoneNumber))
+            {
+                <div class="d-flex flex-column gap-2 text-start mb-3 p-3 rounded-3" style="background:#F8FAFC;">
+                    @if (!string.IsNullOrEmpty(Model.Email))
+                    {
+                        <div>
+                            <small class="text-muted fw-bold d-block">البريد الإلكتروني</small>
+                            <span class="fw-bold small">@Model.Email</span>
+                        </div>
+                    }
+                    @if (!string.IsNullOrEmpty(Model.PhoneNumber))
+                    {
+                        <div>
+                            <small class="text-muted fw-bold d-block">رقم الهاتف</small>
+                            <span class="fw-bold small" dir="ltr" style="direction:ltr;">@Model.PhoneNumber</span>
+                        </div>
+                    }
+                </div>
+            }
+
+            <div class="d-flex align-items-center justify-content-center gap-2 p-3 rounded-3" style="background:#F8FAFC;">
+                <span class="fw-bold small">الحالة:</span>
+                @if (Model.IsAvailable)
+                {
+                    <span class="status-badge completed"><span class="dot"></span> متاح</span>
+                }
+                else
+                {
+                    <span class="status-badge cancelled"><span class="dot"></span> غير متاح</span>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-8">
+        <div class="dr-card animate__animated animate__fadeInUp" style="animation-delay:0.1s;">
+            <div class="dr-card-header">
+                <h5 class="dr-card-title"><i class="fas fa-edit"></i> تعديل الملف الشخصي</h5>
+            </div>
+
+            <form asp-action="Index" method="post">
+                @Html.AntiForgeryToken()
+                <div asp-validation-summary="ModelOnly" class="custom-alert custom-alert-danger"></div>
+
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <label asp-for="FullName" class="form-label">الاسم الكامل</label>
+                        <input asp-for="FullName" class="form-control" />
+                        <span asp-validation-for="FullName" class="text-danger small fw-bold"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Specialization" class="form-label">التخصص</label>
+                        <input asp-for="Specialization" class="form-control" placeholder="مثال: قلب وأوعية دموية" />
+                        <span asp-validation-for="Specialization" class="text-danger small fw-bold"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="LicenseNumber" class="form-label">رقم الترخيص</label>
+                        <input asp-for="LicenseNumber" class="form-control" />
+                        <span asp-validation-for="LicenseNumber" class="text-danger small fw-bold"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="YearsOfExperience" class="form-label">سنوات الخبرة</label>
+                        <input asp-for="YearsOfExperience" class="form-control" type="number" min="0" max="60" />
+                        <span asp-validation-for="YearsOfExperience" class="text-danger small fw-bold"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="ConsultationFee" class="form-label">رسوم الاستشارة (جم)</label>
+                        <input asp-for="ConsultationFee" class="form-control" type="number" min="0" step="0.01" />
+                        <span asp-validation-for="ConsultationFee" class="text-danger small fw-bold"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">متاح للعمل</label>
+                        <div class="form-check form-switch mt-2">
+                            <input asp-for="IsAvailable" class="form-check-input" style="width:3rem;height:1.5rem;" />
+                            <label class="form-check-label fw-bold me-2" asp-for="IsAvailable">@(Model.IsAvailable ? "متاح" : "غير متاح")</label>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <label asp-for="Bio" class="form-label">السيرة الذاتية</label>
+                        <textarea asp-for="Bio" class="form-control" rows="4" placeholder="نبذة عن خبراتك ومؤهلاتك..."></textarea>
+                        <span asp-validation-for="Bio" class="text-danger small fw-bold"></span>
+                    </div>
+                </div>
+
+                <hr />
+                <button type="submit" class="btn-primary-custom">
+                    <i class="fas fa-save"></i> حفظ التغييرات
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        // Toggle switch label
+        $('#IsAvailable').on('change', function() {
+            $(this).next('label').text($(this).is(':checked') ? 'متاح' : 'غير متاح');
+        });
+    </script>
+}

@@ -35,11 +35,23 @@ namespace Etmen_PL.Controllers
             _logger         = logger;
         }
 
-        /// <summary>GET: /RiskAssessment/Index — Renders assessment inputs questionnaire</summary>
+        /// <summary>
+        /// GET: /RiskAssessment/Index — Renders assessment inputs questionnaire.
+        /// Accepts optional query params from the dashboard "آخر قياس طبي" to pre-fill vitals.
+        /// </summary>
         [HttpGet]
-        public IActionResult Index()
+        public IActionResult Index(decimal? hr, decimal? sbp, decimal? dbp, decimal? temp, decimal? spo2, decimal? bs)
         {
-            return View(new RiskAssessmentInputViewModel());
+            var model = new RiskAssessmentInputViewModel
+            {
+                HeartRate = hr,
+                SystolicBP = sbp,
+                DiastolicBP = dbp,
+                Temperature = temp,
+                OxygenSaturation = spo2,
+                BloodSugar = bs
+            };
+            return View(model);
         }
 
         /// <summary>
@@ -57,13 +69,17 @@ namespace Etmen_PL.Controllers
             {
                 var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
                 if (string.IsNullOrEmpty(userId))
-                    return RedirectToAction("Login", "Account");
+                {
+                    ModelState.AddModelError(string.Empty, "يجب تسجيل الدخول أولاً. يرجى إعادة تسجيل الدخول.");
+                    return View(viewModel);
+                }
 
                 // Get patient profile
                 var profileResult = await _patientService.GetProfileAsync(userId);
                 if (!profileResult.IsSuccess || profileResult.Data == null)
                 {
-                    ModelState.AddModelError(string.Empty, "لم يتم العثور على ملفك الطبي.");
+                    ModelState.AddModelError(string.Empty,
+                        "لم يتم العثور على ملفك الطبي. يرجى التأكد من إنشاء ملف طبي أولاً من خلال صفحة الملف الشخصي.");
                     return View(viewModel);
                 }
 
@@ -84,14 +100,15 @@ namespace Etmen_PL.Controllers
                 var calcResult = await _riskService.CalculateRiskAsync(dto);
                 if (!calcResult.IsSuccess || calcResult.Data == null)
                 {
-                    ModelState.AddModelError(string.Empty, calcResult.ErrorMessage ?? "فشل تقييم المخاطر.");
+                    ModelState.AddModelError(string.Empty, calcResult.ErrorMessage ?? "فشل تقييم المخاطر. يرجى التحقق من البيانات المدخلة.");
                     return View(viewModel);
                 }
 
                 var saveResult = await _riskService.SaveRiskAssessmentAsync(profileResult.Data.Id, calcResult.Data);
                 if (!saveResult.IsSuccess)
                 {
-                    ModelState.AddModelError(string.Empty, saveResult.ErrorMessage ?? "Failed to save risk assessment.");
+                    ModelState.AddModelError(string.Empty,
+                        $"تم حساب التقييم بنجاح لكن فشل حفظه في النظام: {saveResult.ErrorMessage ?? "خطأ غير معروف"}. يرجى المحاولة مرة أخرى.");
                     return View(viewModel);
                 }
 
@@ -103,10 +120,24 @@ namespace Etmen_PL.Controllers
 
                 return RedirectToAction(nameof(Result));
             }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogWarning(ex, "Invalid operation during risk assessment for user");
+                ModelState.AddModelError(string.Empty, $"خطأ في البيانات: {ex.Message}");
+                return View(viewModel);
+            }
+            catch (Microsoft.EntityFrameworkCore.DbUpdateException ex)
+            {
+                _logger.LogError(ex, "Database error while saving risk assessment");
+                ModelState.AddModelError(string.Empty,
+                    "حدث خطأ في حفظ البيانات في قاعدة البيانات. يرجى المحاولة مرة أخرى أو التواصل مع الدعم الفني.");
+                return View(viewModel);
+            }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error assessing risk");
-                ModelState.AddModelError(string.Empty, "خطأ في تقييم المخاطر. يُرجى المحاولة لاحقاً.");
+                _logger.LogError(ex, "Unexpected error assessing risk");
+                ModelState.AddModelError(string.Empty,
+                    $"حدث خطأ غير متوقع أثناء تقييم المخاطر. يرجى المحاولة مرة أخرى. إذا استمر الخطأ، يرجى التواصل مع الدعم الفني. الخطأ: {ex.Message}");
                 return View(viewModel);
             }
         }

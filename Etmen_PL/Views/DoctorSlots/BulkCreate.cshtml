@@ -1,0 +1,71 @@
+@using Etmen_PL.Models.ViewModels.Doctor
+@model BulkCreateSlotsViewModel
+@{
+    ViewData["Title"] = "إضافة أوقات متعددة";
+    Layout = "~/Views/Shared/_DoctorLayout.cshtml";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <div class="dr-card animate__animated animate__fadeInUp">
+            <div class="dr-card-header">
+                <h5 class="dr-card-title"><i class="fas fa-calendar-plus"></i> إضافة أوقات متعددة</h5>
+                <a href="/DoctorSlots" class="btn-outline-custom btn-sm py-1 px-3" style="font-size:0.75rem;">
+                    <i class="fas fa-arrow-left ms-1"></i> العودة
+                </a>
+            </div>
+
+            <div class="alert alert-info d-flex align-items-center gap-2 py-2 px-3 mb-4" style="border-radius:12px;border:none;background:#E8F4FD;color:#1A5F9A;">
+                <i class="fas fa-info-circle"></i>
+                <small class="fw-bold">سيتم إنشاء مواعيد متكررة بناءً على المدخلات أدناه. سيتم استبعاد أيام الجمعة والسبت تلقائياً.</small>
+            </div>
+
+            <form asp-action="BulkCreate" method="post">
+                @Html.AntiForgeryToken()
+                <div asp-validation-summary="ModelOnly" class="custom-alert custom-alert-danger"></div>
+
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <label asp-for="StartDate" class="form-label">تاريخ البداية</label>
+                        <input asp-for="StartDate" class="form-control" type="date" />
+                        <span asp-validation-for="StartDate" class="text-danger small fw-bold"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="EndDate" class="form-label">تاريخ النهاية</label>
+                        <input asp-for="EndDate" class="form-control" type="date" />
+                        <span asp-validation-for="EndDate" class="text-danger small fw-bold"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="StartTime" class="form-label">وقت البداية اليومي</label>
+                        <input asp-for="StartTime" class="form-control" type="time" />
+                        <span asp-validation-for="StartTime" class="text-danger small fw-bold"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="EndTime" class="form-label">وقت النهاية اليومي</label>
+                        <input asp-for="EndTime" class="form-control" type="time" />
+                        <span asp-validation-for="EndTime" class="text-danger small fw-bold"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="SlotDurationMinutes" class="form-label">مدة كل موعد (دقيقة)</label>
+                        <input asp-for="SlotDurationMinutes" class="form-control" type="number" min="15" max="120" />
+                        <span asp-validation-for="SlotDurationMinutes" class="text-danger small fw-bold"></span>
+                    </div>
+                </div>
+
+                <hr />
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn-primary-custom flex-fill py-3">
+                        <i class="fas fa-magic"></i> إنشاء المواعيد
+                    </button>
+                    <a href="/DoctorSlots" class="btn-outline-custom flex-fill text-center py-3">
+                        إلغاء
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

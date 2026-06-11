@@ -1,0 +1,103 @@
+@using Etmen_PL.Models.ViewModels.Patient
+@model MedicalRecordCreateViewModel
+@{
+    ViewData["Title"] = "إضافة سجل طبي";
+    Layout = "~/Views/Shared/_DoctorLayout.cshtml";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="dr-card animate__animated animate__fadeInUp">
+            <div class="dr-card-header">
+                <h5 class="dr-card-title"><i class="fas fa-notes-medical"></i> إضافة سجل طبي جديد</h5>
+                <a href="/DoctorPatients/Search" class="btn-outline-custom btn-sm py-1 px-3" style="font-size:0.75rem;">
+                    <i class="fas fa-arrow-left ms-1"></i> العودة
+                </a>
+            </div>
+
+            <form asp-action="AddMedicalRecord" method="post">
+                @Html.AntiForgeryToken()
+                <div asp-validation-summary="ModelOnly" class="custom-alert custom-alert-danger"></div>
+
+                <!-- Vital Signs -->
+                <h6 class="fw-bold mb-3" style="color:var(--primary);"><i class="fas fa-heartbeat ms-2"></i> العلامات الحيوية</h6>
+                <div class="row g-3 mb-4">
+                    <div class="col-md-4">
+                        <label asp-for="SystolicBP" class="form-label">الضغط الانقباضي (SYS)</label>
+                        <input asp-for="SystolicBP" class="form-control" placeholder="مثال: 120" />
+                        <span asp-validation-for="SystolicBP" class="text-danger small fw-bold"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="DiastolicBP" class="form-label">الضغط الانبساطي (DIA)</label>
+                        <input asp-for="DiastolicBP" class="form-control" placeholder="مثال: 80" />
+                        <span asp-validation-for="DiastolicBP" class="text-danger small fw-bold"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="HeartRate" class="form-label">معدل ضربات القلب (BPM)</label>
+                        <input asp-for="HeartRate" class="form-control" placeholder="مثال: 72" />
+                        <span asp-validation-for="HeartRate" class="text-danger small fw-bold"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="Temperature" class="form-label">درجة الحرارة (°C)</label>
+                        <input asp-for="Temperature" class="form-control" placeholder="مثال: 37.0" />
+                        <span asp-validation-for="Temperature" class="text-danger small fw-bold"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="OxygenSaturation" class="form-label">تشبع الأكسجين (SpO2 %)</label>
+                        <input asp-for="OxygenSaturation" class="form-control" placeholder="مثال: 98" />
+                        <span asp-validation-for="OxygenSaturation" class="text-danger small fw-bold"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label asp-for="BloodSugar" class="form-label">مستوى سكر الدم (mg/dL)</label>
+                        <input asp-for="BloodSugar" class="form-control" placeholder="مثال: 100" />
+                        <span asp-validation-for="BloodSugar" class="text-danger small fw-bold"></span>
+                    </div>
+                </div>
+
+                <!-- Clinical Info -->
+                <h6 class="fw-bold mb-3" style="color:var(--primary);"><i class="fas fa-stethoscope ms-2"></i> المعلومات السريرية</h6>
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <label asp-for="RecordDate" class="form-label">تاريخ التسجيل</label>
+                        <input asp-for="RecordDate" class="form-control" type="date" />
+                        <span asp-validation-for="RecordDate" class="text-danger small fw-bold"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Symptoms" class="form-label">الأعراض</label>
+                        <input asp-for="Symptoms" class="form-control" placeholder="أعراض المريض..." />
+                        <span asp-validation-for="Symptoms" class="text-danger small fw-bold"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Diagnosis" class="form-label">التشخيص</label>
+                        <textarea asp-for="Diagnosis" class="form-control" rows="3" placeholder="تشخيص الحالة..."></textarea>
+                        <span asp-validation-for="Diagnosis" class="text-danger small fw-bold"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Treatment" class="form-label">العلاج الموصى به</label>
+                        <textarea asp-for="Treatment" class="form-control" rows="3" placeholder="خطة العلاج..."></textarea>
+                        <span asp-validation-for="Treatment" class="text-danger small fw-bold"></span>
+                    </div>
+                    <div class="col-12">
+                        <label asp-for="Notes" class="form-label">ملاحظات إضافية</label>
+                        <textarea asp-for="Notes" class="form-control" rows="3" placeholder="أي ملاحظات أخرى..."></textarea>
+                        <span asp-validation-for="Notes" class="text-danger small fw-bold"></span>
+                    </div>
+                </div>
+
+                <hr />
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn-primary-custom flex-fill py-3">
+                        <i class="fas fa-save"></i> حفظ السجل الطبي
+                    </button>
+                    <a href="/DoctorPatients/Search" class="btn-outline-custom flex-fill text-center py-3">
+                        إلغاء
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

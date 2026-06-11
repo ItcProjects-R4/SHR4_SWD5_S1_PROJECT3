@@ -1,0 +1,196 @@
+@using Etmen_PL.Models.ViewModels.Doctor
+@model DoctorDashboardViewModel
+@{
+    ViewData["Title"] = "لوحة التحكم";
+    Layout = "~/Views/Shared/_DoctorLayout.cshtml";
+}
+
+<div class="doctor-dashboard">
+    <!-- Welcome Hero -->
+    <div class="glass-panel mb-4" style="background:linear-gradient(135deg, rgba(10,28,44,0.97), rgba(14,96,121,0.92)), url('https://images.unsplash.com/photo-1551076805-e1869033e561?auto=format&fit=crop&w=1600&q=80') center/cover; color:white; border:none;">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h2 class="fw-bold mb-2" style="font-size:1.6rem;">
+                    <i class="fas fa-hand-wave ms-2" style="color:var(--accent);"></i> مرحباً، دكتور @Model.DoctorName
+                </h2>
+                <p class="mb-0" style="color:rgba(255,255,255,0.7);font-weight:500;">
+                    <i class="fas fa-stethoscope ms-1" style="color:var(--accent);"></i> @(Model.Specialization ?? "طبيب عام")
+                    <span class="mx-2">•</span>
+                    <i class="far fa-calendar-alt ms-1"></i> @DateTime.Now.ToString("dddd, dd MMMM yyyy", new System.Globalization.CultureInfo("ar-SA"))
+                </p>
+            </div>
+            <div class="col-md-4 text-md-start text-center mt-3 mt-md-0">
+                @if (Model.AverageRating.HasValue)
+                {
+                    <div class="d-inline-flex align-items-center gap-2 px-4 py-2 rounded-pill" style="background:rgba(255,255,255,0.1);backdrop-filter:blur(10px);">
+                        <i class="fas fa-star" style="color:var(--warning);"></i>
+                        <span class="fw-bold fs-5">@Model.AverageRating.Value.ToString("F1")</span>
+                        <span style="color:rgba(255,255,255,0.5);font-size:0.8rem;">تقييم</span>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Row -->
+    <div class="row g-3 mb-4">
+        <div class="col-xl-3 col-lg-6 col-md-6">
+            <div class="stat-card animate__animated animate__fadeInUp">
+                <div class="stat-card-icon blue"><i class="fas fa-calendar-day"></i></div>
+                <div class="stat-card-number count-up" data-target="@Model.TodayAppointmentsCount">0</div>
+                <div class="stat-card-label">مواعيد اليوم</div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-lg-6 col-md-6">
+            <div class="stat-card animate__animated animate__fadeInUp" style="animation-delay:0.1s;">
+                <div class="stat-card-icon orange"><i class="fas fa-hourglass-half"></i></div>
+                <div class="stat-card-number count-up" data-target="@Model.PendingAppointmentsCount">0</div>
+                <div class="stat-card-label">مواعيد معلقة</div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-lg-6 col-md-6">
+            <div class="stat-card animate__animated animate__fadeInUp" style="animation-delay:0.2s;">
+                <div class="stat-card-icon green"><i class="fas fa-user-friends"></i></div>
+                <div class="stat-card-number count-up" data-target="@Model.TotalPatientsCount">0</div>
+                <div class="stat-card-label">إجمالي المرضى</div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-lg-6 col-md-6">
+            <div class="stat-card animate__animated animate__fadeInUp" style="animation-delay:0.3s;">
+                <div class="stat-card-icon purple"><i class="fas fa-chart-line"></i></div>
+                <div class="stat-card-number count-up" data-target="@(Model.Statistics?.CompletionRate ?? 0)" data-suffix="%">0</div>
+                <div class="stat-card-label">معدل الإنجاز</div>
+                @if (Model.Statistics?.NewPatientsThisMonth > 0)
+                {
+                    <div class="stat-card-trend up"><i class="fas fa-arrow-up"></i> @Model.Statistics.NewPatientsThisMonth مريض جديد هذا الشهر</div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Upcoming Appointments -->
+        <div class="col-lg-7">
+            <div class="dr-card animate__animated animate__fadeInUp" style="animation-delay:0.2s;">
+                <div class="dr-card-header">
+                    <h5 class="dr-card-title"><i class="fas fa-calendar-alt"></i> المواعيد القادمة</h5>
+                    <a href="/DoctorAppointments" class="btn-outline-custom btn-sm py-1 px-3" style="font-size:0.75rem;">
+                        عرض الكل <i class="fas fa-arrow-left ms-1"></i>
+                    </a>
+                </div>
+                @if (Model.UpcomingAppointments.Any())
+                {
+                    <div class="table-responsive-custom">
+                        <table class="dr-table">
+                            <thead>
+                                <tr>
+                                    <th>المريض</th>
+                                    <th>التاريخ</th>
+                                    <th>الوقت</th>
+                                    <th>الحالة</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var apt in Model.UpcomingAppointments)
+                                {
+                                    <tr>
+                                        <td class="fw-bold">@apt.PatientName</td>
+                                        <td>@apt.AppointmentDate.ToString("dd/MM/yyyy")</td>
+                                        <td>@apt.StartTime.ToString(@"hh\:mm") - @apt.EndTime.ToString(@"hh\:mm")</td>
+                                        <td>
+                                            <span class="status-badge @(apt.Status == "Confirmed" ? "confirmed" : apt.Status == "Pending" ? "pending" : "completed")">
+                                                <span class="dot"></span>
+                                                @(apt.Status switch { "Confirmed" => "مؤكد", "Pending" => "معلق", "Completed" => "مكتمل", "Cancelled" => "ملغي", _ => apt.Status })
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <a href="/DoctorAppointments/Details/@apt.Id" class="table-action-btn" title="التفاصيل">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="empty-state py-4">
+                        <div class="empty-state-icon"><i class="far fa-calendar-check"></i></div>
+                        <div class="empty-state-text">لا توجد مواعيد قادمة</div>
+                        <p class="text-muted small mt-2">سيتم عرض المواعيد القادمة هنا</p>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Recent Patients -->
+        <div class="col-lg-5">
+            <div class="dr-card animate__animated animate__fadeInUp" style="animation-delay:0.3s;">
+                <div class="dr-card-header">
+                    <h5 class="dr-card-title"><i class="fas fa-user-clock"></i> آخر المرضى</h5>
+                    <a href="/DoctorPatients/Search" class="btn-outline-custom btn-sm py-1 px-3" style="font-size:0.75rem;">
+                        بحث <i class="fas fa-search ms-1"></i>
+                    </a>
+                </div>
+                @if (Model.RecentPatients.Any())
+                {
+                    <div class="d-flex flex-column gap-2">
+                        @foreach (var pt in Model.RecentPatients)
+                        {
+                            <a href="/DoctorPatients/Details/@pt.PatientId" class="text-decoration-none">
+                                <div class="d-flex align-items-center gap-3 p-3 rounded-3" style="background:#F8FAFC;transition:all 0.25s;" onmouseover="this.style.background='var(--primary-light)'" onmouseout="this.style.background='#F8FAFC'">
+                                    <div class="sidebar-user-avatar flex-shrink-0" style="width:42px;height:42px;background:linear-gradient(135deg,var(--primary),var(--accent));">
+                                        <i class="fas fa-user" style="font-size:0.9rem;"></i>
+                                    </div>
+                                    <div class="flex-grow-1 min-w-0">
+                                        <div class="fw-bold text-dark" style="font-size:0.9rem;">@pt.PatientName</div>
+                                        <small class="text-muted">
+                                            <i class="far fa-calendar-alt ms-1"></i> آخر زيارة: @(pt.LastVisitDate?.ToString("dd/MM/yyyy") ?? "غير متاح")
+                                            @if (pt.TotalVisits > 0)
+                                            {
+                                                <span class="mx-1">•</span> @pt.TotalVisits @(pt.TotalVisits == 1 ? "زيارة" : "زيارات")
+                                            }
+                                        </small>
+                                    </div>
+                                    <i class="fas fa-chevron-left text-muted" style="font-size:0.75rem;"></i>
+                                </div>
+                            </a>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="empty-state py-4">
+                        <div class="empty-state-icon"><i class="fas fa-users"></i></div>
+                        <div class="empty-state-text">لا يوجد مرضى حديثين</div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Add suffix support for counter-up
+        $('.count-up[data-suffix]').each(function() {
+            var target = parseInt($(this).attr('data-target'));
+            var suffix = $(this).attr('data-suffix');
+            var step = Math.max(1, Math.floor(target / 75));
+            var current = 0;
+            var el = this;
+            var interval = setInterval(function() {
+                current += step;
+                if (current >= target) {
+                    el.textContent = target + suffix;
+                    clearInterval(interval);
+                    return;
+                }
+                el.textContent = current + suffix;
+            }, 16);
+        });
+    </script>
+}

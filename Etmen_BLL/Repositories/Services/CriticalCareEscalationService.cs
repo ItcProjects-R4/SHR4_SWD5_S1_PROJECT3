@@ -208,8 +208,6 @@ namespace Etmen_BLL.Repositories.Services
                 "Emergency escalation started",
                 "Your latest risk assessment was critical. The care team and emergency queue have been notified automatically.",
                 "AutoEmergency");
-
-            _uow.EmergencyRequests.Update(emergencyRequest);
         }
 
         private async Task AddAlertAsync(string userId, string title, string message, string type)

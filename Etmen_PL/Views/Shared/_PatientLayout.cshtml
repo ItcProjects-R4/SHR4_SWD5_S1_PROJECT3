@@ -343,6 +343,12 @@
                             <i class="fas fa-users"></i> الارتباط العائلي
                         </a>
                     </li>
+                    <li>
+                        <a href="/Chat/Index" class="nav-menu-link @(Context.Request.Path.StartsWithSegments("/Chat") ? "active" : "")">
+                            <i class="fas fa-comments"></i> الرسائل
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-light" id="patientChatBadge" style="font-size:0.6rem;display:none;transform:translate(-50%,-10%)!important;">0</span>
+                        </a>
+                    </li>
                 </ul>
 
                 <!-- Left side: Emergency + Profile & Logout -->
@@ -482,10 +488,22 @@
         }
 
         // Automatic GPS coordinates fetching for Emergency Modal
+        function updatePatientChatBadge() {
+            $.get('/Chat/GetUnreadCount', function(data) {
+                var badge = $('#patientChatBadge');
+                if (data.count > 0) {
+                    badge.text(data.count).show();
+                } else {
+                    badge.hide();
+                }
+            }).fail(function() { });
+        }
+
         $(document).ready(function() {
             updateNavbarAlertBadge();
-            // Poll for new alerts every 30 seconds
+            updatePatientChatBadge();
             setInterval(updateNavbarAlertBadge, 30000);
+            setInterval(updatePatientChatBadge, 15000);
 
             if ("geolocation" in navigator) {
                 navigator.geolocation.getCurrentPosition(
