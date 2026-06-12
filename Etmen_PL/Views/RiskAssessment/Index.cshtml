@@ -2,6 +2,8 @@
 @{
     ViewData["Title"] = "تقييم المخاطر الصحية الذاتي";
     Layout = "~/Views/Shared/_PatientLayout.cshtml";
+    var activeCrisis = ViewBag.ActiveCrisis as Etmen_BLL.DTOs.Crisis.CrisisConfigurationDto;
+    var isCrisisMode = activeCrisis != null && activeCrisis.IsActive && activeCrisis.SystemMode == Etmen_Domain.Enums.SystemMode.Crisis;
 }
 
 <style>
@@ -125,6 +127,17 @@
         border-color: #DC2626 !important;
         background-color: #FEF2F2 !important;
     }
+
+    /* Checkbox card styling */
+    .card-checkbox {
+        border: 2px solid var(--border) !important;
+        border-radius: 12px;
+        transition: all 0.2s ease;
+    }
+    .card-checkbox.checked {
+        border-color: var(--primary) !important;
+        background-color: var(--primary-light) !important;
+    }
 </style>
 
 <div class="row g-4 justify-content-center">
@@ -135,17 +148,17 @@
                     <i class="fas fa-brain"></i> فحص سريري ذكي بالذكاء الاصطناعي
                 </span>
                 <h2 class="fw-black text-dark">تقييم المخاطر الصحية والذعر</h2>
-                <p class="text-muted max-width-600 mx-auto">قم بإدخال علاماتك الحيوية وأعراضك الحالية لحساب مؤشر الخطر وحالة الطوارئ.</p>
+                <p class="text-muted max-width-600 mx-auto">قم بإدخال علاماتك الحيوية أو أعراض الأزمة الحالية لحساب مؤشر الخطر وحالة الطوارئ.</p>
             </div>
 
             <!-- Steps Indicator -->
             <div class="wizard-step-indicator">
                 <div class="wizard-progress-bar" id="wizardProgress"></div>
                 <div class="step-node complete" id="node-1">
-                    1 <span class="step-node-label">المؤشرات الحيوية</span>
+                    1 <span class="step-node-label">@(isCrisisMode ? "أعراض الأزمة" : "المؤشرات الحيوية")</span>
                 </div>
                 <div class="step-node" id="node-2">
-                    2 <span class="step-node-label">الأعراض والموقع</span>
+                    2 <span class="step-node-label">@(isCrisisMode ? "الموقع الجغرافي" : "الأعراض والموقع")</span>
                 </div>
             </div>
 
@@ -162,100 +175,137 @@
                     <button type="button" class="btn-close me-auto" data-bs-dismiss="alert" aria-label="Close" onclick="this.parentElement.classList.remove('show')"></button>
                 </div>
 
-                <!-- STEP 1: Vitals -->
+                <!-- STEP 1: Content -->
                 <div id="step-1-content">
-                    <h5 class="fw-bold mb-4 text-primary"><i class="fas fa-heartbeat"></i> الخطوة 1: أدخل علاماتك الحيوية الحالية</h5>
-                    
-                    <div class="row g-4 mb-4">
-                        <!-- Pulse -->
-                        <div class="col-md-6">
-                            <div class="form-group-medical" id="field-heartRate">
-                                <label asp-for="HeartRate" class="form-label fw-bold">معدل نبضات القلب</label>
-                                <div class="input-group">
-                                    <input asp-for="HeartRate" type="number" class="form-control" placeholder="مثال: 72" required />
-                                    <span class="input-unit-badge">نبضة/دقيقة</span>
-                                </div>
-                                <span asp-validation-for="HeartRate" class="field-error-text"></span>
+                    @if (isCrisisMode)
+                    {
+                        <div class="alert alert-warning d-flex align-items-center gap-3 py-3 px-4 mb-4 animate__animated animate__pulse" style="border-radius:12px;">
+                            <div class="fs-3 text-warning"><i class="fas fa-triangle-exclamation"></i></div>
+                            <div>
+                                <span class="fw-bold d-block text-dark">تم تفعيل وضع طوارئ الأزمات: @activeCrisis?.CrisisName</span>
+                                <span class="small text-muted">في هذا الوضع، سيتم تقييم مستوى خطورة حالتك بناءً على أعراض الوباء النشط فقط. المؤشرات الحيوية غير مطلوبة حالياً.</span>
                             </div>
                         </div>
 
-                        <!-- Temperature -->
-                        <div class="col-md-6">
-                            <div class="form-group-medical" id="field-temperature">
-                                <label asp-for="Temperature" class="form-label fw-bold">درجة حرارة الجسم</label>
-                                <div class="input-group">
-                                    <input asp-for="Temperature" type="number" step="0.1" class="form-control" placeholder="مثال: 37.0" required />
-                                    <span class="input-unit-badge">مئوية °C</span>
+                        <h5 class="fw-bold mb-4 text-primary"><i class="fas fa-viruses"></i> الخطوة 1: اختر الأعراض التي تعاني منها حالياً</h5>
+                        
+                        <input type="hidden" asp-for="Symptoms" id="symptomsHidden" />
+                        <div class="row g-3 mb-4">
+                            @foreach (var symptom in activeCrisis?.SymptomWeights ?? Enumerable.Empty<Etmen_BLL.DTOs.Crisis.SymptomWeightDto>())
+                            {
+                                <div class="col-md-6 col-12">
+                                    <div class="form-group-medical card-checkbox p-3 d-flex align-items-center gap-3" style="cursor:pointer;" onclick="toggleCheckbox(this)">
+                                        <input class="form-check-input symptom-checkbox" type="checkbox" value="@symptom.SymptomName" id="symptom_@symptom.SymptomName" style="cursor:pointer; width: 22px; height: 22px;" onchange="updateSymptomsString()" onclick="event.stopPropagation();" />
+                                        <label class="form-check-label fw-bold text-dark m-0" for="symptom_@symptom.SymptomName" style="cursor:pointer; user-select: none;">
+                                            @symptom.SymptomName
+                                            @if (symptom.IsEmergencySymptom)
+                                            {
+                                                <span class="badge bg-danger ms-2">عرض حرج</span>
+                                            }
+                                        </label>
+                                    </div>
                                 </div>
-                                <span asp-validation-for="Temperature" class="field-error-text"></span>
-                            </div>
+                            }
                         </div>
+                    }
+                    else
+                    {
+                        <h5 class="fw-bold mb-4 text-primary"><i class="fas fa-heartbeat"></i> الخطوة 1: أدخل علاماتك الحيوية الحالية</h5>
+                        
+                        <div class="row g-4 mb-4">
+                            <!-- Pulse -->
+                            <div class="col-md-6">
+                                <div class="form-group-medical" id="field-heartRate">
+                                    <label asp-for="HeartRate" class="form-label fw-bold">معدل نبضات القلب</label>
+                                    <div class="input-group">
+                                        <input asp-for="HeartRate" type="number" class="form-control" placeholder="مثال: 72" required />
+                                        <span class="input-unit-badge">نبضة/دقيقة</span>
+                                    </div>
+                                    <span asp-validation-for="HeartRate" class="field-error-text"></span>
+                                </div>
+                            </div>
 
-                        <!-- BP Systolic -->
-                        <div class="col-md-6">
-                            <div class="form-group-medical" id="field-systolicBP">
-                                <label asp-for="SystolicBP" class="form-label fw-bold">ضغط الدم الانقباضي (العالي)</label>
-                                <div class="input-group">
-                                    <input asp-for="SystolicBP" type="number" class="form-control" placeholder="مثال: 120" required />
-                                    <span class="input-unit-badge">mmHg</span>
+                            <!-- Temperature -->
+                            <div class="col-md-6">
+                                <div class="form-group-medical" id="field-temperature">
+                                    <label asp-for="Temperature" class="form-label fw-bold">درجة حرارة الجسم</label>
+                                    <div class="input-group">
+                                        <input asp-for="Temperature" type="number" step="0.1" class="form-control" placeholder="مثال: 37.0" required />
+                                        <span class="input-unit-badge">مئوية °C</span>
+                                    </div>
+                                    <span asp-validation-for="Temperature" class="field-error-text"></span>
                                 </div>
-                                <span asp-validation-for="SystolicBP" class="field-error-text"></span>
                             </div>
-                        </div>
 
-                        <!-- BP Diastolic -->
-                        <div class="col-md-6">
-                            <div class="form-group-medical" id="field-diastolicBP">
-                                <label asp-for="DiastolicBP" class="form-label fw-bold">ضغط الدم الانبساطي (المنخفض)</label>
-                                <div class="input-group">
-                                    <input asp-for="DiastolicBP" type="number" class="form-control" placeholder="مثال: 80" required />
-                                    <span class="input-unit-badge">mmHg</span>
+                            <!-- BP Systolic -->
+                            <div class="col-md-6">
+                                <div class="form-group-medical" id="field-systolicBP">
+                                    <label asp-for="SystolicBP" class="form-label fw-bold">ضغط الدم الانقباضي (العالي)</label>
+                                    <div class="input-group">
+                                        <input asp-for="SystolicBP" type="number" class="form-control" placeholder="مثال: 120" required />
+                                        <span class="input-unit-badge">mmHg</span>
+                                    </div>
+                                    <span asp-validation-for="SystolicBP" class="field-error-text"></span>
                                 </div>
-                                <span asp-validation-for="DiastolicBP" class="field-error-text"></span>
                             </div>
-                        </div>
 
-                        <!-- Oxygen -->
-                        <div class="col-md-6">
-                            <div class="form-group-medical" id="field-oxygenSaturation">
-                                <label asp-for="OxygenSaturation" class="form-label fw-bold">تشبع الأكسجين في الدم</label>
-                                <div class="input-group">
-                                    <input asp-for="OxygenSaturation" type="number" class="form-control" placeholder="مثال: 98" required />
-                                    <span class="input-unit-badge">% SpO2</span>
+                            <!-- BP Diastolic -->
+                            <div class="col-md-6">
+                                <div class="form-group-medical" id="field-diastolicBP">
+                                    <label asp-for="DiastolicBP" class="form-label fw-bold">ضغط الدم الانبساطي (المنخفض)</label>
+                                    <div class="input-group">
+                                        <input asp-for="DiastolicBP" type="number" class="form-control" placeholder="مثال: 80" required />
+                                        <span class="input-unit-badge">mmHg</span>
+                                    </div>
+                                    <span asp-validation-for="DiastolicBP" class="field-error-text"></span>
                                 </div>
-                                <span asp-validation-for="OxygenSaturation" class="field-error-text"></span>
                             </div>
-                        </div>
 
-                        <!-- Blood Sugar -->
-                        <div class="col-md-6">
-                            <div class="form-group-medical" id="field-bloodSugar">
-                                <label asp-for="BloodSugar" class="form-label fw-bold">مستوى السكر في الدم</label>
-                                <div class="input-group">
-                                    <input asp-for="BloodSugar" type="number" class="form-control" placeholder="مثال: 100" />
-                                    <span class="input-unit-badge">mg/dL</span>
+                            <!-- Oxygen -->
+                            <div class="col-md-6">
+                                <div class="form-group-medical" id="field-oxygenSaturation">
+                                    <label asp-for="OxygenSaturation" class="form-label fw-bold">تشبع الأكسجين في الدم</label>
+                                    <div class="input-group">
+                                        <input asp-for="OxygenSaturation" type="number" class="form-control" placeholder="مثال: 98" required />
+                                        <span class="input-unit-badge">% SpO2</span>
+                                    </div>
+                                    <span asp-validation-for="OxygenSaturation" class="field-error-text"></span>
                                 </div>
-                                <span asp-validation-for="BloodSugar" class="field-error-text"></span>
+                            </div>
+
+                            <!-- Blood Sugar -->
+                            <div class="col-md-6">
+                                <div class="form-group-medical" id="field-bloodSugar">
+                                    <label asp-for="BloodSugar" class="form-label fw-bold">مستوى السكر في الدم</label>
+                                    <div class="input-group">
+                                        <input asp-for="BloodSugar" type="number" class="form-control" placeholder="مثال: 100" required />
+                                        <span class="input-unit-badge">mg/dL</span>
+                                    </div>
+                                    <span asp-validation-for="BloodSugar" class="field-error-text"></span>
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    }
 
                     <div class="d-flex justify-content-end">
                         <button type="button" class="btn btn-primary px-5 py-3 fw-bold" style="border-radius:12px;" onclick="goToStep(2)">
-                            التالي: الأعراض والموقع <i class="fas fa-arrow-left"></i>
+                            التالي: @(isCrisisMode ? "تحديد الموقع" : "الأعراض والموقع") <i class="fas fa-arrow-left"></i>
                         </button>
                     </div>
                 </div>
 
-                <!-- STEP 2: Symptoms & Location -->
+                <!-- STEP 2: Content -->
                 <div id="step-2-content" style="display:none;">
-                    <h5 class="fw-bold mb-4 text-primary"><i class="fas fa-virus"></i> الخطوة 2: الأعراض الحالية وموقعك الجغرافي</h5>
+                    <h5 class="fw-bold mb-4 text-primary"><i class="fas fa-location-dot"></i> الخطوة 2: تحديد موقعك الجغرافي</h5>
                     
-                    <div class="mb-4" id="field-symptoms">
-                        <label asp-for="Symptoms" class="form-label fw-bold">اكتب الأعراض التي تشعر بها حالياً بالتفصيل</label>
-                        <textarea asp-for="Symptoms" class="form-control" rows="4" style="border-radius:12px;" placeholder="اكتب الأعراض مثل: سعال جاف، ضيق تنفس، إرهاق شديد، ألم بالمفاصل..."></textarea>
-                        <span asp-validation-for="Symptoms" class="field-error-text"></span>
-                    </div>
+                    @if (!isCrisisMode)
+                    {
+                        <div class="mb-4" id="field-symptoms">
+                            <label asp-for="Symptoms" class="form-label fw-bold">اكتب الأعراض التي تشعر بها حالياً بالتفصيل</label>
+                            <textarea asp-for="Symptoms" class="form-control" rows="4" style="border-radius:12px;" placeholder="اكتب الأعراض مثل: سعال جاف، ضيق تنفس، إرهاق شديد، ألم بالمفاصل..."></textarea>
+                            <span asp-validation-for="Symptoms" class="field-error-text"></span>
+                        </div>
+                    }
 
                     <!-- Hidden location fields -->
                     <input type="hidden" asp-for="Latitude" id="gpsLat" value="30.0444" />
@@ -296,29 +346,53 @@
             }
         });
 
+        function toggleCheckbox(element) {
+            var checkbox = $(element).find('.symptom-checkbox');
+            checkbox.prop('checked', !checkbox.prop('checked'));
+            if (checkbox.prop('checked')) {
+                $(element).addClass('checked');
+            } else {
+                $(element).removeClass('checked');
+            }
+            updateSymptomsString();
+        }
+
+        function updateSymptomsString() {
+            var checkedSymptoms = [];
+            $('.symptom-checkbox:checked').each(function() {
+                checkedSymptoms.push($(this).val());
+            });
+            $('#symptomsHidden').val(checkedSymptoms.join(', '));
+        }
+
         function goToStep(stepNum) {
             if (stepNum === 2) {
-                // Perform simple validation on Step 1 fields
-                var step1Fields = $('#step-1-content').find('input[required]');
-                var valid = true;
-                var errorList = [];
-                step1Fields.each(function() {
-                    var fieldName = $(this).closest('.form-group-medical').find('label').text().trim();
-                    if ($(this).val().trim() === '') {
-                        $(this).closest('.form-group-medical').addClass('has-error');
-                        errorList.push(fieldName || 'حقل مطلوب');
-                        valid = false;
-                    } else {
-                        $(this).closest('.form-group-medical').removeClass('has-error');
-                    }
-                });
+                @if (!isCrisisMode)
+                {
+                    <text>
+                    // Perform simple validation on Step 1 fields in normal mode
+                    var step1Fields = $('#step-1-content').find('input[required]');
+                    var valid = true;
+                    var errorList = [];
+                    step1Fields.each(function() {
+                        var fieldName = $(this).closest('.form-group-medical').find('label').text().trim();
+                        if ($(this).val().trim() === '') {
+                            $(this).closest('.form-group-medical').addClass('has-error');
+                            errorList.push(fieldName || 'حقل مطلوب');
+                            valid = false;
+                        } else {
+                            $(this).closest('.form-group-medical').removeClass('has-error');
+                        }
+                    });
 
-                if (!valid) {
-                    var alertContainer = $('#errorSummaryContainer');
-                    alertContainer.addClass('show');
-                    var listHtml = '<li>' + errorList.join('</li><li>') + '</li>';
-                    $('#clientErrors').html(listHtml).show();
-                    return;
+                    if (!valid) {
+                        var alertContainer = $('#errorSummaryContainer');
+                        alertContainer.addClass('show');
+                        var listHtml = '<li>' + errorList.join('</li><li>') + '</li>';
+                        $('#clientErrors').html(listHtml).show();
+                        return;
+                    }
+                    </text>
                 }
 
                 $('#clientErrors').hide();

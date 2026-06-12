@@ -74,8 +74,28 @@ namespace Etmen_BLL.Repositories.Services
                 if (providerId <= 0)
                     return ServiceResult<List<AvailableSlotDto>>.Failure("Valid provider ID is required.");
 
+                // Check if any doctor is linked to this provider center in their onboarding data
+                int targetDoctorProfileId = providerId;
+                var doctors = await _uow.DoctorProfiles.GetAllAsync();
+                foreach (var doc in doctors)
+                {
+                    if (!string.IsNullOrEmpty(doc.OnboardingDataJson))
+                    {
+                        try
+                        {
+                            using var docJson = System.Text.Json.JsonDocument.Parse(doc.OnboardingDataJson);
+                            if (docJson.RootElement.TryGetProperty("HealthcareProviderId", out var prop) && prop.GetInt32() == providerId)
+                            {
+                                targetDoctorProfileId = doc.Id;
+                                break;
+                            }
+                        }
+                        catch { /* ignore invalid JSON formats */ }
+                    }
+                }
+
                 // Get available slots for the provider
-                var slots = await _uow.AvailableSlots.FindAsync(s => s.DoctorProfileId == providerId && !s.IsBooked);
+                var slots = await _uow.AvailableSlots.FindAsync(s => s.DoctorProfileId == targetDoctorProfileId && !s.IsBooked);
                 var slotDtos = slots
                     .Select(s => s.Adapt<AvailableSlotDto>())
                     .ToList();

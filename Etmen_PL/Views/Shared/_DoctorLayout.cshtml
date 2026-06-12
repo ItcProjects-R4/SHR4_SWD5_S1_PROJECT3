@@ -1,3 +1,8 @@
+@inject Etmen_BLL.Repositories.IServices.ICrisisService CrisisService
+@{
+    var activeCrisisResult = await CrisisService.GetActiveCrisisAsync();
+    var isCrisisActive = activeCrisisResult.IsSuccess && activeCrisisResult.Data != null && activeCrisisResult.Data.IsActive && activeCrisisResult.Data.SystemMode == Etmen_Domain.Enums.SystemMode.Crisis;
+}
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -29,7 +34,6 @@
             --white: #FFFFFF;
             --glass: rgba(255,255,255,0.06);
             --glass-border: rgba(255,255,255,0.12);
-            --sidebar-width: 250px;
         }
 
         * { scrollbar-width: thin; scrollbar-color: var(--primary) transparent; }
@@ -42,187 +46,147 @@
             overflow-x: hidden;
         }
 
-        /* ═══ SIDEBAR ═══════════════════════════════════════ */
-        .doctor-sidebar {
-            position: fixed;
-            top: 0; right: 0; bottom: 0;
-            width: var(--sidebar-width);
-            background: linear-gradient(180deg, var(--dark) 0%, #0a1a28 100%);
-            z-index: 1040;
-            display: flex;
-            flex-direction: column;
-            transition: transform 0.35s cubic-bezier(0.4,0,0.2,1);
-            box-shadow: 4px 0 30px rgba(0,0,0,0.2);
-            overflow-y: auto;
+        /* ═══ DOCTOR NAVBAR ════════════════════════════════════ */
+        .doctor-navbar {
+            background: linear-gradient(135deg, var(--dark) 0%, #0a1e30 100%);
+            border-bottom: 3px solid var(--accent);
+            box-shadow: 0 4px 20px rgba(15, 25, 35, 0.15);
+            padding: 0.8rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
         }
-        .sidebar-brand {
-            padding: 1.5rem 1.2rem;
-            border-bottom: 1px solid rgba(255,255,255,0.06);
+
+        .nav-brand {
             display: flex;
             align-items: center;
             gap: 12px;
             text-decoration: none;
             transition: transform 0.3s;
         }
-        .sidebar-brand:hover { transform: scale(1.02); }
-        .sidebar-brand-icon {
+        .nav-brand:hover {
+            transform: scale(1.02);
+        }
+        .nav-brand-icon {
             width: 42px; height: 42px;
             background: linear-gradient(135deg, var(--primary), var(--accent));
             border-radius: 12px;
             display: flex; align-items: center; justify-content: center;
-            font-size: 1.2rem; color: white;
-            box-shadow: 0 0 20px rgba(26,111,191,0.5);
-            animation: pulseMini 2.5s infinite;
-            flex-shrink: 0;
+            font-size: 1.25rem; color: white;
+            box-shadow: 0 0 20px rgba(26, 111, 191, 0.5);
+            animation: pulseMini 2s infinite;
         }
         @@keyframes pulseMini {
             0%, 100% { transform: scale(1); }
             50% { transform: scale(1.08); }
         }
-        .sidebar-brand-text {
-            font-size: 1.4rem; font-weight: 900; color: white; line-height: 1.1;
+        .nav-brand-text {
+            font-size: 1.5rem; font-weight: 900; color: white; line-height: 1.1;
+            display: block;
         }
-        .sidebar-brand-text span { color: var(--accent); }
-        .sidebar-brand-sub {
+        .nav-brand-text span { color: var(--accent); }
+        .nav-brand-sub {
             font-size: 0.65rem; color: rgba(255,255,255,0.4);
             font-weight: 500; letter-spacing: 1px;
+            display: block;
         }
 
-        .sidebar-nav { padding: 1rem 0; flex: 1; }
-        .sidebar-section-title {
-            padding: 0.5rem 1.5rem 0.3rem;
-            font-size: 0.65rem;
-            font-weight: 700;
-            color: rgba(255,255,255,0.25);
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-        }
-        .sidebar-link {
+        .nav-menu {
             display: flex;
             align-items: center;
-            gap: 12px;
-            padding: 0.7rem 1.5rem;
-            color: rgba(255,255,255,0.6);
+            gap: 6px;
+            margin: 0;
+            padding: 0;
+            list-style: none;
+        }
+        .nav-menu-link {
+            color: rgba(255,255,255,0.75);
             text-decoration: none;
-            font-weight: 600;
+            font-weight: 700;
             font-size: 0.88rem;
-            border-right: 3px solid transparent;
-            transition: all 0.25s;
+            padding: 10px 14px;
+            border-radius: 10px;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
             position: relative;
         }
-        .sidebar-link i {
-            width: 22px; text-align: center;
-            font-size: 1rem;
-            transition: transform 0.3s;
-        }
-        .sidebar-link:hover {
+        .nav-menu-link:hover {
             color: white;
-            background: rgba(255,255,255,0.05);
-            border-right-color: var(--primary);
+            background: rgba(255,255,255,0.08);
         }
-        .sidebar-link:hover i { transform: scale(1.15); }
-        .sidebar-link.active {
+        .nav-menu-link.active {
             color: white;
-            background: linear-gradient(90deg, rgba(26,111,191,0.2), transparent);
-            border-right-color: var(--primary);
-        }
-        .sidebar-link .badge-side {
-            margin-right: auto;
-            background: var(--danger);
-            color: white;
-            font-size: 0.65rem;
-            padding: 2px 8px;
-            border-radius: 20px;
-            font-weight: 700;
-            animation: badgePulse 2s infinite;
-        }
-        @@keyframes badgePulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
+            background: var(--primary);
+            box-shadow: 0 4px 15px rgba(26,111,191,0.4);
         }
 
-        .sidebar-footer {
-            padding: 1rem 1.5rem;
-            border-top: 1px solid rgba(255,255,255,0.06);
-        }
-        .sidebar-user {
+        /* User Profile Dropdown Badge */
+        .nav-profile-badge {
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.15);
+            color: white;
+            border-radius: 30px;
+            padding: 6px 14px;
+            font-size: 0.85rem;
+            font-weight: 600;
             display: flex;
             align-items: center;
-            gap: 10px;
-            color: rgba(255,255,255,0.7);
+            gap: 8px;
             text-decoration: none;
-            transition: color 0.2s;
+            transition: all 0.3s;
         }
-        .sidebar-user:hover { color: white; }
-        .sidebar-user-avatar {
-            width: 36px; height: 36px;
+        .nav-profile-badge:hover {
+            background: rgba(255,255,255,0.15);
+            color: white;
+        }
+        .avatar-circle {
+            width: 26px; height: 26px;
             border-radius: 50%;
             background: linear-gradient(135deg, var(--primary), var(--accent));
             display: flex; align-items: center; justify-content: center;
-            font-size: 0.85rem; color: white; font-weight: 700;
+            font-size: 0.75rem; color: white;
         }
-        .sidebar-user-name { font-weight: 700; font-size: 0.82rem; }
+
+        .btn-nav-logout {
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.2);
+            color: rgba(255,255,255,0.7);
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        .btn-nav-logout:hover {
+            background: rgba(231,76,60,0.15);
+            border-color: var(--danger);
+            color: var(--danger);
+        }
 
         /* ═══ MAIN CONTENT ══════════════════════════════════ */
         .main-content {
-            margin-right: var(--sidebar-width);
+            margin-right: 0;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
         }
-        .main-header {
-            background: white;
-            padding: 1rem 2rem;
+        .page-header {
             border-bottom: 1px solid var(--border);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            position: sticky;
-            top: 0;
-            z-index: 1030;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+            padding-bottom: 1.25rem;
         }
-        .main-header-title h1 {
-            font-size: 1.2rem;
-            font-weight: 800;
-            margin: 0;
+        .page-title {
+            font-size: 1.6rem;
+            font-weight: 900;
             color: var(--dark);
+            margin: 0 0 4px 0;
         }
-        .main-header-title small {
-            font-size: 0.75rem;
+        .page-subtitle {
+            font-size: 0.85rem;
             color: var(--text-muted);
             font-weight: 500;
-        }
-        .main-header-actions {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        .header-btn {
-            width: 40px; height: 40px;
-            border-radius: 12px;
-            border: 1px solid var(--border);
-            background: white;
-            display: flex; align-items: center; justify-content: center;
-            color: var(--text-muted);
-            text-decoration: none;
-            transition: all 0.25s;
-            position: relative;
-        }
-        .header-btn:hover {
-            background: var(--primary-light);
-            color: var(--primary);
-            border-color: var(--primary);
-            transform: translateY(-2px);
-        }
-        .header-btn .notif-dot {
-            position: absolute;
-            top: 6px; left: 6px;
-            width: 8px; height: 8px;
-            background: var(--danger);
-            border-radius: 50%;
-            border: 2px solid white;
-            animation: badgePulse 1.5s infinite;
         }
 
         .main-body {
@@ -234,16 +198,6 @@
         @@keyframes fadeSlideIn {
             from { opacity: 0; transform: translateY(12px); }
             to { opacity: 1; transform: translateY(0); }
-        }
-
-        .sidebar-toggle {
-            display: none;
-            background: none;
-            border: none;
-            font-size: 1.3rem;
-            color: var(--text);
-            cursor: pointer;
-            padding: 4px;
         }
 
         /* ═══ BUTTONS ═══════════════════════════════════════ */
@@ -664,47 +618,31 @@
             text-align: center;
         }
 
-        /* ═══ OVERLAY (MOBILE) ═══════════════════════════════════ */
-        .sidebar-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.5);
-            z-index: 1035;
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-        .sidebar-overlay.show {
-            opacity: 1;
-        }
-
-        /* ═══ MODAL ═══════════════════════════════════════════════ */
-        .dr-modal .modal-content {
-            border-radius: 20px;
-            border: none;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
-            overflow: hidden;
-        }
-
         /* ═══ RESPONSIVE ═══════════════════════════════════════ */
         @@media (max-width: 991.98px) {
-            .doctor-sidebar {
-                transform: translateX(100%);
+            .doctor-navbar {
+                padding: 0.8rem 1rem;
             }
-            .doctor-sidebar.open {
-                transform: translateX(0);
+            .nav-menu {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 4px;
+                margin-top: 1rem;
+                background: rgba(0,0,0,0.2);
+                padding: 10px;
+                border-radius: 12px;
             }
-            .sidebar-toggle { display: block; }
-            .main-content { margin-right: 0; }
-            .main-body { padding: 1.5rem; }
-            .sidebar-overlay { display: block; }
+            .nav-menu-link {
+                justify-content: flex-start;
+            }
+            .main-body {
+                padding: 1rem;
+            }
         }
         @@media (max-width: 575.98px) {
-            .main-header { padding: 0.8rem 1rem; flex-wrap: wrap; gap: 8px; }
             .main-body { padding: 1rem; }
             .dr-card { padding: 1.2rem; }
             .stat-card { padding: 1rem; }
-            .main-header-title h1 { font-size: 1rem; }
         }
 
         /* ═══ SCROLLABLE TABLE ═══════════════════════════════ */
@@ -770,97 +708,220 @@
         .count-up {
             display: inline-block;
         }
+
+        /* ═══ DARK CRITIC THEME OVERRIDES ══════════════════════ */
+        body.theme-dark {
+            background-color: #0B0E14 !important;
+            color: #ECF0F1 !important;
+        }
+        body.theme-dark .med-card,
+        body.theme-dark .dashboard-card,
+        body.theme-dark .form-group-medical,
+        body.theme-dark .triage-row td,
+        body.theme-dark .recent-patient-card {
+            background-color: #151A22 !important;
+            border-color: #21262D !important;
+            color: #ECF0F1 !important;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4) !important;
+        }
+        body.theme-dark .triage-row td {
+            background: #151A22 !important;
+        }
+        body.theme-dark .med-card:hover,
+        body.theme-dark .dashboard-card:hover,
+        body.theme-dark .triage-row:hover td {
+            border-color: #00E676 !important;
+            background: #1C232E !important;
+        }
+        body.theme-dark .text-dark,
+        body.theme-dark h1,
+        body.theme-dark h2,
+        body.theme-dark h3,
+        body.theme-dark h4,
+        body.theme-dark h5,
+        body.theme-dark h6,
+        body.theme-dark span:not(.badge),
+        body.theme-dark label,
+        body.theme-dark strong {
+            color: #ECF0F1 !important;
+        }
+        body.theme-dark .text-muted,
+        body.theme-dark p {
+            color: #8B949E !important;
+        }
+        body.theme-dark .form-control,
+        body.theme-dark .form-select,
+        body.theme-dark textarea {
+            background-color: #21262D !important;
+            border-color: #30363D !important;
+            color: #ECF0F1 !important;
+        }
+        body.theme-dark .form-control:focus,
+        body.theme-dark .form-select:focus,
+        body.theme-dark textarea:focus {
+            background-color: #161B22 !important;
+            border-color: #00E676 !important;
+        }
+        body.theme-dark .input-unit-badge {
+            background-color: #30363D !important;
+            color: #ECF0F1 !important;
+        }
+        body.theme-dark .table th {
+            color: #8B949E !important;
+            border-bottom-color: #30363D !important;
+        }
+        body.theme-dark .table td {
+            color: #ECF0F1 !important;
+            border-bottom-color: #30363D !important;
+        }
+        body.theme-dark .table-hover tbody tr:hover {
+            background-color: #1F242C !important;
+        }
+        body.theme-dark .doctor-navbar {
+            background: linear-gradient(135deg, #161B22 0%, #0B0E14 100%) !important;
+            border-bottom-color: #00E676 !important;
+        }
+        body.theme-dark .nav-brand-icon {
+            background: linear-gradient(135deg, #00B0FF, #00E676) !important;
+            box-shadow: 0 0 20px rgba(0, 230, 118, 0.5) !important;
+        }
+        body.theme-dark .nav-brand-text span {
+            color: #00E676 !important;
+        }
+        body.theme-dark .doctor-footer {
+            background: #161B22 !important;
+            border-top-color: #21262D !important;
+        }
     </style>
 </head>
 <body>
 
-    <!-- ═══ SIDEBAR ═══════════════════════════════════════════ -->
-    <aside class="doctor-sidebar" id="doctorSidebar">
-        <a href="/DoctorDashboard" class="sidebar-brand">
-            <div class="sidebar-brand-icon"><i class="fas fa-heartbeat"></i></div>
-            <div>
-                <div class="sidebar-brand-text">إط<span>من</span></div>
-                <div class="sidebar-brand-sub">بوابة الأطباء</div>
-            </div>
-        </a>
-
-        <nav class="sidebar-nav">
-            <div class="sidebar-section-title">القائمة الرئيسية</div>
-
-            <a href="/DoctorDashboard" class="sidebar-link @(Context.Request.Path.StartsWithSegments("/DoctorDashboard") ? "active" : "")">
-                <i class="fas fa-chart-pie"></i> لوحة التحكم
-            </a>
-            <a href="/DoctorAppointments" class="sidebar-link @(Context.Request.Path.StartsWithSegments("/DoctorAppointments") ? "active" : "")">
-                <i class="fas fa-calendar-check"></i> المواعيد
-            </a>
-            <a href="/DoctorPatients/Search" class="sidebar-link @(Context.Request.Path.StartsWithSegments("/DoctorPatients") ? "active" : "")">
-                <i class="fas fa-users"></i> المرضى
-            </a>
-            <a href="/DoctorSlots" class="sidebar-link @(Context.Request.Path.StartsWithSegments("/DoctorSlots") ? "active" : "")">
-                <i class="fas fa-clock"></i> أوقات العمل
-            </a>
-
-            <div class="sidebar-section-title" style="margin-top:0.5rem;">التواصل</div>
-            <a href="/Chat/Index" class="sidebar-link @(Context.Request.Path.StartsWithSegments("/Chat") ? "active" : "")">
-                <i class="fas fa-comments"></i> الرسائل
-                <span class="badge-side" id="chatBadge" style="display:none;background:var(--primary);">0</span>
-            </a>
-
-            <div class="sidebar-section-title" style="margin-top:0.5rem;">الطوارئ</div>
-            <a href="/DoctorPanicInbox" class="sidebar-link @(Context.Request.Path.StartsWithSegments("/DoctorPanicInbox") ? "active" : "")">
-                <i class="fas fa-exclamation-triangle" style="color:#E74C3C;"></i> حالات الطوارئ
-                <span class="badge-side" id="panicBadge" style="display:none;">0</span>
-            </a>
-
-            <div class="sidebar-section-title" style="margin-top:0.5rem;">الإعدادات</div>
-            <a href="/DoctorProfile" class="sidebar-link @(Context.Request.Path.StartsWithSegments("/DoctorProfile") ? "active" : "")">
-                <i class="fas fa-user-md"></i> الملف الشخصي
-            </a>
-        </nav>
-
-        <div class="sidebar-footer">
-            <a href="/DoctorProfile" class="sidebar-user">
-                <div class="sidebar-user-avatar">
-                    <i class="fas fa-user"></i>
+    <!-- ═══ NAVBAR ═══════════════════════════════════════════ -->
+    <nav class="navbar navbar-expand-lg doctor-navbar">
+        <div class="container-fluid">
+            <!-- Brand Logo -->
+            <a href="/DoctorDashboard" class="nav-brand">
+                <div class="nav-brand-icon"><i class="fas fa-heartbeat"></i></div>
+                <div>
+                    <span class="nav-brand-text">إط<span>من</span></span>
+                    <span class="nav-brand-sub">بوابة الأطباء</span>
                 </div>
-                <div class="sidebar-user-name" id="sidebarDoctorName">@User?.Identity?.Name</div>
             </a>
-            <form asp-controller="Account" asp-action="Logout" method="post" class="mt-2">
-                @Html.AntiForgeryToken()
-                <button type="submit" class="btn btn-sm w-100" style="background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.5);border-radius:10px;font-weight:600;border:1px solid rgba(255,255,255,0.08);transition:all 0.2s;padding:0.4rem;" onmouseover="this.style.background='rgba(231,76,60,0.15)';this.style.color='#E74C3C';" onmouseout="this.style.background='rgba(255,255,255,0.06)';this.style.color='rgba(255,255,255,0.5)';">
-                    <i class="fas fa-sign-out-alt"></i> تسجيل الخروج
-                </button>
-            </form>
-        </div>
-    </aside>
 
-    <!-- Sidebar Overlay -->
-    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+            <!-- Toggle button for mobile -->
+            <button class="navbar-toggler border-0 text-white" type="button" data-bs-toggle="collapse" data-bs-target="#doctorNavbarContent" aria-controls="doctorNavbarContent" aria-expanded="false" aria-label="Toggle navigation">
+                <i class="fas fa-bars fs-3"></i>
+            </button>
+
+            <!-- Navbar Links & Info -->
+            <div class="collapse navbar-collapse" id="doctorNavbarContent">
+                <!-- Center Links -->
+                <ul class="nav-menu mx-auto mt-2 mt-lg-0">
+                    <li>
+                        <a href="/DoctorDashboard" class="nav-menu-link @(Context.Request.Path.StartsWithSegments("/DoctorDashboard") ? "active" : "")">
+                            <i class="fas fa-chart-pie"></i> لوحة التحكم
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/DoctorAppointments" class="nav-menu-link @(Context.Request.Path.StartsWithSegments("/DoctorAppointments") ? "active" : "")">
+                            <i class="fas fa-calendar-check"></i> المواعيد
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/DoctorPatients/Search" class="nav-menu-link @(Context.Request.Path.StartsWithSegments("/DoctorPatients") ? "active" : "")">
+                            <i class="fas fa-users"></i> المرضى
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/DoctorSlots" class="nav-menu-link @(Context.Request.Path.StartsWithSegments("/DoctorSlots") ? "active" : "")">
+                            <i class="fas fa-clock"></i> أوقات العمل
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/Chat/Index" class="nav-menu-link @(Context.Request.Path.StartsWithSegments("/Chat") ? "active" : "")">
+                            <i class="fas fa-comments"></i> الرسائل
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-light" id="chatBadgeTop" style="font-size:0.6rem;display:none;transform:translate(-50%,-10%)!important;">0</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/DoctorPanicInbox" class="nav-menu-link @(Context.Request.Path.StartsWithSegments("/DoctorPanicInbox") ? "active" : "")">
+                            <i class="fas fa-exclamation-triangle text-danger"></i> حالات الطوارئ
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-light" id="panicBadgeTop" style="font-size:0.6rem;display:none;transform:translate(-50%,-10%)!important;">0</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/DoctorClinic" class="nav-menu-link @(Context.Request.Path.StartsWithSegments("/DoctorClinic") ? "active" : "")">
+                            <i class="fas fa-clinic-medical text-accent"></i> عيادتي
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/DoctorProfile" class="nav-menu-link @(Context.Request.Path.StartsWithSegments("/DoctorProfile") ? "active" : "")">
+                            <i class="fas fa-user-md"></i> الملف الشخصي
+                        </a>
+                    </li>
+                </ul>
+
+                <!-- Left side: Profile & Logout -->
+                <div class="d-flex align-items-center gap-3 mt-3 mt-lg-0 flex-wrap">
+                    <!-- Notification Bell -->
+                    <a href="/Alerts" class="nav-menu-link position-relative px-3 py-2 text-white" title="التنبيهات" style="background: rgba(255,255,255,0.08); border-radius: 10px; border: 1px solid rgba(255,255,255,0.15);">
+                        <i class="fas fa-bell fs-5"></i>
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-light" id="notifDotTop" style="font-size: 0.65rem; display:none; transform: translate(-50%, -10%) !important;">
+                            0
+                        </span>
+                    </a>
+
+                    <!-- User Name Badge -->
+                    <a href="/DoctorProfile" class="nav-profile-badge">
+                        <div class="avatar-circle">
+                            <i class="fas fa-user-md"></i>
+                        </div>
+                        <span id="navDoctorName">د. @User?.Identity?.Name</span>
+                    </a>
+
+                    <!-- Logout Form -->
+                    <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn-nav-logout" title="تسجيل الخروج">
+                            <i class="fas fa-sign-out-alt"></i> خروج
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    @if (isCrisisActive && activeCrisisResult.Data != null)
+    {
+        <div class="container mt-4 mb-2 animate__animated animate__pulse animate__infinite" style="animation-duration: 4s;">
+            <div class="alert alert-danger border-0 shadow-sm d-flex align-items-center justify-content-between p-3 flex-wrap gap-3" style="border-radius: 16px; background: linear-gradient(135deg, #FF3B30 0%, #C0392B 100%); color: white;">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="d-flex align-items-center justify-content-center" style="width: 42px; height: 42px; background: rgba(255,255,255,0.2); border-radius: 10px; font-size: 1.3rem;">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="text-start">
+                        <h6 class="fw-bold mb-1 text-white">تنبيه طوارئ نشط: وضع الأزمات مفعل (@activeCrisisResult.Data.CrisisName)</h6>
+                        <p class="mb-0 small text-white-50">بوابة الأطباء في حالة تأهب طبي قصوى. يرجى متابعة حالات الاشتباه والتحذيرات الواردة بانتظام.</p>
+                    </div>
+                </div>
+                <a href="/DoctorPanicInbox" class="btn btn-light btn-sm fw-bold px-3 py-2 text-danger" style="border-radius: 10px;">
+                    <i class="fas fa-exclamation-triangle me-1"></i> صندوق الحالات الحرجة
+                </a>
+            </div>
+        </div>
+    }
 
     <!-- ═══ MAIN ═══════════════════════════════════════════════ -->
     <div class="main-content">
-        <header class="main-header">
-            <div class="d-flex align-items-center gap-3">
-                <button class="sidebar-toggle" onclick="toggleSidebar()" aria-label="Toggle sidebar">
-                    <i class="fas fa-bars"></i>
-                </button>
-                <div class="main-header-title">
-                    <h1>@ViewData["Title"]</h1>
-                    <small id="headerDateTime"></small>
+        <main class="main-body container py-4">
+            <div class="page-header mb-4 animate__animated animate__fadeIn">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+                    <div>
+                        <h1 class="page-title">@ViewData["Title"]</h1>
+                        <p class="page-subtitle text-muted small mb-0" id="headerDateTime"><i class="far fa-clock me-1"></i> </p>
+                    </div>
                 </div>
             </div>
-            <div class="main-header-actions">
-                <a href="/Alerts" class="header-btn" title="التنبيهات">
-                    <i class="fas fa-bell"></i>
-                    <span class="notif-dot" id="notifDot" style="display:none;"></span>
-                </a>
-                <a href="/DoctorPanicInbox" class="btn-emergency-flash" title="حالات الطوارئ">
-                    <i class="fas fa-ambulance"></i> طوارئ
-                </a>
-            </div>
-        </header>
-
-        <main class="main-body">
             @if (TempData["Success"] != null)
             {
                 <div class="custom-alert custom-alert-success animate__animated animate__fadeInDown" role="alert">
@@ -896,21 +957,14 @@
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        // Toggle sidebar on mobile
-        function toggleSidebar() {
-            document.getElementById('doctorSidebar').classList.toggle('open');
-            document.getElementById('sidebarOverlay').classList.toggle('show');
-        }
-        document.getElementById('sidebarOverlay')?.addEventListener('click', function() {
-            document.getElementById('doctorSidebar').classList.remove('open');
-            this.classList.remove('show');
-        });
-
         // Live date/time in header
         function updateHeaderTime() {
             const now = new Date();
             const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' };
-            document.getElementById('headerDateTime').textContent = now.toLocaleDateString('ar-SA', options);
+            const timeEl = document.getElementById('headerDateTime');
+            if (timeEl) {
+                timeEl.innerHTML = '<i class="far fa-clock me-1"></i> ' + now.toLocaleDateString('ar-SA', options);
+            }
         }
         updateHeaderTime();
         setInterval(updateHeaderTime, 30000);
@@ -949,24 +1003,103 @@
             observer.observe(card);
         });
 
-        // Poll panic badge count
+        // Poll panic badge count with real-time audio and visual alarm escalation
+        let previousPanicCount = -1;
+        let audioCtx = null;
+
+        function playPanicBeep() {
+            try {
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+                const playBeep = (time, freq) => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, time);
+                    gain.gain.setValueAtTime(0.25, time);
+                    gain.gain.exponentialRampToValueAtTime(0.01, time + 0.15);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(time);
+                    osc.stop(time + 0.18);
+                };
+                const now = audioCtx.currentTime;
+                playBeep(now, 900);
+                playBeep(now + 0.25, 900);
+                playBeep(now + 0.5, 900);
+            } catch (e) {
+                console.error("Web Audio API error:", e);
+            }
+        }
+
+        function triggerPanicAlarm(diff) {
+            playPanicBeep();
+
+            let container = $('#panicToastContainer');
+            if (container.length === 0) {
+                $('body').append('<div id="panicToastContainer" style="position: fixed; bottom: 30px; left: 30px; z-index: 10000; display: flex; flex-direction: column; gap: 12px; max-width: 420px; width: 100%;"></div>');
+                container = $('#panicToastContainer');
+            }
+
+            const toastId = 'toast_' + Date.now();
+            const toastHtml = `
+                <div id="${toastId}" class="animate__animated animate__bounceInUp" style="background: rgba(231, 76, 60, 0.95); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); color: white; border: 1px solid rgba(255, 255, 255, 0.25); border-radius: 16px; padding: 18px 22px; box-shadow: 0 15px 40px rgba(231, 76, 60, 0.4); display: flex; align-items: center; gap: 15px; cursor: pointer; transition: all 0.3s;" onclick="window.location.href='/DoctorPanicInbox'">
+                    <div style="background: rgba(255, 255, 255, 0.2); border-radius: 12px; width: 44px; height: 44px; display: grid; place-items: center; font-size: 1.4rem; animation: pulseAnim 1s infinite; flex-shrink: 0;">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div style="flex: 1;">
+                        <h5 style="font-weight: 800; margin: 0 0 4px 0; font-size: 1.05rem; display: flex; align-items: center; gap: 8px;">حالة طوارئ عاجلة! <span style="background: white; color: #E74C3C; border-radius: 99px; padding: 1px 7px; font-size: 0.7rem; font-weight: 900;">جديد</span></h5>
+                        <p style="margin: 0; font-size: 0.85rem; opacity: 0.95; line-height: 1.4;">تم رصد حالة مريض حرجة بحاجة لتقييمك الطبي العاجل.</p>
+                    </div>
+                    <button type="button" style="background: transparent; border: none; color: white; opacity: 0.7; font-size: 1.25rem; font-weight: 300;" onclick="event.stopPropagation(); $('#${toastId}').remove()">&times;</button>
+                </div>
+            `;
+            container.append(toastHtml);
+
+            setTimeout(function() {
+                $(`#${toastId}`).removeClass('animate__bounceInUp').addClass('animate__fadeOutDown');
+                setTimeout(function() {
+                    $(`#${toastId}`).remove();
+                }, 800);
+            }, 12000);
+        }
+
         function updatePanicBadge() {
             $.get('/DoctorPanicInbox/GetUnreadCount', function(data) {
-                var badge = $('#panicBadge');
-                var dot = $('#notifDot');
-                if (data.count > 0) {
-                    badge.text(data.count).show();
-                    dot.show();
+                var badge = $('#panicBadgeTop');
+                var currentCount = data.count || 0;
+                if (currentCount > 0) {
+                    badge.text(currentCount).show();
+                    if (previousPanicCount !== -1 && currentCount > previousPanicCount) {
+                        triggerPanicAlarm(currentCount - previousPanicCount);
+                    }
                 } else {
                     badge.hide();
-                    dot.hide();
+                }
+                previousPanicCount = currentCount;
+            }).fail(function() { });
+        }
+
+        // Poll chat badge count
+        function updateChatBadge() {
+            $.get('/Chat/GetUnreadCount', function(data) {
+                var badge = $('#chatBadgeTop');
+                if (data.count > 0) {
+                    badge.text(data.count).show();
+                } else {
+                    badge.hide();
                 }
             }).fail(function() { });
         }
 
-        function updateChatBadge() {
-            $.get('/Chat/GetUnreadCount', function(data) {
-                var badge = $('#chatBadge');
+        // Poll alert count
+        function updateNavbarAlertBadge() {
+            $.get('/Alerts/GetUnreadCount', function(data) {
+                var badge = $('#notifDotTop');
                 if (data.count > 0) {
                     badge.text(data.count).show();
                 } else {
@@ -978,8 +1111,10 @@
         $(document).ready(function() {
             updatePanicBadge();
             updateChatBadge();
+            updateNavbarAlertBadge();
             setInterval(updatePanicBadge, 30000);
             setInterval(updateChatBadge, 15000);
+            setInterval(updateNavbarAlertBadge, 30000);
         });
     </script>
 

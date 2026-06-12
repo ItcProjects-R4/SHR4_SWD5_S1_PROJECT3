@@ -170,5 +170,30 @@ namespace Etmen_PL.Controllers
                 return RedirectToAction(nameof(Index));
             }
         }
+
+        /// <summary>
+        /// GET: /DoctorPanicInbox/GetUnreadCount
+        /// Returns the count of active unassigned and assigned critical cases for this doctor's inbox
+        /// </summary>
+        [HttpGet]
+        public async Task<IActionResult> GetUnreadCount()
+        {
+            try
+            {
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                    return Json(new { count = 0 });
+
+                var inboxResult = await _criticalIntelligenceService.GetDoctorPanicInboxAsync(userId);
+                if (!inboxResult.IsSuccess || inboxResult.Data == null)
+                    return Json(new { count = 0 });
+
+                return Json(new { count = inboxResult.Data.TotalCriticalCases });
+            }
+            catch
+            {
+                return Json(new { count = 0 });
+            }
+        }
     }
 }

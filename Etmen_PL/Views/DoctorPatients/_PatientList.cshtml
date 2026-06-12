@@ -18,14 +18,14 @@
             @foreach (var pt in Model)
             {
                 <tr>
-                    <td class="fw-bold">@pt.SearchTerm</td>
-                    <td dir="ltr" style="direction:ltr;">-</td>
-                    <td>-</td>
+                    <td class="fw-bold">@pt.PatientName</td>
+                    <td dir="ltr" style="direction:ltr;">@(pt.PhoneNumber ?? "-")</td>
+                    <td>@(pt.Email ?? "-")</td>
                     <td>-</td>
                     <td>-</td>
                     <td>-</td>
                     <td>
-                        <a href="/DoctorPatients/Details/0" class="table-action-btn" title="عرض الملف">
+                        <a href="/DoctorPatients/Details/@pt.PatientId" class="table-action-btn" title="عرض الملف">
                             <i class="fas fa-eye"></i>
                         </a>
                     </td>

@@ -148,7 +148,10 @@ builder.Services.AddSingleton(mapsterConfig);
 // ═══════════════════════════════════════════════════════════════
 // 6. MVC
 // ═══════════════════════════════════════════════════════════════
-builder.Services.AddControllersWithViews()
+builder.Services.AddControllersWithViews(options =>
+{
+    options.Filters.Add<Etmen_PL.Filters.DoctorOnboardingFilter>();
+})
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.ReferenceHandler =

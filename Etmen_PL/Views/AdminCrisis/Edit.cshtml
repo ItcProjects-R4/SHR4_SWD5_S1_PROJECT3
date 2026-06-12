@@ -1,0 +1,128 @@
+@model Etmen_PL.Models.ViewModels.Admin.CreateCrisisViewModel
+@{
+    ViewData["Title"] = "تعديل الأزمة";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    var id = Context.Request.RouteValues["id"];
+}
+
+<div class="row g-4 animate__animated animate__fadeIn">
+    <!-- Header -->
+    <div class="col-12 d-flex align-items-center justify-content-between flex-wrap gap-3 mb-2">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <a href="/AdminCrisis" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+                    <i class="fas fa-arrow-right"></i> العودة للقائمة
+                </a>
+            </div>
+            <h2 class="fw-900 m-0" style="font-weight: 900;">تعديل تهيئة الأزمة</h2>
+            <p class="text-muted small mb-0">
+                <i class="fas fa-edit me-1"></i> تحديث اسم الأزمة ومعايير الخطورة والمستويات لفرز الحالات.
+            </p>
+        </div>
+    </div>
+
+    <!-- Form -->
+    <div class="col-lg-8 col-12 mx-auto">
+        <div class="dashboard-card">
+            <h4 class="card-header-sm border-bottom pb-3 mb-4">
+                <i class="fas fa-sliders text-primary"></i> بيانات تهيئة الأزمة
+            </h4>
+
+            <form asp-controller="AdminCrisis" asp-action="Edit" asp-route-id="@id" method="post" class="needs-validation">
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                <div class="row g-3">
+                    <!-- Name -->
+                    <div class="col-md-6 col-12">
+                        <label asp-for="CrisisName" class="form-label fw-800 text-dark">اسم الأزمة / الوباء</label>
+                        <input asp-for="CrisisName" class="form-control rounded-pill px-3" placeholder="مثال: فيروس كورونا المستجد (كوفيد-19)" required />
+                        <span asp-validation-for="CrisisName" class="text-danger small"></span>
+                    </div>
+
+                    <!-- Type -->
+                    <div class="col-md-6 col-12">
+                        <label asp-for="CrisisType" class="form-label fw-800 text-dark">نوع الأزمة / الخطر الوبائي</label>
+                        <select asp-for="CrisisType" class="form-select rounded-pill px-3" required style="height: 38px;">
+                            <option value="">-- اختر نوع الأزمة --</option>
+                            <option value="Viral">فيروسي (Viral)</option>
+                            <option value="Biological">بيولوجي (Biological)</option>
+                            <option value="Chemical">كيميائي (Chemical)</option>
+                            <option value="Radiation">إشعاعي (Radiation)</option>
+                        </select>
+                        <span asp-validation-for="CrisisType" class="text-danger small"></span>
+                    </div>
+
+                    <!-- System Mode -->
+                    <div class="col-md-6 col-12">
+                        <label asp-for="SystemMode" class="form-label fw-800 text-dark">وضع النظام المرتبط</label>
+                        <select asp-for="SystemMode" class="form-select rounded-pill px-3" required style="height: 38px;">
+                            <option value="Normal">اعتيادي (Normal)</option>
+                            <option value="Crisis">أزمة وطوارئ كاملة (Crisis)</option>
+                            <option value="Hybrid">هجين (Hybrid)</option>
+                        </select>
+                        <span asp-validation-for="SystemMode" class="text-danger small"></span>
+                    </div>
+
+                    <!-- Start Date (Ready only during edit in standard CRUD if necessary, but here we can modify) -->
+                    <div class="col-md-6 col-12">
+                        <label asp-for="StartDate" class="form-label fw-800 text-dark">تاريخ البدء والتفعيل</label>
+                        <input asp-for="StartDate" type="date" class="form-control rounded-pill px-3" required />
+                        <span asp-validation-for="StartDate" class="text-danger small"></span>
+                    </div>
+
+                    <!-- End Date -->
+                    <div class="col-md-6 col-12">
+                        <label asp-for="EndDate" class="form-label fw-800 text-dark">تاريخ الانتهاء المتوقع (اختياري)</label>
+                        <input asp-for="EndDate" type="date" class="form-control rounded-pill px-3" />
+                        <span asp-validation-for="EndDate" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-12 my-3">
+                        <hr class="text-muted" />
+                        <h5 class="fw-800 text-primary mb-3"><i class="fas fa-scale-balanced me-2"></i> عتبات تحديد مستويات الخطورة (Triage Risk Thresholds)</h5>
+                        <p class="text-muted small">حدد الدرجة الأدنى (من 0 إلى 1) التي ينبغي أن تصل إليها خطورة الحالة لتصنيفها ضمن المستويات التالية:</p>
+                    </div>
+
+                    <!-- Medium Threshold -->
+                    <div class="col-md-4 col-12">
+                        <label asp-for="MediumRiskThreshold" class="form-label fw-800 text-dark">الخطورة المتوسطة (Medium)</label>
+                        <input asp-for="MediumRiskThreshold" type="number" step="0.05" min="0" max="1" class="form-control font-monospace rounded-pill px-3" required />
+                        <span asp-validation-for="MediumRiskThreshold" class="text-danger small"></span>
+                    </div>
+
+                    <!-- High Threshold -->
+                    <div class="col-md-4 col-12">
+                        <label asp-for="HighRiskThreshold" class="form-label fw-800 text-dark">الخطورة العالية (High)</label>
+                        <input asp-for="HighRiskThreshold" type="number" step="0.05" min="0" max="1" class="form-control font-monospace rounded-pill px-3" required />
+                        <span asp-validation-for="HighRiskThreshold" class="text-danger small"></span>
+                    </div>
+
+                    <!-- Emergency Threshold -->
+                    <div class="col-md-4 col-12">
+                        <label asp-for="EmergencyThreshold" class="form-label fw-800 text-dark">الخطورة الحرجة/الطارئة (Critical)</label>
+                        <input asp-for="EmergencyThreshold" type="number" step="0.05" min="0" max="1" class="form-control font-monospace rounded-pill px-3" required />
+                        <span asp-validation-for="EmergencyThreshold" class="text-danger small"></span>
+                    </div>
+
+                    <!-- Description -->
+                    <div class="col-12 mt-3">
+                        <label asp-for="Description" class="form-label fw-800 text-dark">وصف الأزمة وإجراءات الاستجابة المقترحة</label>
+                        <textarea asp-for="Description" class="form-control" rows="4" style="border-radius: 14px;" placeholder="اكتب تفاصيل إضافية حول أعراض الأزمة وتوجيهات الكادر الطبي..."></textarea>
+                        <span asp-validation-for="Description" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-12 d-flex justify-content-end gap-2 mt-4">
+                        <a href="/AdminCrisis" class="btn btn-outline-secondary rounded-pill px-4">إلغاء</a>
+                        <button type="submit" class="btn btn-primary rounded-pill px-5 fw-800">
+                            <i class="fas fa-save me-1"></i> حفظ وتحديث الأزمة
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

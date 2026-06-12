@@ -1,0 +1,613 @@
+@model Etmen_PL.Models.ViewModels.Crisis.CrisisCommandCenterViewModel
+@{
+    ViewData["Title"] = "مركز قيادة وإدارة الأزمات";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<style>
+    /* Dark Theme override for Command Center to look like a premium Operations Room */
+    .command-center-body {
+        background-color: #0D1117;
+        color: #C9D1D9;
+        margin: -2rem -2.5rem;
+        padding: 2rem 2.5rem;
+        min-height: 100vh;
+    }
+    
+    .ops-title {
+        color: #F0F6FC;
+        font-weight: 900;
+    }
+
+    .ops-card {
+        background: #161B22;
+        border: 1px solid #30363D;
+        border-radius: 16px;
+        padding: 20px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        transition: all 0.3s ease;
+    }
+    .ops-card:hover {
+        border-color: #58A6FF;
+        transform: translateY(-2px);
+    }
+    .ops-card-glow-red {
+        border-left: 4px solid #F85149;
+    }
+    .ops-card-glow-orange {
+        border-left: 4px solid #F0883E;
+    }
+    .ops-card-glow-blue {
+        border-left: 4px solid #58A6FF;
+    }
+    .ops-card-glow-green {
+        border-left: 4px solid #3FB950;
+    }
+
+    .ops-header-sm {
+        color: #F0F6FC;
+        font-size: 1.1rem;
+        font-weight: 800;
+        border-bottom: 1px solid #30363D;
+        padding-bottom: 12px;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .metric-val {
+        font-size: 2.2rem;
+        font-weight: 900;
+        color: #F0F6FC;
+        font-family: 'Outfit', sans-serif;
+        line-height: 1.1;
+    }
+    .metric-subtitle {
+        font-size: 0.8rem;
+        color: #8B949E;
+        font-weight: 600;
+        margin-top: 4px;
+    }
+
+    /* Pulse animation for active cases */
+    .pulse-dot {
+        width: 10px;
+        height: 10px;
+        background-color: #F85149;
+        border-radius: 50%;
+        display: inline-block;
+        box-shadow: 0 0 0 0 rgba(248, 81, 73, 0.7);
+        animation: pulse-red 1.5s infinite;
+    }
+    @@keyframes pulse-red {
+        0% {
+            transform: scale(0.95);
+            box-shadow: 0 0 0 0 rgba(248, 81, 73, 0.7);
+        }
+        70% {
+            transform: scale(1);
+            box-shadow: 0 0 0 8px rgba(248, 81, 73, 0);
+        }
+        100% {
+            transform: scale(0.95);
+            box-shadow: 0 0 0 0 rgba(248, 81, 73, 0);
+        }
+    }
+
+    /* Wait time indicator classes */
+    .timer-badge {
+        font-family: 'Outfit', sans-serif;
+        font-weight: 800;
+        font-size: 0.8rem;
+        padding: 4px 10px;
+        border-radius: 20px;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+    .timer-critical {
+        background: rgba(248, 81, 73, 0.15);
+        color: #F85149;
+        border: 1px solid rgba(248, 81, 73, 0.3);
+    }
+    .timer-warning {
+        background: rgba(240, 136, 62, 0.15);
+        color: #F0883E;
+        border: 1px solid rgba(240, 136, 62, 0.3);
+    }
+    .timer-normal {
+        background: rgba(63, 185, 80, 0.15);
+        color: #3FB950;
+        border: 1px solid rgba(63, 185, 80, 0.3);
+    }
+
+    /* Triage table dark styles */
+    .ops-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0 8px;
+    }
+    .ops-table th {
+        border: none;
+        color: #8B949E;
+        font-weight: 800;
+        font-size: 0.8rem;
+        padding: 8px 16px;
+    }
+    .ops-table-row {
+        background: #1F242C;
+        transition: all 0.3s;
+    }
+    .ops-table-row td {
+        padding: 16px;
+        border-top: 1px solid #30363D;
+        border-bottom: 1px solid #30363D;
+        color: #C9D1D9;
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+    .ops-table-row td:first-child {
+        border-right: 1px solid #30363D;
+        border-top-right-radius: 12px;
+        border-bottom-right-radius: 12px;
+    }
+    .ops-table-row td:last-child {
+        border-left: 1px solid #30363D;
+        border-top-left-radius: 12px;
+        border-bottom-left-radius: 12px;
+    }
+    .ops-table-row:hover td {
+        background: #242B35;
+        border-color: #58A6FF;
+    }
+
+    .badge-triage {
+        font-size: 0.75rem;
+        font-weight: 800;
+        padding: 4px 10px;
+        border-radius: 20px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .badge-triage-critical { background: rgba(248, 81, 73, 0.2); color: #FF7B72; border: 1px solid rgba(248, 81, 73, 0.4); }
+    .badge-triage-high { background: rgba(240, 136, 62, 0.2); color: #FFA657; border: 1px solid rgba(240, 136, 62, 0.4); }
+    .badge-triage-medium { background: rgba(243, 156, 18, 0.2); color: #F39C12; border: 1px solid rgba(243, 156, 18, 0.4); }
+    .badge-triage-low { background: rgba(88, 166, 255, 0.2); color: #58A6FF; border: 1px solid rgba(88, 166, 255, 0.4); }
+
+    .status-badge {
+        font-size: 0.72rem;
+        font-weight: 700;
+        padding: 3px 8px;
+        border-radius: 6px;
+        display: inline-block;
+    }
+
+    .btn-ops-action {
+        background: #21262D;
+        border: 1px solid #30363D;
+        color: #C9D1D9;
+        font-size: 0.75rem;
+        font-weight: 700;
+        border-radius: 8px;
+        padding: 6px 12px;
+        transition: all 0.2s;
+    }
+    .btn-ops-action:hover {
+        background: #58A6FF;
+        color: white;
+        border-color: #58A6FF;
+    }
+
+    .ticker-item {
+        border-bottom: 1px solid #21262D;
+        padding-bottom: 12px;
+        margin-bottom: 12px;
+        font-size: 0.8rem;
+    }
+    .ticker-item:last-child {
+        border: none;
+        margin-bottom: 0;
+        padding-bottom: 0;
+    }
+
+    /* Tab styles */
+    .ops-tabs {
+        border-bottom: 1px solid #30363D;
+        margin-bottom: 16px;
+    }
+    .ops-tab-link {
+        color: #8B949E;
+        background: transparent;
+        border: none;
+        padding: 8px 16px;
+        font-weight: 800;
+        font-size: 0.85rem;
+        border-bottom: 2px solid transparent;
+        transition: all 0.2s;
+    }
+    .ops-tab-link:hover {
+        color: #C9D1D9;
+    }
+    .ops-tab-link.active {
+        color: #58A6FF;
+        border-bottom-color: #58A6FF;
+    }
+</style>
+
+<div class="command-center-body">
+    <div class="row g-4">
+        <!-- Top Title and Status Header -->
+        <div class="col-12 d-flex align-items-center justify-content-between flex-wrap gap-3 mb-2">
+            <div>
+                <h2 class="ops-title m-0"><i class="fas fa-tower-observation text-danger me-2 animate__animated animate__pulse animate__infinite"></i> مركز العمليات والسيطرة الطبية</h2>
+                <p class="text-muted small mb-0">
+                    مراقبة وتوزيع حالات الطوارئ الحرجة بشكل لحظي بالتنسيق مع المستشفيات وأطقم الإسعاف الميدانية.
+                </p>
+            </div>
+            <div class="d-flex align-items-center gap-3">
+                <div class="ops-card py-2 px-3 d-flex align-items-center gap-2">
+                    <span class="pulse-dot"></span>
+                    <span class="text-white small fw-bold">اتصال حي مع الشبكة الميدانية</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Metrics Counters Row -->
+        <div class="col-12">
+            <div class="row g-3">
+                <!-- Active Cases -->
+                <div class="col-md-3 col-sm-6 col-12">
+                    <div class="ops-card ops-card-glow-red">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div>
+                                <span class="metric-val text-danger">@Model.ActiveCriticalCases</span>
+                                <div class="metric-subtitle">إجمالي البلاغات الحرجة</div>
+                            </div>
+                            <div class="bg-danger bg-opacity-10 p-3 rounded text-danger">
+                                <i class="fas fa-kit-medical fs-4"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Waiting Hospital -->
+                <div class="col-md-3 col-sm-6 col-12">
+                    <div class="ops-card ops-card-glow-orange">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div>
+                                <span class="metric-val text-warning">@Model.WaitingForHospital</span>
+                                <div class="metric-subtitle">بانتظار استجابة المستشفيات</div>
+                            </div>
+                            <div class="bg-warning bg-opacity-10 p-3 rounded text-warning">
+                                <i class="fas fa-hospital-user fs-4 animate__animated animate__flash animate__infinite animate__slower"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Waiting Doctor -->
+                <div class="col-md-3 col-sm-6 col-12">
+                    <div class="ops-card ops-card-glow-blue">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div>
+                                <span class="metric-val text-primary">@Model.WaitingForDoctor</span>
+                                <div class="metric-subtitle">حالات معلقة بانتظار طبيب المختص</div>
+                            </div>
+                            <div class="bg-primary bg-opacity-10 p-3 rounded text-primary">
+                                <i class="fas fa-user-doctor fs-4"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Avg Wait Time -->
+                <div class="col-md-3 col-sm-6 col-12">
+                    <div class="ops-card ops-card-glow-green">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div>
+                                <span class="metric-val text-success">@Model.AverageWaitingMinutes.ToString("F1")</span>
+                                <div class="metric-subtitle">متوسط زمن الانتظار (دقيقة)</div>
+                            </div>
+                            <div class="bg-success bg-opacity-10 p-3 rounded text-success">
+                                <i class="fas fa-hourglass-half fs-4"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Area: Cases List Grid -->
+        <div class="col-lg-9 col-12">
+            <div class="ops-card">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                    <h4 class="fw-800 text-white m-0"><i class="fas fa-list-ul text-info me-2"></i> قائمة طابور الت triage والفرز الميداني</h4>
+                    
+                    <!-- Search input -->
+                    <div style="position: relative; width: 220px;">
+                        <input type="text" id="caseSearch" class="form-control form-control-sm text-white bg-dark border-secondary rounded-pill px-3" placeholder="البحث باسم المريض..." style="font-size: 0.8rem; padding-right: 30px;" />
+                        <i class="fas fa-search text-muted" style="position: absolute; right: 12px; top: 9px; font-size: 0.8rem;"></i>
+                    </div>
+                </div>
+
+                <!-- Tabs Filter -->
+                <div class="ops-tabs d-flex">
+                    <button class="ops-tab-link active" onclick="filterCases('all')">الكل (@Model.Cases.Count)</button>
+                    <button class="ops-tab-link" onclick="filterCases('waiting_hosp')">بانتظار المستشفى (@Model.Cases.Count(c => !c.HospitalResponded))</button>
+                    <button class="ops-tab-link" onclick="filterCases('waiting_doc')">بانتظار طبيب (@Model.Cases.Count(c => c.HospitalResponded && c.AssignedDoctorUserId == null))</button>
+                    <button class="ops-tab-link" onclick="filterCases('completed')">تم التعيين والمتابعة (@Model.Cases.Count(c => c.AssignedDoctorUserId != null))</button>
+                </div>
+
+                @if (Model.Cases.Count == 0)
+                {
+                    <div class="text-center py-5 text-muted">
+                        <i class="fas fa-circle-check fs-1 text-success mb-3"></i>
+                        <h5>الوضع آمن! لا توجد بلاغات طوارئ حرجة نشطة حالياً.</h5>
+                        <p class="small mb-0">يتم تحديث البلاغات فور تلقي الميدان طلب استغاثة من التطبيق.</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="ops-table">
+                            <thead>
+                                <tr>
+                                    <th>المريض</th>
+                                    <th>درجة الخطورة</th>
+                                    <th>الأعراض المفحوصة</th>
+                                    <th>زمن الانتظار</th>
+                                    <th>المستشفى المستقبل</th>
+                                    <th>الطبيب المشرف</th>
+                                    <th>حالة الحركة</th>
+                                    <th class="text-center">إجراء العمليات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="casesTableBody">
+                                @foreach (var item in Model.Cases)
+                                {
+                                    var dataStatus = "completed";
+                                    if (!item.HospitalResponded) { dataStatus = "waiting_hosp"; }
+                                    else if (item.AssignedDoctorUserId == null) { dataStatus = "waiting_doc"; }
+
+                                    <tr class="ops-table-row" data-status="@dataStatus" data-name="@item.PatientName.ToLower()">
+                                        <td>
+                                            <div class="fw-800 text-white">@item.PatientName</div>
+                                            <div class="text-muted small">@item.PatientPhone</div>
+                                        </td>
+                                        <td>
+                                            @if (item.RiskLevel == Etmen_Domain.Enums.RiskLevel.Critical || item.RiskScore >= 0.8m)
+                                            {
+                                                <span class="badge-triage badge-triage-critical">
+                                                    <i class="fas fa-radiation"></i> طارئة (@item.RiskScore.ToString("F2"))
+                                                </span>
+                                            }
+                                            else if (item.RiskLevel == Etmen_Domain.Enums.RiskLevel.High || item.RiskScore >= 0.6m)
+                                            {
+                                                <span class="badge-triage badge-triage-high">
+                                                    <i class="fas fa-triangle-exclamation"></i> خطرة (@item.RiskScore.ToString("F2"))
+                                                </span>
+                                            }
+                                            else if (item.RiskLevel == Etmen_Domain.Enums.RiskLevel.Medium || item.RiskScore >= 0.4m)
+                                            {
+                                                <span class="badge-triage badge-triage-medium">
+                                                    <i class="fas fa-info-circle"></i> متوسطة (@item.RiskScore.ToString("F2"))
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge-triage badge-triage-low">
+                                                    <i class="fas fa-circle-check"></i> مستقرة (@item.RiskScore.ToString("F2"))
+                                                </span>
+                                            }
+                                        </td>
+                                        <td style="max-width: 180px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;" title="@item.Symptoms">
+                                            <span class="small opacity-75">@(string.IsNullOrWhiteSpace(item.Symptoms) ? "لا توجد أعراض مسجلة" : item.Symptoms)</span>
+                                        </td>
+                                        <td>
+                                            @if (item.WaitingMinutes >= 15)
+                                            {
+                                                <span class="timer-badge timer-critical animate__animated animate__flash animate__infinite">
+                                                    <i class="fas fa-circle-exclamation animate__animated animate__pulse animate__infinite"></i> @item.WaitingMinutes د
+                                                </span>
+                                            }
+                                            else if (item.WaitingMinutes >= 5)
+                                            {
+                                                <span class="timer-badge timer-warning">
+                                                    <i class="fas fa-clock"></i> @item.WaitingMinutes د
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="timer-badge timer-normal">
+                                                    <i class="fas fa-check"></i> @item.WaitingMinutes د
+                                                </span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <span class="small">
+                                                @(string.IsNullOrWhiteSpace(item.AssignedProviderName) ? "بانتظار القبول..." : item.AssignedProviderName)
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="small">
+                                                @if (!string.IsNullOrWhiteSpace(item.AssignedDoctorName))
+                                                {
+                                                    <span class="text-success"><i class="fas fa-user-md me-1"></i> د. @item.AssignedDoctorName</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted"><i class="fas fa-user-slash me-1"></i> معلق</span>
+                                                }
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="small fw-bold @(item.HospitalResponded ? "text-success" : "text-warning")">
+                                                @item.OperationalStatus
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex justify-content-center">
+                                                <button type="button" class="btn-ops-action" onclick="showCaseDetails('@item.EmergencyRequestId', '@item.PatientName', '@item.PatientPhone', '@item.RiskScore', '@item.Symptoms', '@item.OperationalStatus', '@item.AssignedProviderName', '@item.AssignedDoctorName')">
+                                                    <i class="fas fa-folder-open"></i> تفاصيل وتوجيه
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Right Column: Operations Ticker Log -->
+        <div class="col-lg-3 col-12">
+            <div class="ops-card mb-4" style="max-height: 400px; overflow-y: auto;">
+                <h4 class="ops-header-sm">
+                    <i class="fas fa-clipboard-list text-warning"></i> لوحة الإرسال والتوجيه
+                </h4>
+                <div class="ticker-item">
+                    <div class="d-flex align-items-center justify-content-between mb-1">
+                        <span class="text-danger fw-bold"><i class="fas fa-circle-exclamation me-1"></i> بلاغ استغاثة حرج</span>
+                        <span class="text-muted small">منذ دقيقة</span>
+                    </div>
+                    <div class="text-white small">بلاغ أحمر في حي الأندلس بحاجة لسيارة إسعاف وتوجيه مستشفى.</div>
+                </div>
+                <div class="ticker-item">
+                    <div class="d-flex align-items-center justify-content-between mb-1">
+                        <span class="text-success fw-bold"><i class="fas fa-check me-1"></i> تم استقبال حالة</span>
+                        <span class="text-muted small">منذ 8 دقائق</span>
+                    </div>
+                    <div class="text-white small">أكدت مستشفى النور استقبال الحالة #103 وتخصيص سرير عناية مركزة.</div>
+                </div>
+                <div class="ticker-item">
+                    <div class="d-flex align-items-center justify-content-between mb-1">
+                        <span class="text-primary fw-bold"><i class="fas fa-user-md me-1"></i> تعيين طبيب استشاري</span>
+                        <span class="text-muted small">منذ 15 دقيقة</span>
+                    </div>
+                    <div class="text-white small">تم تعيين الطبيب د. محمد أحمد لمتابعة حالة المريض خالد العتيبي.</div>
+                </div>
+            </div>
+
+            <!-- Tactical quick commands -->
+            <div class="ops-card">
+                <h4 class="ops-header-sm">
+                    <i class="fas fa-bullhorn text-info"></i> نداء طارئ معمم
+                </h4>
+                <p class="small text-muted mb-3">إرسال تعميم فوري أو تنبيه استنفار لجميع الكوادر الطبية والمستشفيات المسجلة.</p>
+                <div class="mb-3">
+                    <textarea class="form-control form-control-sm bg-dark text-white border-secondary" rows="3" placeholder="اكتب نص النداء هنا..." style="font-size: 0.8rem; border-radius: 8px;"></textarea>
+                </div>
+                <button type="button" class="btn btn-danger btn-sm w-100 rounded-pill py-2 fw-800" onclick="alert('تم بث التعميم الاستنفاري لجميع المستشفيات بنجاح')">
+                    <i class="fas fa-broadcast-tower me-1"></i> بث نداء طوارئ فوري
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for Case Details & Manual Intervention -->
+<div class="modal fade" id="caseDetailsModal" tabindex="-1" aria-labelledby="caseDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg text-white" style="border-radius: 20px; background-color: #161B22;">
+            <div class="modal-header border-0 bg-dark px-4 py-3" style="border-top-left-radius: 20px; border-top-right-radius: 20px;">
+                <h5 class="modal-title fw-900" id="caseDetailsModalLabel"><i class="fas fa-folder-open text-primary me-2"></i> تفاصيل الحالة الطارئة والتدخل المباشر</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <h6 class="text-muted fw-bold mb-1">اسم المريض:</h6>
+                        <h4 class="fw-800 text-white" id="modalPatientName">خالد العتيبي</h4>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-muted fw-bold mb-1">هاتف التواصل:</h6>
+                        <h5 class="font-monospace text-info" id="modalPatientPhone">0555234567</h5>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-muted fw-bold mb-1">درجة الخطورة:</h6>
+                        <h5 id="modalRiskScore">0.92</h5>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-muted fw-bold mb-1">حالة العمليات الحالية:</h6>
+                        <h5 class="text-warning fw-bold" id="modalOperationalStatus">بانتظار المستشفى</h5>
+                    </div>
+                    <div class="col-12">
+                        <h6 class="text-muted fw-bold mb-1">الأعراض الطبية المسجلة:</h6>
+                        <div class="bg-dark p-3 rounded" style="border: 1px solid #30363D;">
+                            <p class="small mb-0" id="modalSymptoms">صعوبة حادة في التنفس، فقدان للوعي مؤقت، هبوط حاد بضغط الدم.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-muted fw-bold mb-1">المستشفى المكلف:</h6>
+                        <p class="small text-white fw-bold" id="modalHospital">مستشفى الملك فهد العسكري</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-muted fw-bold mb-1">الطبيب الاستشاري:</h6>
+                        <p class="small text-white fw-bold" id="modalDoctor">لم يتم تعيينه بعد</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-0 p-4 pt-0">
+                <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">إغلاق النافذة</button>
+                <button type="button" class="btn btn-primary rounded-pill px-4" onclick="alert('تم توجيه وتحديث حالة الفرز بنجاح');" data-bs-dismiss="modal">
+                    <i class="fas fa-paper-plane me-1"></i> إعادة توجيه وتكليف فوري
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Filtering Logic for CommandCenter Cases
+    function filterCases(status) {
+        // Update tabs active state
+        document.querySelectorAll('.ops-tab-link').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        event.currentTarget.classList.add('active');
+
+        // Show/Hide Rows
+        document.querySelectorAll('.ops-table-row').forEach(row => {
+            if (status === 'all') {
+                row.style.display = '';
+            } else {
+                if (row.getAttribute('data-status') === status) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            }
+        });
+    }
+
+    // Search Logic
+    document.getElementById('caseSearch').addEventListener('input', function(e) {
+        var query = e.target.value.toLowerCase().trim();
+        document.querySelectorAll('.ops-table-row').forEach(row => {
+            var name = row.getAttribute('data-name');
+            if (name.includes(query)) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    });
+
+    // Detail modal population
+    function showCaseDetails(id, name, phone, risk, symptoms, status, hospital, doctor) {
+        document.getElementById('modalPatientName').textContent = name;
+        document.getElementById('modalPatientPhone').textContent = phone;
+        document.getElementById('modalRiskScore').innerHTML = `<span class="badge-triage badge-triage-critical"><i class="fas fa-radiation"></i> ${risk}</span>`;
+        document.getElementById('modalOperationalStatus').textContent = status;
+        document.getElementById('modalSymptoms').textContent = symptoms || "لا توجد أعراض إضافية مسجلة";
+        document.getElementById('modalHospital').textContent = hospital || "بانتظار استجابة وتحديد المستشفى المستقبل";
+        document.getElementById('modalDoctor').textContent = doctor || "معلق (بانتظار تعيين طبيب استشاري للرعاية الحرجة)";
+
+        var modal = new bootstrap.Modal(document.getElementById('caseDetailsModal'));
+        modal.show();
+    }
+</script>

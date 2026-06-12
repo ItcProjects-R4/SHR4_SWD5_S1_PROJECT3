@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Etmen_Domain.Entities
@@ -27,6 +27,9 @@ namespace Etmen_Domain.Entities
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedAt { get; set; }
+
+        public bool IsOnboarded { get; set; } = false;
+        public string? OnboardingDataJson { get; set; }
 
         public virtual ICollection<Appointment> Appointments { get; set; } = new List<Appointment>();
         public virtual ICollection<AvailableSlot> AvailableSlots { get; set; } = new List<AvailableSlot>();

@@ -1,4 +1,4 @@
-﻿using Etmen_DAL.DbContext;
+using Etmen_DAL.DbContext;
 using Etmen_DAL.Repositories.Interfaces;
 using Etmen_Domain.Entities;
 using Etmen_Domain.Enums;
@@ -42,7 +42,7 @@ namespace Etmen_DAL.Repositories.Implementations
         public async Task DeactivateCrisisAsync(int id)
         {
             var crisis = await _dbSet.FindAsync(id);
-            if (crisis != null) { crisis.IsActive = false; crisis.SystemMode = SystemMode.Normal; crisis.UpdatedAt = DateTime.UtcNow; }
+            if (crisis != null) { crisis.IsActive = false; crisis.UpdatedAt = DateTime.UtcNow; }
         }
 
         public async Task UpdateSystemModeAsync(int id, SystemMode mode)

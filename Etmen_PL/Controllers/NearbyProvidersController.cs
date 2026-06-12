@@ -1,9 +1,14 @@
 using Etmen_BLL.DTOs.Nearby;
 using Etmen_BLL.Repositories.IServices;
 using Etmen_PL.Models.ViewModels.Patient;
+using Etmen_DAL.Repositories.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using Microsoft.EntityFrameworkCore;
+using System.Threading.Tasks;
+using System;
+using System.Linq;
 
 namespace Etmen_PL.Controllers
 {
@@ -17,17 +22,20 @@ namespace Etmen_PL.Controllers
         private readonly INearbyService _nearbyService;
         private readonly IAppointmentService _appointmentService;
         private readonly IPatientService _patientService;
+        private readonly IUnitOfWork _uow;
         private readonly ILogger<NearbyProvidersController> _logger;
 
         public NearbyProvidersController(
             INearbyService nearbyService,
             IAppointmentService appointmentService,
             IPatientService patientService,
+            IUnitOfWork uow,
             ILogger<NearbyProvidersController> logger)
         {
             _nearbyService = nearbyService;
             _appointmentService = appointmentService;
             _patientService = patientService;
+            _uow = uow;
             _logger = logger;
         }
 
@@ -86,6 +94,19 @@ namespace Etmen_PL.Controllers
                 ModelState.AddModelError(string.Empty, "خطأ في البحث عن المراكز الصحية");
                 return View(viewModel);
             }
+        }
+
+        /// <summary>
+        /// GET: /NearbyProviders/GetSlots
+        /// Retrieves available slots for a provider (AJAX)
+        /// </summary>
+        [HttpGet]
+        public async Task<IActionResult> GetSlots(int providerId)
+        {
+            var result = await _nearbyService.GetAvailableSlotsByProviderAsync(providerId);
+            if (!result.IsSuccess)
+                return BadRequest(result.ErrorMessage);
+            return Json(result.Data);
         }
 
         /// <summary>
@@ -155,6 +176,83 @@ namespace Etmen_PL.Controllers
             {
                 _logger.LogError(ex, "Error booking appointment");
                 TempData["Error"] = "خطأ في حجز الموعد";
+                return RedirectToAction(nameof(Index));
+            }
+        }
+
+        /// <summary>
+        /// GET: /NearbyProviders/DoctorDetails/{id}
+        /// Premium Vezeeta-style Doctor Details View
+        /// </summary>
+        [HttpGet("NearbyProviders/DoctorDetails/{id}")]
+        public async Task<IActionResult> DoctorDetails(int id)
+        {
+            try
+            {
+                if (id <= 0)
+                    return BadRequest();
+
+                // 1. Get Healthcare Provider details
+                var provider = await _uow.HealthcareProviders.GetByIdAsync(id);
+                if (provider == null)
+                {
+                    TempData["Error"] = "المنشأة الطبية غير موجودة";
+                    return RedirectToAction(nameof(Index));
+                }
+
+                // 2. Find doctor linked to this provider in their onboarding JSON
+                Etmen_Domain.Entities.DoctorProfile? doctor = null;
+                var doctors = await _uow.DoctorProfiles.Table.Include(d => d.ApplicationUser).ToListAsync();
+                foreach (var doc in doctors)
+                {
+                    if (!string.IsNullOrEmpty(doc.OnboardingDataJson))
+                    {
+                        try
+                        {
+                            using var docJson = System.Text.Json.JsonDocument.Parse(doc.OnboardingDataJson);
+                            if (docJson.RootElement.TryGetProperty("HealthcareProviderId", out var prop) && prop.GetInt32() == id)
+                            {
+                                doctor = doc;
+                                break;
+                            }
+                        }
+                        catch { }
+                    }
+                }
+
+                // 3. Get available slots
+                var slotsResult = await _nearbyService.GetAvailableSlotsByProviderAsync(id);
+                var slots = slotsResult.IsSuccess ? slotsResult.Data ?? new() : new();
+
+                // Group slots by Date for the 3-day sliding calendar
+                var viewModel = new DoctorDetailsViewModel
+                {
+                    ProviderId = id,
+                    ProviderName = provider.Name,
+                    ProviderAddress = provider.Address ?? string.Empty,
+                    ProviderType = provider.Type,
+                    DoctorId = doctor?.Id,
+                    DoctorName = doctor?.FullName ?? (doctor?.ApplicationUser != null ? $"{doctor.ApplicationUser.FirstName} {doctor.ApplicationUser.LastName}".Trim() : string.Empty),
+                    Specialization = doctor?.Specialization ?? "أخصائي عام",
+                    Bio = doctor?.Bio ?? "أخصائي متميز بخبرة في الرعاية الطبية الشاملة وتقديم الاستشارات المتخصصة للمرضى.",
+                    ConsultationFee = doctor?.ConsultationFee ?? 150.00m,
+                    YearsOfExperience = doctor?.YearsOfExperience ?? 5,
+                    LicenseNumber = doctor?.LicenseNumber ?? string.Empty,
+                    AvailableSlots = slots
+                };
+
+                // Fallback for DoctorName if no doctor profile is linked
+                if (string.IsNullOrWhiteSpace(viewModel.DoctorName))
+                {
+                    viewModel.DoctorName = provider.Name;
+                }
+
+                return View(viewModel);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading doctor booking details");
+                TempData["Error"] = "حدث خطأ أثناء تحميل صفحة الطبيب";
                 return RedirectToAction(nameof(Index));
             }
         }

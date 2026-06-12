@@ -51,6 +51,8 @@ namespace Etmen_BLL.Repositories.Services
             doctor.Bio = Normalize(dto.Bio);
             doctor.ConsultationFee = dto.ConsultationFee;
             doctor.IsAvailable = dto.IsAvailable;
+            doctor.IsOnboarded = dto.IsOnboarded;
+            doctor.OnboardingDataJson = dto.OnboardingDataJson;
             doctor.UpdatedAt = DateTime.UtcNow;
 
             _uow.DoctorProfiles.Update(doctor);
@@ -295,6 +297,10 @@ namespace Etmen_BLL.Repositories.Services
                 .Take(25)
                 .Select(p => new PatientSearchDto
                 {
+                    PatientId = p.Id,
+                    PatientName = p.FullName,
+                    PhoneNumber = p.ApplicationUser.PhoneNumber,
+                    Email = p.ApplicationUser.Email,
                     SearchTerm = $"{p.Id} | {p.FullName ?? "Unnamed patient"} | {p.ApplicationUser.PhoneNumber ?? p.ApplicationUser.Email}",
                     FilterBy = "Result"
                 })
@@ -407,6 +413,8 @@ namespace Etmen_BLL.Repositories.Services
             IsAvailable = doctor.IsAvailable,
             Email = doctor.ApplicationUser?.Email,
             PhoneNumber = doctor.ApplicationUser?.PhoneNumber,
+            IsOnboarded = doctor.IsOnboarded,
+            OnboardingDataJson = doctor.OnboardingDataJson,
             CreatedAt = doctor.CreatedAt,
             UpdatedAt = doctor.UpdatedAt
         };

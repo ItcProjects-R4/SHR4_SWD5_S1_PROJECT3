@@ -1,0 +1,166 @@
+@model Etmen_PL.Models.ViewModels.Admin.CreateProviderViewModel
+@{
+    ViewData["Title"] = "تعديل المنشأة الطبية";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="row g-4 animate__animated animate__fadeIn">
+    <!-- Header -->
+    <div class="col-12 d-flex align-items-center justify-content-between flex-wrap gap-3 mb-2">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <a href="/AdminProviders" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+                    <i class="fas fa-arrow-right"></i> العودة للقائمة
+                </a>
+            </div>
+            <h2 class="fw-900 m-0" style="font-weight: 900;">تعديل المنشأة الطبية</h2>
+            <p class="text-muted small mb-0">
+                <i class="fas fa-edit me-1"></i> تعديل بيانات المنشأة الطبية وتحديث سعتها أو موقعها الجغرافي.
+            </p>
+        </div>
+    </div>
+
+    <!-- Form -->
+    <div class="col-lg-8 col-12 mx-auto">
+        <div class="dashboard-card">
+            <h4 class="card-header-sm border-bottom pb-3 mb-4">
+                <i class="fas fa-hospital text-primary"></i> بيانات المنشأة الطبية
+            </h4>
+
+            <form asp-controller="AdminProviders" asp-action="Edit" method="post" class="needs-validation">
+                @Html.AntiForgeryToken()
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                <div class="row g-3">
+                    <!-- Name -->
+                    <div class="col-md-6 col-12">
+                        <label asp-for="Name" class="form-label fw-800 text-dark">اسم المنشأة الطبية</label>
+                        <input asp-for="Name" class="form-control rounded-pill px-3" required />
+                        <span asp-validation-for="Name" class="text-danger small"></span>
+                    </div>
+
+                    <!-- Provider Type -->
+                    <div class="col-md-6 col-12">
+                        <label asp-for="ProviderType" class="form-label fw-800 text-dark">نوع المنشأة</label>
+                        <select asp-for="ProviderType" class="form-select rounded-pill px-3" required style="height: 38px;">
+                            <option value="">-- اختر نوع المنشأة --</option>
+                            <option value="Hospital">مستشفى (Hospital)</option>
+                            <option value="Clinic">عيادة (Clinic)</option>
+                            <option value="HealthCenter">مركز صحي (HealthCenter)</option>
+                        </select>
+                        <span asp-validation-for="ProviderType" class="text-danger small"></span>
+                    </div>
+
+                    <!-- PhoneNumber -->
+                    <div class="col-md-6 col-12">
+                        <label asp-for="PhoneNumber" class="form-label fw-800 text-dark">رقم الهاتف</label>
+                        <input asp-for="PhoneNumber" class="form-control rounded-pill px-3" />
+                        <span asp-validation-for="PhoneNumber" class="text-danger small"></span>
+                    </div>
+
+                    <!-- AvailableBeds -->
+                    <div class="col-md-6 col-12">
+                        <label asp-for="AvailableBeds" class="form-label fw-800 text-dark">عدد الأسرة المتاحة (للطوارئ)</label>
+                        <input asp-for="AvailableBeds" type="number" min="0" class="form-control rounded-pill px-3" />
+                        <span asp-validation-for="AvailableBeds" class="text-danger small"></span>
+                    </div>
+
+                    <!-- Address -->
+                    <div class="col-12">
+                        <label asp-for="Address" class="form-label fw-800 text-dark">العنوان بالتفصيل</label>
+                        <input asp-for="Address" class="form-control rounded-pill px-3" />
+                        <span asp-validation-for="Address" class="text-danger small"></span>
+                    </div>
+
+                    <!-- Latitude -->
+                    <div class="col-md-6 col-12">
+                        <label asp-for="Latitude" class="form-label fw-800 text-dark">إحداثي خط العرض (Latitude)</label>
+                        <input asp-for="Latitude" id="latInput" type="number" step="0.000001" min="-90" max="90" class="form-control rounded-pill px-3" required />
+                        <span asp-validation-for="Latitude" class="text-danger small"></span>
+                    </div>
+
+                    <!-- Longitude -->
+                    <div class="col-md-6 col-12">
+                        <label asp-for="Longitude" class="form-label fw-800 text-dark">إحداثي خط الطول (Longitude)</label>
+                        <input asp-for="Longitude" id="lngInput" type="number" step="0.000001" min="-180" max="180" class="form-control rounded-pill px-3" required />
+                        <span asp-validation-for="Longitude" class="text-danger small"></span>
+                    </div>
+                    
+                    <!-- IsActive Checkbox -->
+                    <div class="col-12 mt-2">
+                        <div class="form-check form-switch mt-2">
+                            <input asp-for="IsActive" class="form-check-input" type="checkbox" style="width:3rem;height:1.5rem;" />
+                            <label class="form-check-label fw-bold me-2" asp-for="IsActive">المنشأة نشطة وتستقبل حالات</label>
+                        </div>
+                        <span asp-validation-for="IsActive" class="text-danger small"></span>
+                    </div>
+
+                    <!-- Quick Map Picker -->
+                    <div class="col-12 mt-3">
+                        <label class="form-label fw-800 text-dark">تعديل الموقع على الخريطة (انقر أو اسحب الدبوس لتحديث الموقع)</label>
+                        <div id="editMap" style="height: 250px; border-radius: 16px; border: 1px solid var(--border); overflow: hidden; z-index: 1;"></div>
+                    </div>
+                </div>
+
+                <div class="mt-4 pt-3 border-top d-flex gap-2">
+                    <button type="submit" class="btn btn-primary rounded-pill px-4 fw-800">
+                        <i class="fas fa-save me-1"></i> حفظ التعديلات
+                    </button>
+                    <a href="/AdminProviders" class="btn btn-outline-secondary rounded-pill px-4 fw-800">إلغاء</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    
+    <!-- Include Leaflet.js -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        $(document).ready(function() {
+            // Retrieve current coordinates from inputs
+            let currentLat = parseFloat($('#latInput').val()) || 30.0444;
+            let currentLng = parseFloat($('#lngInput').val()) || 31.2357;
+
+            // Initialize map
+            const map = L.map('editMap').setView([currentLat, currentLng], 13);
+
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(map);
+
+            let marker = L.marker([currentLat, currentLng], { draggable: true }).addTo(map);
+
+            function updateInputs(lat, lng) {
+                $('#latInput').val(lat.toFixed(6));
+                $('#lngInput').val(lng.toFixed(6));
+            }
+
+            // On map click
+            map.on('click', function(e) {
+                marker.setLatLng(e.latlng);
+                updateInputs(e.latlng.lat, e.latlng.lng);
+            });
+
+            // On marker drag
+            marker.on('dragend', function(e) {
+                const position = marker.getLatLng();
+                updateInputs(position.lat, position.lng);
+            });
+
+            // Sync inputs to map marker on change
+            $('#latInput, #lngInput').on('change', function() {
+                let lat = parseFloat($('#latInput').val());
+                let lng = parseFloat($('#lngInput').val());
+                if (!isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+                    marker.setLatLng([lat, lng]);
+                    map.panTo([lat, lng]);
+                }
+            });
+        });
+    </script>
+}

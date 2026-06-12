@@ -1,25 +1,36 @@
 using Etmen_BLL.Repositories.IServices;
 using Etmen_PL.Models.ViewModels.Doctor;
+using Etmen_Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http;
+using System.IO;
+using System.Threading.Tasks;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Etmen_PL.Controllers
 {
     /// <summary>
     /// Doctor Dashboard Controller
-    /// Displays doctor landing dashboard metrics and scheduling statistics
+    /// Displays doctor landing dashboard metrics, scheduling statistics, and onboarding flow.
     /// </summary>
     [Authorize(Roles = "Doctor")]
     public class DoctorDashboardController : Controller
     {
         private readonly IDoctorService _doctorService;
+        private readonly UserManager<ApplicationUser> _userManager;
         private readonly ILogger<DoctorDashboardController> _logger;
 
         public DoctorDashboardController(
             IDoctorService doctorService,
+            UserManager<ApplicationUser> userManager,
             ILogger<DoctorDashboardController> logger)
         {
             _doctorService = doctorService;
+            _userManager = userManager;
             _logger = logger;
         }
 
@@ -104,5 +115,207 @@ namespace Etmen_PL.Controllers
                 return Json(new { isSuccess = false, message = "An error occurred while fetching statistics" });
             }
         }
+
+        /// <summary>
+        /// GET: /DoctorDashboard/Onboarding
+        /// Displays the multi-step doctor onboarding wizard.
+        /// </summary>
+        [HttpGet]
+        public async Task<IActionResult> Onboarding()
+        {
+            try
+            {
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized();
+
+                var user = await _userManager.FindByIdAsync(userId);
+                var profileResult = await _doctorService.GetProfileAsync(userId);
+
+                if (user == null || !profileResult.IsSuccess)
+                {
+                    return NotFound("Doctor account not found.");
+                }
+
+                // If doctor is already onboarded, send them to the main dashboard
+                if (profileResult.Data != null && profileResult.Data.IsOnboarded)
+                {
+                    return RedirectToAction(nameof(Index));
+                }
+
+                // Pass the current user and doctor info to prefill the first step of the wizard
+                var input = new DoctorOnboardingInputModel
+                {
+                    FirstName = user.FirstName ?? "",
+                    LastName = user.LastName ?? "",
+                    Email = user.Email ?? "",
+                    PhoneNumber = user.PhoneNumber ?? "",
+                    Speciality = profileResult.Data?.Specialization ?? ""
+                };
+
+                return View(input);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error opening onboarding wizard");
+                return View(new DoctorOnboardingInputModel());
+            }
+        }
+
+        /// <summary>
+        /// POST: /DoctorDashboard/SaveOnboarding
+        /// Saves all onboarding wizard inputs, updates user/profile, and marks doctor as onboarded.
+        /// </summary>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SaveOnboarding(
+            DoctorOnboardingInputModel input,
+            IFormFile? profilePicFile,
+            IFormFile? entityLogoFile)
+        {
+            try
+            {
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized();
+
+                var user = await _userManager.FindByIdAsync(userId);
+                var profileResult = await _doctorService.GetProfileAsync(userId);
+
+                if (user == null || !profileResult.IsSuccess)
+                {
+                    return NotFound("Doctor account not found.");
+                }
+
+                if (!ModelState.IsValid)
+                {
+                    return View("Onboarding", input);
+                }
+
+                // 1. Update ApplicationUser fields
+                user.FirstName = input.FirstName;
+                user.LastName = input.LastName;
+                user.PhoneNumber = input.PhoneNumber;
+
+                // Handle profile picture upload if provided
+                if (profilePicFile != null && profilePicFile.Length > 0)
+                {
+                    var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads");
+                    if (!Directory.Exists(uploadsFolder))
+                        Directory.CreateDirectory(uploadsFolder);
+
+                    var uniqueFileName = $"{Guid.NewGuid()}_{Path.GetFileName(profilePicFile.FileName)}";
+                    var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+                    using (var fileStream = new FileStream(filePath, FileMode.Create))
+                    {
+                        await profilePicFile.CopyToAsync(fileStream);
+                    }
+                    user.ProfilePicture = $"/uploads/{uniqueFileName}";
+                }
+
+                var userUpdateResult = await _userManager.UpdateAsync(user);
+                if (!userUpdateResult.Succeeded)
+                {
+                    ModelState.AddModelError(string.Empty, "Failed to update user personal info.");
+                    return View("Onboarding", input);
+                }
+
+                // Handle entity logo upload if provided
+                string? entityLogoPath = null;
+                if (entityLogoFile != null && entityLogoFile.Length > 0)
+                {
+                    var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads");
+                    if (!Directory.Exists(uploadsFolder))
+                        Directory.CreateDirectory(uploadsFolder);
+
+                    var uniqueFileName = $"{Guid.NewGuid()}_{Path.GetFileName(entityLogoFile.FileName)}";
+                    var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+                    using (var fileStream = new FileStream(filePath, FileMode.Create))
+                    {
+                        await entityLogoFile.CopyToAsync(fileStream);
+                    }
+                    entityLogoPath = $"/uploads/{uniqueFileName}";
+                }
+
+                // 2. Package the onboarding data as JSON
+                var onboardingData = new
+                {
+                    EntityType = input.EntityType,
+                    EntityName = input.EntityName,
+                    EntityLogoUrl = entityLogoPath,
+                    PricingOption = input.PricingOption,
+                    BranchType = input.BranchType,
+                    BranchEnglishName = input.BranchEnglishName,
+                    BranchArabicName = input.BranchArabicName,
+                    City = input.City,
+                    Area = input.Area,
+                    BranchMobile = input.BranchMobile,
+                    SmsMobile = input.SmsMobile,
+                    TaxId = input.TaxId,
+                    CommercialRegistration = input.CommercialRegistration,
+                    OnboardedAt = DateTime.UtcNow
+                };
+                var jsonPayload = System.Text.Json.JsonSerializer.Serialize(onboardingData);
+
+                // 3. Update DoctorProfile using DoctorService
+                var profileDto = profileResult.Data;
+                if (profileDto == null)
+                {
+                    ModelState.AddModelError(string.Empty, "فشل العثور على ملف الطبيب.");
+                    return View("Onboarding", input);
+                }
+                profileDto.FullName = $"{input.FirstName} {input.LastName}".Trim();
+                profileDto.Specialization = input.Speciality;
+                profileDto.IsOnboarded = true;
+                profileDto.OnboardingDataJson = jsonPayload;
+
+                var updateProfileResult = await _doctorService.UpdateProfileAsync(userId, profileDto);
+                if (!updateProfileResult.IsSuccess)
+                {
+                    ModelState.AddModelError(string.Empty, "Failed to complete onboarding profile setup.");
+                    return View("Onboarding", input);
+                }
+
+                _logger.LogInformation("Doctor {UserId} onboarding completed successfully.", userId);
+                TempData["Success"] = "تم تفعيل حسابك وإنشاء ملفك الشخصي وعيادتك بنجاح!";
+                
+                return RedirectToAction(nameof(Index));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error saving doctor onboarding data");
+                ModelState.AddModelError(string.Empty, "حدث خطأ أثناء حفظ البيانات. يرجى المحاولة مرة أخرى.");
+                return View("Onboarding", input);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Model for Doctor onboarding form inputs
+    /// </summary>
+    public class DoctorOnboardingInputModel
+    {
+        // Step 1: Personal Info
+        public string FirstName { get; set; } = string.Empty;
+        public string LastName { get; set; } = string.Empty;
+        public string PhoneNumber { get; set; } = string.Empty;
+        public string Speciality { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        
+        // Step 2: Entity Details
+        public string EntityType { get; set; } = string.Empty; // Center, Hospital, Clinics
+        public string EntityName { get; set; } = string.Empty;
+        
+        // Step 4: Branch & Book Setup
+        public string PricingOption { get; set; } = string.Empty; // MonthlyFees, Transaction
+        public string BranchType { get; set; } = string.Empty;
+        public string BranchEnglishName { get; set; } = string.Empty;
+        public string BranchArabicName { get; set; } = string.Empty;
+        public string City { get; set; } = string.Empty;
+        public string Area { get; set; } = string.Empty;
+        public string BranchMobile { get; set; } = string.Empty;
+        public string SmsMobile { get; set; } = string.Empty;
+        public string TaxId { get; set; } = string.Empty;
+        public string CommercialRegistration { get; set; } = string.Empty;
     }
 }

@@ -1,0 +1,470 @@
+@model Etmen_PL.Models.ViewModels.Crisis.CrisisHeatmapViewModel
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>خريطة البؤر الوبائية التفاعلية — إطمن</title>
+    
+    <!-- Fonts & Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.rtl.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+
+    <!-- Leaflet.js Map CSS & JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+    <style>
+        :root {
+            --primary: #1A6FBF;
+            --primary-dark: #0D4C8A;
+            --accent: #00C9A7;
+            --success: #27AE60;
+            --danger: #E74C3C;
+            --warning: #F39C12;
+            --dark-bg: #0B0E14;
+            --panel-glass: rgba(15, 22, 33, 0.82);
+            --panel-border: rgba(255, 255, 255, 0.1);
+        }
+
+        body, html {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            font-family: 'Tajawal', sans-serif;
+            background-color: var(--dark-bg);
+            overflow: hidden;
+        }
+
+        /* ═══ MAP STYLING ═══════════════════════════════════════ */
+        #map {
+            width: 100%;
+            height: 100vh;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        /* Customize Leaflet Dark Map Popups */
+        .leaflet-popup-content-wrapper {
+            background: rgba(15, 22, 33, 0.95) !important;
+            backdrop-filter: blur(8px);
+            color: #ECF0F1 !important;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            padding: 5px;
+        }
+        .leaflet-popup-tip {
+            background: rgba(15, 22, 33, 0.95) !important;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+        .leaflet-popup-close-button {
+            color: #BDC3C7 !important;
+        }
+
+        /* Pulsing Radar Circle Marker for Critical Cases */
+        .pulsing-gps {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #E74C3C;
+            box-shadow: 0 0 12px #E74C3C;
+            position: relative;
+        }
+        .pulsing-gps::after {
+            content: '';
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            position: absolute;
+            top: -8px;
+            left: -8px;
+            border: 2px solid #E74C3C;
+            animation: gps-pulse 1.8s infinite ease-out;
+            opacity: 0;
+        }
+        @@keyframes gps-pulse {
+            0% { transform: scale(0.4); opacity: 0; }
+            50% { opacity: 0.6; }
+            100% { transform: scale(1.3); opacity: 0; }
+        }
+
+        /* ═══ FLOATING CONTROL PANEL ═══════════════════════════ */
+        .floating-dashboard {
+            position: absolute;
+            top: 25px;
+            right: 25px;
+            width: 380px;
+            max-height: calc(100vh - 50px);
+            z-index: 1000;
+            background: var(--panel-glass);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--panel-border);
+            border-radius: 24px;
+            box-shadow: 0 15px 45px rgba(0, 0, 0, 0.55);
+            color: #ECF0F1;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            overflow-y: auto;
+        }
+
+        .header-section {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 15px;
+        }
+
+        .dashboard-title {
+            font-size: 1.35rem;
+            font-weight: 900;
+            margin: 0 0 6px 0;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .dashboard-title i {
+            color: var(--accent);
+            animation: pulseMini 2s infinite;
+        }
+
+        @@keyframes pulseMini {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.08); }
+        }
+
+        .dashboard-subtitle {
+            font-size: 0.8rem;
+            color: #BDC3C7;
+            margin: 0;
+        }
+
+        /* Stat Grid */
+        .mini-stat-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 14px;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .mini-stat-icon {
+            width: 40px; height: 40px;
+            border-radius: 10px;
+            display: grid;
+            place-items: center;
+            font-size: 1.2rem;
+            color: white;
+        }
+        .mini-stat-val {
+            font-size: 1.35rem;
+            font-weight: 800;
+            line-height: 1.1;
+        }
+        .mini-stat-lbl {
+            font-size: 0.78rem;
+            color: #BDC3C7;
+        }
+
+        /* Legend */
+        .legend-title {
+            font-size: 0.9rem;
+            font-weight: 800;
+            margin-bottom: 10px;
+            color: white;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 0.82rem;
+            color: #BDC3C7;
+            margin-bottom: 8px;
+        }
+        .legend-color {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        /* Footer buttons */
+        .nav-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding-top: 15px;
+        }
+
+        .btn-panel {
+            background: rgba(26, 111, 191, 0.15);
+            border: 1px solid rgba(26, 111, 191, 0.3);
+            color: #ECF0F1;
+            padding: 10px 15px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.3s;
+        }
+        .btn-panel:hover {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+            transform: translateY(-2px);
+        }
+        .btn-panel-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .btn-panel-secondary:hover {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
+        /* Responsive */
+        @@media (max-width: 576px) {
+            .floating-dashboard {
+                top: 10px;
+                right: 10px;
+                left: 10px;
+                width: auto;
+                max-height: calc(100vh - 20px);
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Map Container -->
+    <div id="map"></div>
+
+    <!-- Floating Dashboard Panel -->
+    <div class="floating-dashboard animate__animated animate__fadeInRight">
+        
+        <!-- Header -->
+        <div class="header-section">
+            <h2 class="dashboard-title">
+                <i class="fas fa-tower-broadcast"></i>
+                خريطة البؤر الوبائية
+            </h2>
+            <p class="dashboard-subtitle">الرصد الجغرافي الحي ومؤشرات العدوى والتدهور</p>
+        </div>
+
+        <!-- Crises Selector Filter -->
+        <div>
+            <label class="form-label small text-muted mb-2">تصفية حسب الأزمة الوبائية</label>
+            <select class="form-select bg-dark border-secondary text-light rounded-pill" id="crisisFilter" onchange="filterCrisis(this.value)">
+                <option value="">جميع الأوبئة والأزمات</option>
+                <option value="@Model.CrisisId" selected="@(Model.CrisisId.HasValue ? "selected" : null)">الأزمة الحالية</option>
+            </select>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="d-flex flex-column gap-3">
+            <div class="mini-stat-card">
+                <div class="mini-stat-icon" style="background: rgba(231, 76, 60, 0.2); color: var(--danger);">
+                    <i class="fas fa-heart-crack"></i>
+                </div>
+                <div>
+                    <div class="mini-stat-val">@Model.TotalGeoTaggedCriticalCases</div>
+                    <div class="mini-stat-lbl">مرضى حالات حرجة (جغرافياً)</div>
+                </div>
+            </div>
+
+            <div class="mini-stat-card">
+                <div class="mini-stat-icon" style="background: rgba(0, 201, 167, 0.2); color: var(--accent);">
+                    <i class="fas fa-bullseye"></i>
+                </div>
+                <div>
+                    <div class="mini-stat-val">@Model.Zones.Count</div>
+                    <div class="mini-stat-lbl">المناطق النشطة المرصودة</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Map Legend -->
+        <div>
+            <div class="legend-title">شرح رموز الخريطة</div>
+            <div class="legend-item">
+                <span class="legend-color" style="background: rgba(231, 76, 60, 0.4); border: 2px solid var(--danger);"></span>
+                <span>بؤرة خطر طارئ (Emergency Zone)</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-color" style="background: rgba(230, 126, 34, 0.4); border: 2px solid var(--warning);"></span>
+                <span>بؤرة خطر مرتفع (High Risk Zone)</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-color" style="background: rgba(241, 196, 15, 0.4); border: 2px solid #F1C40F;"></span>
+                <span>بؤرة خطر متوسط (Medium Risk Zone)</span>
+            </div>
+            <div class="legend-item">
+                <div class="pulsing-gps" style="width: 10px; height: 10px; box-shadow: none;"></div>
+                <span>مريض حرج حالي (Pulse GPS Point)</span>
+            </div>
+        </div>
+
+        <!-- Navigation Buttons -->
+        <div class="nav-buttons">
+            <a href="/AdminDashboard" class="btn-panel">
+                <i class="fas fa-shield-halved"></i>
+                لوحة التحكم الرئيسية
+            </a>
+            <a href="/AdminCrisis/CommandCenter" class="btn-panel btn-panel-secondary">
+                <i class="fas fa-tower-observation"></i>
+                شاشة مركز العمليات المباشرة
+            </a>
+            <a href="/AdminCrisis" class="btn-panel btn-panel-secondary">
+                <i class="fas fa-viruses"></i>
+                إعدادات الأوبئة والتحكم
+            </a>
+        </div>
+    </div>
+
+    <!-- Leaflet Setup Scripts -->
+    <script>
+        // Parse database points and zones
+        const rawPoints = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Points));
+        const rawZones = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Zones));
+
+        // Default map coordinates center (Egypt/Cairo)
+        let mapCenter = [30.0444, 31.2357];
+        let defaultZoom = 11;
+
+        // Try centering map on the first zone or point if available
+        if (rawZones.length > 0) {
+            mapCenter = [parseFloat(rawZones[0].CenterLatitude), parseFloat(rawZones[0].CenterLongitude)];
+            defaultZoom = 12;
+        } else if (rawPoints.length > 0) {
+            mapCenter = [parseFloat(rawPoints[0].Latitude), parseFloat(rawPoints[0].Longitude)];
+            defaultZoom = 13;
+        }
+
+        // Initialize Map
+        const map = L.map('map', {
+            zoomControl: false // Move zoom control to bottom right later
+        }).setView(mapCenter, defaultZoom);
+
+        // Tile layer: CartoDB Dark Matter (Futuristic Clinic Theme)
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            subdomains: 'abcd',
+            maxZoom: 20
+        }).addTo(map);
+
+        // Add Zoom Control to Bottom Right
+        L.control.zoom({
+            position: 'bottomright'
+        }).addTo(map);
+
+        // Draw Outbreak Zones
+        rawZones.forEach(zone => {
+            const lat = parseFloat(zone.CenterLatitude);
+            const lng = parseFloat(zone.CenterLongitude);
+            const radiusMeters = parseFloat(zone.RadiusInKm) * 1000;
+
+            // Choose color based on risk level
+            let zoneColor = '#00C9A7'; // Default Teal
+            let zoneLabel = 'خطر عادي';
+            if (zone.RiskLevel === 4 || zone.RiskLevel === 3) {
+                // Emergency
+                zoneColor = '#E74C3C'; // Neon Red
+                zoneLabel = 'خطر طارئ جداً (Emergency)';
+            } else if (zone.RiskLevel === 2) {
+                // High Risk
+                zoneColor = '#E67E22'; // Orange
+                zoneLabel = 'خطر مرتفع (High Risk)';
+            } else if (zone.RiskLevel === 1) {
+                // Medium Risk
+                zoneColor = '#F1C40F'; // Yellow
+                zoneLabel = 'خطر متوسط (Medium Risk)';
+            }
+
+            // Create Outbreak Circle
+            const circle = L.circle([lat, lng], {
+                radius: radiusMeters,
+                color: zoneColor,
+                fillColor: zoneColor,
+                fillOpacity: 0.2,
+                weight: 2,
+                dashArray: '5, 5'
+            }).addTo(map);
+
+            // Add Details Popup on Click
+            const popupContent = `
+                <div style="font-family: 'Tajawal', sans-serif; text-align: right; direction: rtl; min-width: 220px; padding: 5px;">
+                    <h5 style="font-weight: 800; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 6px; margin-bottom: 8px; color: ${zoneColor}; display: flex; align-items: center; gap: 6px;">
+                        <i class="fas fa-biohazard"></i> ${zone.ZoneName}
+                    </h5>
+                    <p style="margin: 0 0 5px 0; font-size: 0.85rem;"><strong>مستوى الخطورة:</strong> ${zoneLabel}</p>
+                    <p style="margin: 0 0 5px 0; font-size: 0.85rem;"><strong>قطر البؤرة:</strong> ${zone.RadiusInKm} كيلومتر</p>
+                    <p style="margin: 0 0 5px 0; font-size: 0.85rem;"><strong>المرضى المتأثرين بالداخل:</strong> <span class="badge bg-danger rounded-pill">${zone.CriticalCasesInside} حالة</span></p>
+                </div>
+            `;
+            circle.bindPopup(popupContent);
+        });
+
+        // Plot Critical Cases Points (Radar Pulsing Markers)
+        rawPoints.forEach(point => {
+            const lat = parseFloat(point.Latitude);
+            const lng = parseFloat(point.Longitude);
+
+            // Custom Icon utilizing pulsing CSS
+            const pulsingIcon = L.divIcon({
+                className: 'custom-pulsing-marker',
+                html: '<div class="pulsing-gps"></div>',
+                iconSize: [14, 14],
+                iconAnchor: [7, 7]
+            });
+
+            // Create Marker
+            const marker = L.marker([lat, lng], { icon: pulsingIcon }).addTo(map);
+
+            // Add Patient Details Popup on Click
+            const popupContent = `
+                <div style="font-family: 'Tajawal', sans-serif; text-align: right; direction: rtl; min-width: 200px; padding: 5px;">
+                    <h5 style="font-weight: 800; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 6px; margin-bottom: 8px; color: #E74C3C; display: flex; align-items: center; gap: 6px;">
+                        <i class="fas fa-circle-radiation"></i> مريض طوارئ حرج
+                    </h5>
+                    <p style="margin: 0 0 5px 0; font-size: 0.85rem;"><strong>حالة التدهور:</strong> ${point.Label}</p>
+                    <p style="margin: 0 0 5px 0; font-size: 0.85rem;"><strong>معرف الطلب:</strong> #${point.EmergencyRequestId}</p>
+                    <p style="margin: 0 0 5px 0; font-size: 0.85rem;"><strong>شدة الأعراض:</strong> ${point.Intensity}%</p>
+                    <div style="margin-top: 10px; text-align: center;">
+                        <a href="/AdminCrisis/CommandCenter" class="btn btn-xs btn-outline-danger py-1 px-3 rounded-pill" style="font-size:0.75rem; text-decoration:none; display:inline-block;">
+                            تتبع العمليات المباشرة
+                        </a>
+                    </div>
+                </div>
+            `;
+            marker.bindPopup(popupContent);
+        });
+
+        // Filter Crisis action
+        function filterCrisis(crisisId) {
+            if (crisisId === "") {
+                window.location.href = "/AdminCrisis/Heatmap";
+            } else {
+                window.location.href = "/AdminCrisis/Heatmap?crisisId=" + crisisId;
+            }
+        }
+    </script>
+</body>
+</html>

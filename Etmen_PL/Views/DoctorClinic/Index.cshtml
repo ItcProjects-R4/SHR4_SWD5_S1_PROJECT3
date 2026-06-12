@@ -1,0 +1,417 @@
+@model Etmen_PL.Controllers.DoctorClinicViewModel
+@{
+    ViewData["Title"] = "عيادتي";
+    Layout = "~/Views/Shared/_DoctorLayout.cshtml";
+    
+    var activeSlots = Model.Slots.Where(s => !s.IsBooked).ToList();
+    var bookedSlots = Model.Slots.Where(s => s.IsBooked).ToList();
+    var uniquePatients = Model.Appointments
+        .Select(a => new { a.PatientId, a.PatientName, a.PatientPhone, a.PatientEmail })
+        .DistinctBy(p => p.PatientId)
+        .ToList();
+}
+
+<style>
+    .clinic-header {
+        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+        border-radius: 24px;
+        padding: 2rem;
+        box-shadow: 0 10px 30px rgba(26, 111, 191, 0.15);
+        color: white;
+        margin-bottom: 2rem;
+        border: none;
+    }
+    .clinic-nav-tabs {
+        border-bottom: 2px solid var(--border);
+        margin-bottom: 2rem;
+        gap: 1rem;
+    }
+    .clinic-nav-tabs .nav-link {
+        border: none;
+        color: var(--text-muted);
+        font-weight: 700;
+        padding: 12px 20px;
+        position: relative;
+        background: transparent;
+        transition: all 0.3s;
+    }
+    .clinic-nav-tabs .nav-link:hover {
+        color: var(--primary);
+    }
+    .clinic-nav-tabs .nav-link.active {
+        color: var(--primary);
+    }
+    .clinic-nav-tabs .nav-link.active::after {
+        content: '';
+        position: absolute;
+        bottom: -2px; left: 0; right: 0;
+        height: 3px;
+        background: var(--primary);
+        border-radius: 3px;
+    }
+    .metric-card-custom {
+        background: white;
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 1.5rem;
+        transition: all 0.3s;
+    }
+    .metric-card-custom:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.04);
+    }
+</style>
+
+<div class="container-fluid animate__animated animate__fadeIn">
+    <!-- Clinic Header -->
+    <div class="clinic-header d-flex justify-content-between align-items-center flex-wrap gap-3">
+        <div>
+            <span class="badge bg-white text-primary mb-2 px-3 py-2 fw-bold" style="font-size:0.8rem;">
+                <i class="fas fa-clinic-medical"></i> إدارة مركز الخدمة والعيادة
+            </span>
+            <h2 class="fw-black text-white mb-1">عيادتي — @(string.IsNullOrEmpty(Model.EntityName) ? "لم يتم التسمية بعد" : Model.EntityName)</h2>
+            <p class="text-white-50 mb-0">تحديث مواعيد العيادة، إدارة أوقات العمل المتاحة، والاطلاع على سجل المراجعات والمرضى.</p>
+        </div>
+        <div>
+            <a href="/DoctorClinic/Edit" class="btn btn-light rounded-pill px-4 py-2 fw-800 text-primary">
+                <i class="fas fa-edit me-1"></i> تعديل بيانات العيادة
+            </a>
+        </div>
+    </div>
+
+    <!-- Metrics Stats Rows -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-3 col-sm-6 col-12">
+            <div class="metric-card-custom d-flex align-items-center gap-3">
+                <div class="rounded-3 p-3 bg-primary-light text-primary fs-3"><i class="fas fa-calendar-check"></i></div>
+                <div>
+                    <h3 class="fw-bold mb-0">@Model.Appointments.Count</h3>
+                    <small class="text-muted">إجمالي الحجوزات</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6 col-12">
+            <div class="metric-card-custom d-flex align-items-center gap-3">
+                <div class="rounded-3 p-3 bg-success-light text-success fs-3"><i class="fas fa-clock"></i></div>
+                <div>
+                    <h3 class="fw-bold mb-0">@activeSlots.Count</h3>
+                    <small class="text-muted">الفترات المتاحة</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6 col-12">
+            <div class="metric-card-custom d-flex align-items-center gap-3">
+                <div class="rounded-3 p-3 bg-warning-light text-warning fs-3"><i class="fas fa-user-injured"></i></div>
+                <div>
+                    <h3 class="fw-bold mb-0">@uniquePatients.Count</h3>
+                    <small class="text-muted">مرضى العيادة</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6 col-12">
+            <div class="metric-card-custom d-flex align-items-center gap-3">
+                <div class="rounded-3 p-3 bg-danger-light text-danger fs-3"><i class="fas fa-file-medical"></i></div>
+                <div>
+                    <h3 class="fw-bold mb-0">@Model.EntityType</h3>
+                    <small class="text-muted">نوع المنشأة</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Clinic Details Panel & Map -->
+        <div class="col-lg-4 col-12">
+            <div class="dr-card">
+                <div class="dr-card-header">
+                    <h5 class="dr-card-title"><i class="fas fa-info-circle"></i> بيانات العيادة والتواصل</h5>
+                </div>
+                
+                <div class="d-flex flex-column gap-3">
+                    <div>
+                        <small class="text-muted fw-bold d-block mb-1">اسم العيادة / الفرع</small>
+                        <span class="fw-bold text-dark fs-6">@(Model.BranchArabicName.Length > 0 ? Model.BranchArabicName : Model.EntityName)</span>
+                    </div>
+                    <div>
+                        <small class="text-muted fw-bold d-block mb-1">نوع المنشأة</small>
+                        <span class="badge bg-light text-primary border px-3 py-1">@Model.EntityType</span>
+                    </div>
+                    <div>
+                        <small class="text-muted fw-bold d-block mb-1">العنوان والموقع</small>
+                        <span class="text-muted small">@Model.City - @Model.Area</span>
+                    </div>
+                    <div>
+                        <small class="text-muted fw-bold d-block mb-1">رقم الهاتف</small>
+                        <span class="fw-bold font-monospace text-dark">@(Model.BranchMobile.Length > 0 ? Model.BranchMobile : "غير متوفر")</span>
+                    </div>
+                    <div>
+                        <small class="text-muted fw-bold d-block mb-1">الرقم الضريبي والترخيص</small>
+                        <span class="small font-monospace">الضريبة: @(Model.TaxId.Length > 0 ? Model.TaxId : "-") | التجاري: @(Model.CommercialRegistration.Length > 0 ? Model.CommercialRegistration : "-")</span>
+                    </div>
+
+                    <!-- Map Showing Location -->
+                    <div class="mt-2">
+                        <small class="text-muted fw-bold d-block mb-2"><i class="fas fa-map-location-dot"></i> موقع العيادة الجغرافي</small>
+                        @if (Model.Latitude.HasValue && Model.Longitude.HasValue)
+                        {
+                            <div id="clinicMap" style="height: 180px; border-radius: 12px; border: 1px solid var(--border); overflow: hidden; z-index: 1;"></div>
+                        }
+                        else
+                        {
+                            <div class="text-center p-4 rounded-3 border bg-light text-muted small">
+                                لم يتم تعيين الإحداثيات الجغرافية بعد. يرجى تعديل بيانات العيادة لتحديد موقعها على الخريطة.
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Clinic Tabs Panels -->
+        <div class="col-lg-8 col-12">
+            <!-- Navigation Tabs -->
+            <ul class="nav nav-tabs clinic-nav-tabs" id="clinicTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="appt-tab" data-bs-toggle="tab" data-bs-target="#apptsPanel" type="button" role="tab" aria-controls="apptsPanel" aria-selected="true">
+                        <i class="far fa-calendar-check me-2"></i> المواعيد القادمة (@Model.Appointments.Count)
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="slots-tab" data-bs-toggle="tab" data-bs-target="#slotsPanel" type="button" role="tab" aria-controls="slotsPanel" aria-selected="false">
+                        <i class="far fa-clock me-2"></i> أوقات العمل وفترات الحجز
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="patients-tab" data-bs-toggle="tab" data-bs-target="#patientsPanel" type="button" role="tab" aria-controls="patientsPanel" aria-selected="false">
+                        <i class="fas fa-users-medical me-2"></i> مرضى العيادة (@uniquePatients.Count)
+                    </button>
+                </li>
+            </ul>
+
+            <!-- Tabs Content -->
+            <div class="tab-content" id="clinicTabsContent">
+                
+                <!-- Tab 1: Appointments -->
+                <div class="tab-pane fade show active" id="apptsPanel" role="tabpanel" aria-labelledby="appt-tab">
+                    <div class="dr-card p-0" style="overflow:hidden;">
+                        @if (!Model.Appointments.Any())
+                        {
+                            <div class="text-center py-5 text-muted">
+                                <i class="far fa-calendar-times fs-1 mb-3 text-primary opacity-50"></i>
+                                <h5>لا توجد حجوزات عيادة قادمة حالياً</h5>
+                                <p class="small mb-0">ستظهر المواعيد المحجوزة من قبل المرضى هنا فور حدوثها.</p>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="table-responsive">
+                                <table class="dr-table">
+                                    <thead>
+                                        <tr>
+                                            <th>المريض</th>
+                                            <th>التاريخ</th>
+                                            <th>الوقت</th>
+                                            <th>الحالة</th>
+                                            <th class="text-center">الإجراءات</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var appt in Model.Appointments)
+                                        {
+                                            <tr>
+                                                <td class="fw-bold">
+                                                    <a href="/DoctorPatients/Details/@appt.PatientId" class="text-decoration-none" style="color:var(--primary);">
+                                                        @appt.PatientName
+                                                    </a>
+                                                </td>
+                                                <td>@appt.AppointmentDate.ToString("yyyy-MM-dd")</td>
+                                                <td>@appt.StartTime.ToString(@"hh\:mm") - @appt.EndTime.ToString(@"hh\:mm")</td>
+                                                <td>
+                                                    <span class="status-badge @(appt.Status switch { 
+                                                        "Confirmed" => "confirmed", "Pending" => "pending", 
+                                                        "Completed" => "completed", "Cancelled" => "cancelled",
+                                                        _ => "pending" 
+                                                    })">
+                                                        <span class="dot"></span>
+                                                        @(appt.Status switch { 
+                                                            "Confirmed" => "مؤكد", "Pending" => "معلق",
+                                                            "Completed" => "مكتمل", "Cancelled" => "ملغي", _ => appt.Status 
+                                                        })
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <div class="d-flex align-items-center justify-content-center gap-2">
+                                                        <a href="/DoctorAppointments/Details/@appt.Id" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
+                                                            <i class="fas fa-eye"></i> تفاصيل
+                                                        </a>
+                                                        <a href="/Chat/Thread?otherUserId=@appt.PatientId" class="btn btn-sm btn-outline-primary rounded-pill px-3" title="مراسلة المريض">
+                                                            <i class="fas fa-comment-dots"></i> محادثة
+                                                        </a>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Tab 2: Available Slots -->
+                <div class="tab-pane fade" id="slotsPanel" role="tabpanel" aria-labelledby="slots-tab">
+                    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                        <h6 class="fw-bold m-0"><i class="fas fa-clock text-primary"></i> إدارة الفترات الزمنية وأوقات العمل</h6>
+                        <div class="d-flex gap-2">
+                            <a href="/DoctorSlots/Create" class="btn btn-sm btn-primary rounded-pill px-3 py-2 fw-700">
+                                <i class="fas fa-plus"></i> فترة منفردة
+                            </a>
+                            <a href="/DoctorSlots/BulkCreate" class="btn btn-sm btn-outline-primary rounded-pill px-3 py-2 fw-700">
+                                <i class="fas fa-magic"></i> توليد فترات مجمعة
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="dr-card p-0" style="overflow:hidden;">
+                        @if (!Model.Slots.Any())
+                        {
+                            <div class="text-center py-5 text-muted">
+                                <i class="far fa-clock fs-1 mb-3 text-primary opacity-50"></i>
+                                <h5>لم تقم بتهيئة أوقات عملك لهذا الأسبوع بعد</h5>
+                                <p class="small mb-2">قم بإنشاء فترات عمل متاحة ليتمكن المرضى من حجز عيادتك.</p>
+                                <a href="/DoctorSlots/BulkCreate" class="btn btn-sm btn-primary rounded-pill px-3">بدء التهيئة السريعة</a>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="table-responsive">
+                                <table class="dr-table">
+                                    <thead>
+                                        <tr>
+                                            <th>التاريخ</th>
+                                            <th>الوقت</th>
+                                            <th>الحالة</th>
+                                            <th class="text-center">الإجراءات</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var slot in Model.Slots.OrderBy(s => s.Date).ThenBy(s => s.StartTime))
+                                        {
+                                            <tr>
+                                                <td class="fw-bold">@slot.Date.ToString("yyyy-MM-dd")</td>
+                                                <td>@slot.StartTime.ToString(@"hh\:mm") - @slot.EndTime.ToString(@"hh\:mm")</td>
+                                                <td>
+                                                    @if (slot.IsBooked)
+                                                    {
+                                                        <span class="status-badge cancelled"><span class="dot"></span> محجوزة</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="status-badge completed"><span class="dot"></span> متاحة للحجز</span>
+                                                    }
+                                                </td>
+                                                <td>
+                                                    <div class="text-center">
+                                                        @if (!slot.IsBooked)
+                                                        {
+                                                            <form asp-action="Delete" asp-controller="DoctorSlots" method="post" style="display:inline;" onsubmit="return confirm('هل أنت متأكد من حذف هذه الفترة المتاحة؟');">
+                                                                @Html.AntiForgeryToken()
+                                                                <input type="hidden" name="id" value="@slot.Id" />
+                                                                <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-3">
+                                                                    <i class="fas fa-trash-alt"></i> حذف
+                                                                </button>
+                                                            </form>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="text-muted small">محجوزة بالكامل</span>
+                                                        }
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Tab 3: Clinic Patients -->
+                <div class="tab-pane fade" id="patientsPanel" role="tabpanel" aria-labelledby="patients-tab">
+                    <div class="dr-card p-0" style="overflow:hidden;">
+                        @if (!uniquePatients.Any())
+                        {
+                            <div class="text-center py-5 text-muted">
+                                <i class="fas fa-user-injured fs-1 mb-3 text-primary opacity-50"></i>
+                                <h5>لا يوجد أي مرضى مسجلين بالعيادة بعد</h5>
+                                <p class="small mb-0">عند حجز المرضى في عيادتك، ستظهر سجلات التواصل والملخصات الخاصة بهم هنا.</p>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="table-responsive">
+                                <table class="dr-table">
+                                    <thead>
+                                        <tr>
+                                            <th>الاسم</th>
+                                            <th>رقم الهاتف</th>
+                                            <th>البريد الإلكتروني</th>
+                                            <th class="text-center">سجلات المريض</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var patient in uniquePatients)
+                                        {
+                                            <tr>
+                                                <td class="fw-bold">@patient.PatientName</td>
+                                                <td class="font-monospace">@(patient.PatientPhone ?? "-")</td>
+                                                <td>@(patient.PatientEmail ?? "-")</td>
+                                                <td>
+                                                    <div class="d-flex align-items-center justify-content-center gap-2">
+                                                        <a href="/DoctorPatients/Details/@patient.PatientId" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
+                                                            <i class="fas fa-folder-open"></i> الملف الطبي
+                                                        </a>
+                                                        <a href="/Chat/Thread?otherUserId=@patient.PatientId" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                                                            <i class="fas fa-comment-dots"></i> محادثة
+                                                        </a>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @if (Model.Latitude.HasValue && Model.Longitude.HasValue)
+    {
+        <!-- Leaflet Map Scripts -->
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+        <script>
+            $(document).ready(function() {
+                let lat = parseFloat('@Model.Latitude');
+                let lng = parseFloat('@Model.Longitude');
+
+                const map = L.map('clinicMap', { zoomControl: false }).setView([lat, lng], 14);
+
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+                    attribution: '&copy; OpenStreetMap contributors'
+                }).addTo(map);
+
+                L.marker([lat, lng]).addTo(map)
+                    .bindPopup('<b>@Html.Raw(Model.EntityName)</b><br>@Html.Raw(Model.City), @Html.Raw(Model.Area)')
+                    .openPopup();
+            });
+        </script>
+    }
+}

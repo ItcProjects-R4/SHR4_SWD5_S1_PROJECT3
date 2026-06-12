@@ -1,0 +1,178 @@
+@model Etmen_PL.Controllers.DoctorClinicEditModel
+@{
+    ViewData["Title"] = "تعديل بيانات العيادة";
+    Layout = "~/Views/Shared/_DoctorLayout.cshtml";
+}
+
+<div class="row g-4 animate__animated animate__fadeIn">
+    <!-- Header -->
+    <div class="col-12 d-flex align-items-center justify-content-between flex-wrap gap-3 mb-2">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <a href="/DoctorClinic" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+                    <i class="fas fa-arrow-right"></i> العودة للعيادة
+                </a>
+            </div>
+            <h2 class="fw-900 m-0" style="font-weight: 900;">تعديل بيانات العيادة وموقعها</h2>
+            <p class="text-muted small mb-0">
+                <i class="fas fa-edit me-1"></i> تحديث مسمى العيادة، أرقام التواصل والتحقق من الإحداثيات على خريطة البحث.
+            </p>
+        </div>
+    </div>
+
+    <!-- Form -->
+    <div class="col-lg-8 col-12 mx-auto">
+        <div class="dashboard-card">
+            <h4 class="card-header-sm border-bottom pb-3 mb-4">
+                <i class="fas fa-clinic-medical text-primary"></i> تفاصيل المنشأة / العيادة
+            </h4>
+
+            <form asp-controller="DoctorClinic" asp-action="Edit" method="post" class="needs-validation">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="HealthcareProviderId" />
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                <div class="row g-3">
+                    <!-- Entity Name -->
+                    <div class="col-md-6 col-12">
+                        <label asp-for="EntityName" class="form-label fw-800 text-dark">اسم العيادة / المركز</label>
+                        <input asp-for="EntityName" class="form-control rounded-pill px-3" required />
+                        <span asp-validation-for="EntityName" class="text-danger small"></span>
+                    </div>
+
+                    <!-- Entity Type -->
+                    <div class="col-md-6 col-12">
+                        <label asp-for="EntityType" class="form-label fw-800 text-dark">نوع المنشأة</label>
+                        <select asp-for="EntityType" class="form-select rounded-pill px-3" required style="height: 38px;">
+                            <option value="Clinic">عيادة مستقلة (Clinic)</option>
+                            <option value="Hospital">مستشفى استقبال (Hospital)</option>
+                            <option value="Center">مركز طبي متكامل (Center)</option>
+                        </select>
+                        <span asp-validation-for="EntityType" class="text-danger small"></span>
+                    </div>
+
+                    <!-- Branch Arabic Name -->
+                    <div class="col-md-6 col-12">
+                        <label asp-for="BranchArabicName" class="form-label fw-800 text-dark">اسم الفرع (بالعربية)</label>
+                        <input asp-for="BranchArabicName" class="form-control rounded-pill px-3" placeholder="مثال: فرع الدقي الرئيسي" />
+                        <span asp-validation-for="BranchArabicName" class="text-danger small"></span>
+                    </div>
+
+                    <!-- Branch Mobile -->
+                    <div class="col-md-6 col-12">
+                        <label asp-for="BranchMobile" class="form-label fw-800 text-dark">رقم هاتف العيادة</label>
+                        <input asp-for="BranchMobile" class="form-control rounded-pill px-3" required />
+                        <span asp-validation-for="BranchMobile" class="text-danger small"></span>
+                    </div>
+
+                    <!-- City -->
+                    <div class="col-md-6 col-12">
+                        <label asp-for="City" class="form-label fw-800 text-dark">المحافظة / المدينة</label>
+                        <input asp-for="City" class="form-control rounded-pill px-3" required />
+                        <span asp-validation-for="City" class="text-danger small"></span>
+                    </div>
+
+                    <!-- Area -->
+                    <div class="col-md-6 col-12">
+                        <label asp-for="Area" class="form-label fw-800 text-dark">المنطقة / الحي</label>
+                        <input asp-for="Area" class="form-control rounded-pill px-3" required />
+                        <span asp-validation-for="Area" class="text-danger small"></span>
+                    </div>
+
+                    <!-- Tax ID -->
+                    <div class="col-md-6 col-12">
+                        <label asp-for="TaxId" class="form-label fw-800 text-dark">الرقم الضريبي</label>
+                        <input asp-for="TaxId" class="form-control rounded-pill px-3" />
+                        <span asp-validation-for="TaxId" class="text-danger small"></span>
+                    </div>
+
+                    <!-- Commercial Registration -->
+                    <div class="col-md-6 col-12">
+                        <label asp-for="CommercialRegistration" class="form-label fw-800 text-dark">رقم السجل التجاري</label>
+                        <input asp-for="CommercialRegistration" class="form-control rounded-pill px-3" />
+                        <span asp-validation-for="CommercialRegistration" class="text-danger small"></span>
+                    </div>
+
+                    <!-- Latitude -->
+                    <div class="col-md-6 col-12">
+                        <label asp-for="Latitude" class="form-label fw-800 text-dark">إحداثي خط العرض (Latitude)</label>
+                        <input asp-for="Latitude" id="latInput" type="number" step="0.000001" min="-90" max="90" class="form-control rounded-pill px-3" required />
+                        <span asp-validation-for="Latitude" class="text-danger small"></span>
+                    </div>
+
+                    <!-- Longitude -->
+                    <div class="col-md-6 col-12">
+                        <label asp-for="Longitude" class="form-label fw-800 text-dark">إحداثي خط الطول (Longitude)</label>
+                        <input asp-for="Longitude" id="lngInput" type="number" step="0.000001" min="-180" max="180" class="form-control rounded-pill px-3" required />
+                        <span asp-validation-for="Longitude" class="text-danger small"></span>
+                    </div>
+                    
+                    <!-- Quick Map Picker -->
+                    <div class="col-12 mt-3">
+                        <label class="form-label fw-800 text-dark">تعديل موقع عيادتك على الخريطة (انقر أو اسحب الدبوس لتحديد الموقع بدقة)</label>
+                        <div id="clinicEditMap" style="height: 250px; border-radius: 16px; border: 1px solid var(--border); overflow: hidden; z-index: 1;"></div>
+                    </div>
+                </div>
+
+                <div class="mt-4 pt-3 border-top d-flex gap-2">
+                    <button type="submit" class="btn btn-primary rounded-pill px-4 fw-800">
+                        <i class="fas fa-save me-1"></i> حفظ بيانات العيادة والموقع
+                    </button>
+                    <a href="/DoctorClinic" class="btn btn-outline-secondary rounded-pill px-4 fw-800">إلغاء</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    
+    <!-- Include Leaflet.js -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        $(document).ready(function() {
+            // Retrieve current coordinates from inputs
+            let currentLat = parseFloat($('#latInput').val()) || 30.0444;
+            let currentLng = parseFloat($('#lngInput').val()) || 31.2357;
+
+            // Initialize map
+            const map = L.map('clinicEditMap').setView([currentLat, currentLng], 13);
+
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(map);
+
+            let marker = L.marker([currentLat, currentLng], { draggable: true }).addTo(map);
+
+            function updateInputs(lat, lng) {
+                $('#latInput').val(lat.toFixed(6));
+                $('#lngInput').val(lng.toFixed(6));
+            }
+
+            // On map click
+            map.on('click', function(e) {
+                marker.setLatLng(e.latlng);
+                updateInputs(e.latlng.lat, e.latlng.lng);
+            });
+
+            // On marker drag
+            marker.on('dragend', function(e) {
+                const position = marker.getLatLng();
+                updateInputs(position.lat, position.lng);
+            });
+
+            // Sync inputs to map marker on change
+            $('#latInput, #lngInput').on('change', function() {
+                let lat = parseFloat($('#latInput').val());
+                let lng = parseFloat($('#lngInput').val());
+                if (!isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+                    marker.setLatLng([lat, lng]);
+                    map.panTo([lat, lng]);
+                }
+            });
+        });
+    </script>
+}

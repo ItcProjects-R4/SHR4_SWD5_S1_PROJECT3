@@ -28,351 +28,576 @@
         "Obese" => "سمنة",
         _ => "غير متاح"
     };
+
+    // Calculate BMI position on the visual slider (runs from 15 to 40)
+    double bmiVal = Model.LatestBmi.HasValue ? Convert.ToDouble(Model.LatestBmi.Value) : 22.0;
+    double bmiPercentage = ((bmiVal - 15.0) / (40.0 - 15.0)) * 100.0;
+    bmiPercentage = Math.Min(Math.Max(bmiPercentage, 0.0), 100.0);
 }
 
 <style>
+    :root {
+        --glow-blue: rgba(26, 111, 191, 0.15);
+        --glow-teal: rgba(0, 201, 167, 0.15);
+        --glass-bg: rgba(255, 255, 255, 0.7);
+        --glass-border: rgba(255, 255, 255, 0.8);
+        --card-shadow: 0 10px 30px rgba(15, 36, 55, 0.04);
+    }
+
     .patient-dashboard {
         display: grid;
-        gap: 1.35rem;
+        gap: 1.5rem;
     }
 
+    /* ═══ HERO SECTION ═════════════════════════════════════ */
     .patient-hero {
-        min-height: 270px;
-        border-radius: 18px;
-        padding: 2rem;
+        min-height: 290px;
+        border-radius: 24px;
+        padding: 2.5rem;
         color: #fff;
-        background:
-            linear-gradient(135deg, rgba(10, 28, 44, .96), rgba(14, 96, 121, .88)),
-            url("https://images.unsplash.com/photo-1584982751601-97dcc096659c?auto=format&fit=crop&w=1600&q=80") center/cover;
+        background: linear-gradient(135deg, #0A1C2C 0%, #156082 100%);
         position: relative;
         overflow: hidden;
-        box-shadow: 0 22px 52px rgba(10, 28, 44, .18);
-        display: grid;
-        align-items: end;
+        box-shadow: 0 20px 45px rgba(10, 28, 44, .18);
+        display: flex;
+        align-items: center;
     }
-
-    .patient-hero::before {
-        content: "";
+    .hero-glow-1 {
         position: absolute;
-        inset: auto 0 0 0;
-        height: 88px;
-        background: linear-gradient(90deg, transparent, rgba(0, 201, 167, .2), transparent);
-        animation: scanLine 4.5s ease-in-out infinite;
+        top: -10%; right: 10%;
+        width: 300px; height: 300px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(0, 201, 167, 0.15) 0%, transparent 70%);
+        filter: blur(30px);
+        pointer-events: none;
     }
-
-    .patient-hero-grid {
-        position: relative;
-        z-index: 1;
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) auto;
-        gap: 1.25rem;
-        align-items: end;
+    .hero-glow-2 {
+        position: absolute;
+        bottom: -20%; left: 10%;
+        width: 250px; height: 250px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(26, 111, 191, 0.2) 0%, transparent 70%);
+        filter: blur(25px);
+        pointer-events: none;
     }
-
     .hero-kicker {
         display: inline-flex;
         align-items: center;
         gap: .5rem;
-        background: rgba(255,255,255,.12);
-        border: 1px solid rgba(255,255,255,.18);
+        background: rgba(255, 255, 255, .08);
+        border: 1px solid rgba(255, 255, 255, .15);
         border-radius: 999px;
-        padding: .45rem .85rem;
+        padding: .5rem 1rem;
         font-weight: 800;
-        margin-bottom: .85rem;
+        font-size: 0.85rem;
+        margin-bottom: 1.25rem;
         backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
     }
-
     .hero-title {
         font-weight: 900;
-        margin-bottom: .55rem;
+        margin-bottom: 0.75rem;
+        letter-spacing: -0.5px;
     }
-
     .hero-copy {
-        color: rgba(255,255,255,.78);
-        font-size: 1.05rem;
-        max-width: 740px;
-        margin: 0;
+        color: rgba(255, 255, 255, .8);
+        font-size: 1.1rem;
+        max-width: 680px;
+        line-height: 1.6;
+    }
+    .glass-visual-card {
+        background: rgba(255, 255, 255, 0.08);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 20px;
+        box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+        max-width: 280px;
+        margin-right: auto;
     }
 
-    .hero-actions {
-        display: flex;
-        gap: .75rem;
-        flex-wrap: wrap;
-        justify-content: flex-end;
+    /* Floating / Pulsing animation */
+    .float-slow {
+        animation: floatAnim 4s ease-in-out infinite;
+    }
+    @@keyframes floatAnim {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-8px); }
+    }
+    .animate-pulse {
+        animation: pulseAnim 2s infinite;
+    }
+    @@keyframes pulseAnim {
+        0%, 100% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(1.1); opacity: 0.8; }
     }
 
+    /* ═══ GRID & CARDS ═════════════════════════════════════ */
     .dashboard-grid {
         display: grid;
         grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 1rem;
+        gap: 1.25rem;
     }
-
     .metric-card {
-        background: #fff;
-        border: 1px solid var(--border);
-        border-radius: 16px;
-        padding: 1.1rem;
-        min-height: 150px;
+        background: rgba(255, 255, 255, 0.75);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.8);
+        border-radius: 20px;
+        padding: 1.4rem;
+        min-height: 165px;
         position: relative;
         overflow: hidden;
-        transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
-        box-shadow: 0 14px 32px rgba(15, 36, 55, .045);
+        transition: all .35s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 10px 30px rgba(15, 36, 55, .04);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
     }
-
+    .metric-card::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: 20px;
+        padding: 1px;
+        background: linear-gradient(135deg, rgba(255,255,255,0.4), rgba(26,111,191,0.1));
+        -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        -webkit-mask-composite: xor;
+        mask-composite: exclude;
+        pointer-events: none;
+    }
     .metric-card:hover {
-        transform: translateY(-4px);
-        border-color: rgba(21, 96, 130, .35);
-        box-shadow: 0 18px 38px rgba(15, 36, 55, .09);
+        transform: translateY(-6px);
+        border-color: rgba(26, 111, 191, 0.25);
+        box-shadow: 0 20px 45px rgba(15, 36, 55, .085);
+        background: rgba(255, 255, 255, 0.85);
     }
-
     .metric-icon {
-        width: 44px;
-        height: 44px;
-        border-radius: 12px;
+        width: 46px; height: 46px;
+        border-radius: 14px;
         display: grid;
         place-items: center;
-        margin-bottom: .85rem;
-        font-size: 1.1rem;
+        font-size: 1.25rem;
+        margin-bottom: 0.75rem;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.02);
     }
-
     .metric-label {
         color: var(--text-muted);
         font-size: .84rem;
         font-weight: 800;
         margin-bottom: .25rem;
     }
-
     .metric-value {
         color: #102a43;
-        font-size: 1.65rem;
+        font-size: 1.7rem;
         line-height: 1.2;
         font-weight: 900;
         margin: 0;
     }
-
     .status-pill {
         display: inline-flex;
         align-items: center;
         gap: .4rem;
         border-radius: 999px;
-        padding: .35rem .7rem;
-        font-size: .8rem;
+        padding: .35rem .75rem;
+        font-size: .78rem;
         font-weight: 900;
-        margin-top: .7rem;
+        margin-top: .75rem;
+        width: fit-content;
     }
+    .status-good { background: #e8f8f0; color: #1e6b45; box-shadow: inset 0 0 0 1px rgba(39, 174, 96, 0.1); }
+    .status-watch { background: #fff6df; color: #8a5b00; box-shadow: inset 0 0 0 1px rgba(243, 156, 18, 0.1); }
+    .status-danger { background: #fdeceb; color: #a93226; box-shadow: inset 0 0 0 1px rgba(231, 76, 60, 0.1); }
+    .status-neutral { background: #edf2f7; color: #52616f; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.03); }
 
-    .status-good { background: #e8f8f0; color: #1e6b45; }
-    .status-watch { background: #fff6df; color: #8a5b00; }
-    .status-danger { background: #fdeceb; color: #a93226; }
-    .status-neutral { background: #edf2f7; color: #52616f; }
-
+    /* ═══ CARE PANELS ══════════════════════════════════════ */
     .care-layout {
         display: grid;
         grid-template-columns: minmax(0, 1.35fr) minmax(320px, .65fr);
-        gap: 1rem;
+        gap: 1.25rem;
     }
-
     .dashboard-panel {
-        background: #fff;
+        background: white;
         border: 1px solid var(--border);
-        border-radius: 16px;
-        padding: 1.25rem;
-        box-shadow: 0 14px 32px rgba(15, 36, 55, .045);
+        border-radius: 20px;
+        padding: 1.5rem;
+        box-shadow: 0 10px 30px rgba(15, 36, 55, .03);
     }
-
     .panel-head {
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 1rem;
-        margin-bottom: 1rem;
+        margin-bottom: 1.25rem;
+        border-bottom: 1px solid #f0f4f8;
+        padding-bottom: 0.75rem;
     }
-
     .panel-title {
         font-weight: 900;
         color: #102a43;
+        font-size: 1.15rem;
         margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .panel-title::before {
+        content: '';
+        width: 4px; height: 18px;
+        background: var(--primary);
+        border-radius: 2px;
+        display: inline-block;
     }
 
+    /* ═══ SERVICES GRID ════════════════════════════════════ */
     .service-grid {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: .85rem;
+        gap: 1rem;
     }
-
     .service-card {
         text-decoration: none;
         color: #102a43;
-        background: #f8fbfd;
-        border: 1px solid #e3ebf2;
-        border-radius: 14px;
-        padding: 1rem;
-        min-height: 132px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        padding: 1.2rem;
+        min-height: 140px;
         display: flex;
         flex-direction: column;
-        gap: .75rem;
-        transition: transform .22s ease, background .22s ease, border-color .22s ease;
+        gap: .6rem;
+        transition: all .25s ease;
     }
-
     .service-card:hover {
-        color: #0d4c8a;
+        color: var(--primary-dark);
         background: #fff;
-        transform: translateY(-3px);
-        border-color: rgba(13, 76, 138, .32);
+        transform: translateY(-4px);
+        border-color: rgba(26, 111, 191, 0.3);
+        box-shadow: 0 12px 28px rgba(15, 36, 55, 0.06);
     }
-
     .service-icon {
-        width: 42px;
-        height: 42px;
+        width: 44px; height: 44px;
         border-radius: 12px;
         display: grid;
         place-items: center;
         background: #eaf6ff;
         color: #156082;
-        font-size: 1.05rem;
+        font-size: 1.15rem;
+        transition: transform 0.3s;
+    }
+    .service-card:hover .service-icon {
+        transform: scale(1.1);
     }
 
-    .timeline-list {
-        display: grid;
-        gap: .75rem;
-    }
-
-    .timeline-item {
-        border: 1px solid #e3ebf2;
-        border-radius: 14px;
-        padding: .9rem;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: .75rem;
-        transition: background .2s ease, transform .2s ease;
-    }
-
-    .timeline-item:hover {
-        background: #f8fbfd;
-        transform: translateX(-2px);
-    }
-
-    .empty-state {
-        text-align: center;
-        border: 1px dashed rgba(21, 96, 130, .3);
-        border-radius: 14px;
-        padding: 2rem 1rem;
-        color: var(--text-muted);
-    }
-
+    /* ═══ VITALS STRIP ═════════════════════════════════════ */
     .vital-strip {
         display: grid;
-        gap: .7rem;
+        gap: 0.85rem;
+    }
+    .vital-row {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        padding: 1rem;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        transition: all 0.25s ease;
+    }
+    .vital-row:hover {
+        background: white;
+        border-color: rgba(26, 111, 191, 0.2);
+        box-shadow: 0 8px 20px rgba(15, 36, 55, 0.04);
+        transform: translateY(-2px);
+    }
+    .vital-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.88rem;
+        font-weight: 700;
+        color: var(--text);
+    }
+    .vital-value {
+        font-size: 1.35rem;
+        font-weight: 900;
+        color: var(--dark);
     }
 
-    .vital-row {
+    /* ═══ TIMELINE & ALERTS ════════════════════════════════ */
+    .timeline-list {
+        display: grid;
+        gap: 0.85rem;
+    }
+    .timeline-item {
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        padding: 1rem;
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 1rem;
-        padding: .72rem .85rem;
-        background: #f8fbfd;
-        border: 1px solid #e3ebf2;
-        border-radius: 12px;
+        background: #f8fafc;
+        transition: all .25s ease;
+    }
+    .timeline-item:hover {
+        background: #fff;
+        transform: translateX(-4px);
+        border-color: rgba(26, 111, 191, 0.2);
+        box-shadow: 0 8px 22px rgba(15, 36, 55, 0.04);
     }
 
-    @@keyframes scanLine {
-        0%, 100% { transform: translateX(-18%); opacity: .25; }
-        50% { transform: translateX(18%); opacity: .55; }
+    /* ═══ BMI WIDGET ═══════════════════════════════════════ */
+    .bmi-scale-container {
+        direction: rtl;
+    }
+    .bmi-scale-track {
+        height: 12px;
+        border-radius: 6px;
+        display: flex;
+        position: relative;
+        overflow: visible;
+        background: #eee;
+    }
+    .bmi-zone {
+        height: 100%;
+        transition: all 0.3s;
+    }
+    .zone-underweight { width: 14%; background: #2f80ed; border-radius: 0 6px 6px 0; }
+    .zone-normal { width: 26%; background: #27ae60; }
+    .zone-overweight { width: 20%; background: #f29c12; }
+    .zone-obese { width: 40%; background: #eb5757; border-radius: 6px 0 0 6px; }
+
+    .bmi-pointer {
+        position: absolute;
+        top: -6px;
+        width: 24px;
+        height: 24px;
+        background: #fff;
+        border: 4px solid var(--primary-dark);
+        border-radius: 50%;
+        transform: translateX(50%);
+        cursor: pointer;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: right 1s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    .bmi-pointer::after {
+        content: '';
+        width: 6px; height: 6px;
+        background: var(--primary-dark);
+        border-radius: 50%;
+    }
+    .bmi-pointer:hover .bmi-tooltip {
+        opacity: 1;
+        visibility: visible;
+        transform: translate(50%, -10px);
+    }
+    .bmi-tooltip {
+        position: absolute;
+        bottom: 100%;
+        right: 50%;
+        transform: translate(50%, 0px);
+        background: var(--dark);
+        color: white;
+        padding: 6px 12px;
+        border-radius: 8px;
+        font-size: 0.75rem;
+        white-space: nowrap;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        z-index: 100;
+    }
+    .bmi-tooltip::after {
+        content: '';
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        border: 6px solid transparent;
+        border-top-color: var(--dark);
+    }
+    .bmi-scale-labels {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.72rem;
+        color: var(--text-muted);
+        font-weight: 700;
+        margin-top: 6px;
+        padding: 0 4px;
     }
 
+    /* Temp gauge */
+    .temperature-gauge-bar {
+        height: 6px;
+        background: #e9ecef;
+        border-radius: 3px;
+        overflow: hidden;
+    }
+    .temp-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--warning), var(--danger));
+        border-radius: 3px;
+        transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Live Animations */
+    .mini-chart {
+        width: 100%;
+        height: 30px;
+        margin-top: 8px;
+        overflow: visible;
+    }
+    .ecg-line-anim {
+        stroke-dasharray: 200;
+        stroke-dashoffset: 200;
+        animation: ecgStroke 2.5s linear infinite;
+    }
+    @@keyframes ecgStroke {
+        to { stroke-dashoffset: 0; }
+    }
+    .wave-line-anim {
+        stroke-dasharray: 100;
+        stroke-dashoffset: 100;
+        animation: waveStroke 3s linear infinite;
+    }
+    @@keyframes waveStroke {
+        to { stroke-dashoffset: 0; }
+    }
+    .wave-bg-anim {
+        animation: waveFlow 4s ease-in-out infinite alternate;
+    }
+    @@keyframes waveFlow {
+        0% { transform: translateY(0); }
+        100% { transform: translateY(2px); }
+    }
+    .pulse-dot {
+        animation: dotGlow 1.5s ease-in-out infinite alternate;
+    }
+    @@keyframes dotGlow {
+        0% { transform: scale(0.9); opacity: 0.7; }
+        100% { transform: scale(1.15); opacity: 1; }
+    }
+
+    /* Responsive adjustments */
     @@media (max-width: 1100px) {
-        .dashboard-grid {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-
-        .care-layout {
-            grid-template-columns: 1fr;
-        }
+        .dashboard-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .care-layout { grid-template-columns: 1fr; }
     }
-
     @@media (max-width: 768px) {
-        .patient-hero-grid {
-            grid-template-columns: 1fr;
-        }
-
-        .hero-actions {
-            justify-content: flex-start;
-        }
-
-        .service-grid {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
+        .service-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
-
     @@media (max-width: 576px) {
-        .patient-hero {
-            padding: 1.35rem;
-        }
-
-        .dashboard-grid,
-        .service-grid {
-            grid-template-columns: 1fr;
-        }
+        .patient-hero { padding: 1.5rem; }
+        .dashboard-grid, .service-grid { grid-template-columns: 1fr; }
     }
 </style>
 
 <div class="patient-dashboard">
     <section class="patient-hero animate__animated animate__fadeIn">
-        <div class="patient-hero-grid">
-            <div>
-                <span class="hero-kicker">
-                    <i class="fas fa-shield-heart"></i>
-                    ملفك الطبي نشط
+        <div class="hero-glow-1"></div>
+        <div class="hero-glow-2"></div>
+        <div class="row align-items-center w-100 position-relative z-index-1 m-0">
+            <div class="col-lg-8 p-0">
+                <span class="hero-kicker text-white">
+                    <i class="fas fa-shield-heart text-accent animate-pulse me-1"></i>
+                    ملفك الطبي نشط وآمن
                 </span>
-                <h1 class="hero-title">أهلًا @Model.PatientName</h1>
-                <p class="hero-copy">لوحة متابعة صحية تجمع القياسات، التنبيهات، تقييم المخاطر، والمواعيد في تجربة واحدة واضحة وسريعة.</p>
+                <h1 class="hero-title display-6 fw-bold">أهلًا بك، @Model.PatientName</h1>
+                <p class="hero-copy mb-4">لوحة متابعة صحية ذكية تجمع قياساتك الحيوية، وتنبيهاتك الطبية، وتقييم المخاطر الفوري في واجهة موحدة وتفاعلية.</p>
+                <div class="hero-actions d-flex gap-3 flex-wrap">
+                    <a asp-controller="MedicalRecords" asp-action="Create" class="btn btn-light fw-bold px-4 py-2" style="border-radius:12px; transition: all 0.3s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
+                        <i class="fas fa-plus-circle text-primary"></i> تسجيل قياس جديد
+                    </a>
+                    <button type="button" class="btn btn-danger fw-bold px-4 py-2 btn-emergency-flash" style="border-radius:12px;" data-bs-toggle="modal" data-bs-target="#emergencyAmbulanceModal">
+                        <i class="fas fa-ambulance"></i> استدعاء طوارئ
+                    </button>
+                </div>
             </div>
-            <div class="hero-actions">
-                <a asp-controller="MedicalRecords" asp-action="Create" class="btn btn-light fw-bold px-4">
-                    <i class="fas fa-plus-circle"></i>
-                    تسجيل قياس
-                </a>
-                <a asp-controller="Emergency" asp-action="Index" class="btn btn-danger fw-bold px-4">
-                    <i class="fas fa-ambulance"></i>
-                    طوارئ
-                </a>
+            <div class="col-lg-4 d-none d-lg-block text-start p-0">
+                <!-- Floating live-ECG visual card -->
+                <div class="glass-visual-card float-slow p-4 ms-0 me-auto">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <span class="fw-bold text-white small"><i class="fas fa-heartbeat text-danger me-1"></i> نبض القلب المباشر</span>
+                        <span class="badge bg-success py-1 px-2" style="font-size:0.65rem;">مستقر</span>
+                    </div>
+                    <div class="d-flex align-items-baseline gap-2 mb-2">
+                        <h2 class="display-6 fw-bold text-white mb-0" style="font-family: monospace;">72</h2>
+                        <small class="text-white-50">نبضة / دقيقة</small>
+                    </div>
+                    <!-- Live ECG graph animation -->
+                    <svg viewBox="0 0 100 30" class="w-100">
+                        <path d="M0,15 L20,15 L25,5 L30,25 L35,15 L50,15 L55,5 L60,25 L65,15 L80,15 L85,5 L90,25 L95,15 L100,15" fill="none" stroke="#00C9A7" stroke-width="2" class="ecg-line-anim"></path>
+                    </svg>
+                </div>
             </div>
         </div>
     </section>
 
     <section class="dashboard-grid animate__animated animate__fadeInUp">
         <article class="metric-card">
-            <div class="metric-icon" style="background:#eaf6ff;color:#156082;"><i class="fas fa-weight-scale"></i></div>
-            <div class="metric-label">مؤشر كتلة الجسم</div>
-            <p class="metric-value">@(Model.LatestBmi.HasValue ? Model.LatestBmi.Value.ToString("0.0") : "--")</p>
-            <span class="status-pill @(Model.LatestBmiCategory == "Normal" ? "status-good" : "status-neutral")">@bmiCategory</span>
+            <div>
+                <div class="metric-icon" style="background:#eaf6ff;color:#156082;"><i class="fas fa-weight-scale"></i></div>
+                <div class="metric-label">مؤشر كتلة الجسم (BMI)</div>
+                <p class="metric-value">@(Model.LatestBmi.HasValue ? Model.LatestBmi.Value.ToString("0.0") : "--")</p>
+            </div>
+            <div>
+                <span class="status-pill @(Model.LatestBmiCategory == "Normal" ? "status-good" : "status-neutral")">@bmiCategory</span>
+                <!-- BMI Visual Gauge -->
+                <div class="bmi-scale-container mt-3">
+                    <div class="bmi-scale-track">
+                        <span class="bmi-zone zone-underweight" title="أقل من الطبيعي (<18.5)"></span>
+                        <span class="bmi-zone zone-normal" title="طبيعي (18.5 - 24.9)"></span>
+                        <span class="bmi-zone zone-overweight" title="زيادة وزن (25 - 29.9)"></span>
+                        <span class="bmi-zone zone-obese" title="سمنة (>=30)"></span>
+                        <div class="bmi-pointer" style="right: @(bmiPercentage.ToString("0.0"))%;">
+                            <div class="bmi-tooltip">
+                                <strong>@(Model.LatestBmi.HasValue ? Model.LatestBmi.Value.ToString("0.0") : "--")</strong>
+                                <span>@bmiCategory</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </article>
 
         <article class="metric-card">
-            <div class="metric-icon" style="background:#fff6df;color:#b7791f;"><i class="fas fa-notes-medical"></i></div>
-            <div class="metric-label">آخر تقييم مخاطر</div>
-            <p class="metric-value">@riskText</p>
+            <div>
+                <div class="metric-icon" style="background:#fff6df;color:#b7791f;"><i class="fas fa-notes-medical"></i></div>
+                <div class="metric-label">آخر تقييم مخاطر</div>
+                <p class="metric-value">@riskText</p>
+            </div>
             <span class="status-pill @riskClass">
-                <i class="fas fa-circle" style="font-size:.45rem;"></i>
+                <i class="fas fa-circle animate-pulse" style="font-size:.45rem;color:currentColor;"></i>
                 @(Model.LatestRiskAssessment == null ? "ابدأ أول تقييم" : Model.LatestRiskAssessment.AssessmentDate.ToString("yyyy/MM/dd"))
             </span>
         </article>
 
         <article class="metric-card">
-            <div class="metric-icon" style="background:#fdeceb;color:#c0392b;"><i class="fas fa-bell"></i></div>
-            <div class="metric-label">تنبيهات غير مقروءة</div>
-            <p class="metric-value">@Model.UnreadAlertsCount</p>
-            <span class="status-pill @(Model.UnreadAlertsCount > 0 ? "status-danger" : "status-good")">
-                @(Model.UnreadAlertsCount > 0 ? "تحتاج مراجعة" : "لا توجد تنبيهات عاجلة")
+            <div>
+                <div class="metric-icon" style="background:#fdeceb;color:#c0392b;"><i class="fas fa-bell"></i></div>
+                <div class="metric-label">تنبيهات غير مقروءة</div>
+                <p class="metric-value">@Model.UnreadAlertsCount</p>
+            </div>
+            <span class="status-pill @(Model.UnreadAlertsCount > 0 ? "status-danger animate-pulse" : "status-good")">
+                @(Model.UnreadAlertsCount > 0 ? "تحتاج مراجعة عاجلة" : "لا توجد تنبيهات عاجلة")
             </span>
         </article>
 
         <article class="metric-card">
-            <div class="metric-icon" style="background:#e8f8f0;color:#1e6b45;"><i class="fas fa-clipboard-list"></i></div>
-            <div class="metric-label">سجلات القياسات</div>
-            <p class="metric-value">@Model.MedicalRecordsCount</p>
+            <div>
+                <div class="metric-icon" style="background:#e8f8f0;color:#1e6b45;"><i class="fas fa-clipboard-list"></i></div>
+                <div class="metric-label">سجلات القياسات</div>
+                <p class="metric-value">@Model.MedicalRecordsCount</p>
+            </div>
             <span class="status-pill status-neutral">
                 آخر تحديث: @(Model.LatestMedicalRecord?.RecordDate.ToString("yyyy/MM/dd") ?? "غير متاح")
             </span>
@@ -382,67 +607,119 @@
     <section class="care-layout animate__animated animate__fadeInUp">
         <div class="dashboard-panel">
             <div class="panel-head">
-                <h2 class="panel-title">خدماتك الطبية</h2>
-                <a asp-controller="PatientProfile" asp-action="Index" class="btn btn-sm btn-outline-primary fw-bold">تحديث الملف</a>
+                <h2 class="panel-title">الخدمات الطبية والرعاية</h2>
+                <a asp-controller="PatientProfile" asp-action="Index" class="btn btn-sm btn-outline-primary fw-bold" style="border-radius:8px;">تحديث الملف الطبي</a>
             </div>
 
             <div class="service-grid">
                 <a asp-controller="MedicalRecords" asp-action="Create" class="service-card">
                     <span class="service-icon"><i class="fas fa-heart-pulse"></i></span>
-                    <strong>تسجيل قياس يومي</strong>
+                    <strong class="d-block mt-2">تسجيل قياس يومي</strong>
                     <small class="text-muted">ضغط، نبض، سكر، حرارة، وأكسجين.</small>
                 </a>
                 <a asp-controller="RiskAssessment" asp-action="Index" class="service-card">
                     <span class="service-icon"><i class="fas fa-stethoscope"></i></span>
-                    <strong>تقييم المخاطر</strong>
-                    <small class="text-muted">تحليل سريع للحالة وإرشادات متابعة.</small>
+                    <strong class="d-block mt-2">تقييم المخاطر</strong>
+                    <small class="text-muted">تحليل سريع للحالة وإرشادات متابعة فورية.</small>
                 </a>
                 <a asp-controller="LabResults" asp-action="Index" class="service-card">
                     <span class="service-icon"><i class="fas fa-vial"></i></span>
-                    <strong>تحاليل OCR</strong>
-                    <small class="text-muted">رفع نتائج التحاليل واستخراج البيانات.</small>
+                    <strong class="d-block mt-2">تحاليل OCR</strong>
+                    <small class="text-muted">رفع صور التحاليل وقراءتها بالذكاء الاصطناعي.</small>
                 </a>
                 <a asp-controller="NearbyProviders" asp-action="Index" class="service-card">
                     <span class="service-icon"><i class="fas fa-location-dot"></i></span>
-                    <strong>مقدمو الرعاية</strong>
-                    <small class="text-muted">بحث وحجز مواعيد قريبة.</small>
+                    <strong class="d-block mt-2">مقدمو الرعاية</strong>
+                    <small class="text-muted">بحث وحجز مواعيد عيادات قريبة.</small>
                 </a>
                 <a asp-controller="PatientAppointments" asp-action="Index" class="service-card">
                     <span class="service-icon"><i class="far fa-calendar-check"></i></span>
-                    <strong>مواعيدي</strong>
+                    <strong class="d-block mt-2">مواعيدي الطبية</strong>
                     <small class="text-muted">تذاكر الحجز والتفاصيل والإلغاء.</small>
                 </a>
                 <a asp-controller="FamilyLinking" asp-action="Index" class="service-card">
                     <span class="service-icon"><i class="fas fa-users"></i></span>
-                    <strong>الارتباط العائلي</strong>
-                    <small class="text-muted">إشراك العائلة في المتابعة عند الحاجة.</small>
+                    <strong class="d-block mt-2">الارتباط العائلي</strong>
+                    <small class="text-muted">ربط ومتابعة صحة أفراد عائلتك الكرام.</small>
                 </a>
             </div>
         </div>
 
         <aside class="dashboard-panel">
             <div class="panel-head">
-                <h2 class="panel-title">آخر قياس طبي</h2>
-                <a asp-controller="MedicalRecords" asp-action="Index" class="btn btn-sm btn-outline-secondary fw-bold">السجل</a>
+                <h2 class="panel-title">آخر القياسات الطبية</h2>
+                <a asp-controller="MedicalRecords" asp-action="Index" class="btn btn-sm btn-outline-secondary fw-bold" style="border-radius:8px;">عرض السجل</a>
             </div>
 
             @if (Model.LatestMedicalRecord != null)
             {
                 <div class="vital-strip">
-                    <div class="vital-row"><span>ضغط الدم</span><strong>@(Model.LatestMedicalRecord.SystolicBP?.ToString("0") ?? "--")/@(Model.LatestMedicalRecord.DiastolicBP?.ToString("0") ?? "--")</strong></div>
-                    <div class="vital-row"><span>النبض</span><strong>@(Model.LatestMedicalRecord.HeartRate?.ToString("0") ?? "--")</strong></div>
-                    <div class="vital-row"><span>سكر الدم</span><strong>@(Model.LatestMedicalRecord.BloodSugar?.ToString("0") ?? "--")</strong></div>
-                    <div class="vital-row"><span>الحرارة</span><strong>@(Model.LatestMedicalRecord.Temperature?.ToString("0.0") ?? "--")</strong></div>
-                    <div class="vital-row"><span>الأكسجين</span><strong>@(Model.LatestMedicalRecord.OxygenSaturation?.ToString("0") ?? "--")%</strong></div>
+                    <div class="vital-row">
+                        <div class="vital-meta">
+                            <span><i class="fas fa-gauge-high text-primary me-1"></i> ضغط الدم</span>
+                            <span class="vital-value" style="font-family: monospace;">@(Model.LatestMedicalRecord.SystolicBP?.ToString("0") ?? "--")/@(Model.LatestMedicalRecord.DiastolicBP?.ToString("0") ?? "--")</span>
+                        </div>
+                        <!-- Animated systolic/diastolic double pulse -->
+                        <svg class="mini-chart" viewBox="0 0 100 20">
+                            <circle cx="35" cy="10" r="4" fill="var(--primary)" class="pulse-dot"></circle>
+                            <circle cx="65" cy="10" r="5" fill="var(--primary-dark)" class="pulse-dot" style="animation-delay:0.3s;"></circle>
+                            <line x1="20" y1="10" x2="80" y2="10" stroke="var(--primary-light)" stroke-width="2"></line>
+                        </svg>
+                    </div>
+
+                    <div class="vital-row">
+                        <div class="vital-meta">
+                            <span><i class="fas fa-heartbeat text-danger me-1"></i> النبض (Heart Rate)</span>
+                            <span class="vital-value" style="font-family: monospace;">@(Model.LatestMedicalRecord.HeartRate?.ToString("0") ?? "--") bpm</span>
+                        </div>
+                        <!-- Live ECG graph animation -->
+                        <svg viewBox="0 0 100 20" class="mini-chart">
+                            <path d="M0,10 L30,10 L35,2 L40,18 L45,10 L50,10 L55,2 L60,18 L65,10 L100,10" fill="none" stroke="var(--danger)" stroke-width="2" class="ecg-line-anim"></path>
+                        </svg>
+                    </div>
+
+                    <div class="vital-row">
+                        <div class="vital-meta">
+                            <span><i class="fas fa-droplet text-warning me-1"></i> سكر الدم</span>
+                            <span class="vital-value" style="font-family: monospace;">@(Model.LatestMedicalRecord.BloodSugar?.ToString("0") ?? "--") mg/dL</span>
+                        </div>
+                        <!-- Sugar wave animation -->
+                        <svg viewBox="0 0 100 20" class="mini-chart">
+                            <path d="M0,10 Q25,3 50,10 T100,10" fill="none" stroke="var(--warning)" stroke-width="2" class="wave-line-anim"></path>
+                        </svg>
+                    </div>
+
+                    <div class="vital-row">
+                        <div class="vital-meta">
+                            <span><i class="fas fa-temperature-half text-danger me-1"></i> درجة الحرارة</span>
+                            <span class="vital-value" style="font-family: monospace;">@(Model.LatestMedicalRecord?.Temperature?.ToString("0.0") ?? "--") °C</span>
+                        </div>
+                        <!-- Thermometer Level gauge -->
+                        <div class="temperature-gauge-bar mt-2">
+                            <div class="temp-fill" style="width: @(((Convert.ToDouble(Model.LatestMedicalRecord?.Temperature ?? 37.0m) - 35.0) / (42.0 - 35.0) * 100.0).ToString("0"))%;"></div>
+                        </div>
+                    </div>
+
+                    <div class="vital-row">
+                        <div class="vital-meta">
+                            <span><i class="fas fa-wind text-accent me-1"></i> نسبة الأكسجين</span>
+                            <span class="vital-value" style="font-family: monospace;">@(Model.LatestMedicalRecord?.OxygenSaturation?.ToString("0") ?? "--")%</span>
+                        </div>
+                        <!-- O2 bubbles/wave animation -->
+                        <svg viewBox="0 0 100 20" class="mini-chart">
+                            <path d="M0,10 C30,7 70,13 100,10 L100,20 L0,20 Z" fill="rgba(0,201,167,0.15)" class="wave-bg-anim"></path>
+                            <path d="M0,10 C30,7 70,13 100,10" fill="none" stroke="var(--accent)" stroke-width="2" class="wave-line-anim"></path>
+                        </svg>
+                    </div>
                 </div>
                 <a asp-controller="RiskAssessment" asp-action="Index"
-                   asp-route-hr="@Model.LatestMedicalRecord.HeartRate"
-                   asp-route-sbp="@Model.LatestMedicalRecord.SystolicBP"
-                   asp-route-dbp="@Model.LatestMedicalRecord.DiastolicBP"
-                   asp-route-temp="@Model.LatestMedicalRecord.Temperature"
-                   asp-route-spo2="@Model.LatestMedicalRecord.OxygenSaturation"
-                   asp-route-bs="@Model.LatestMedicalRecord.BloodSugar"
-                   class="btn btn-primary w-100 mt-3 fw-bold py-2" style="border-radius:10px;">
+                   asp-route-hr="@Model.LatestMedicalRecord?.HeartRate"
+                   asp-route-sbp="@Model.LatestMedicalRecord?.SystolicBP"
+                   asp-route-dbp="@Model.LatestMedicalRecord?.DiastolicBP"
+                   asp-route-temp="@Model.LatestMedicalRecord?.Temperature"
+                   asp-route-spo2="@Model.LatestMedicalRecord?.OxygenSaturation"
+                   asp-route-bs="@Model.LatestMedicalRecord?.BloodSugar"
+                   class="btn btn-primary w-100 mt-3 fw-bold py-2 shadow-sm" style="border-radius:10px; transition: all 0.3s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
                     <i class="fas fa-calculator me-1"></i> تحليل المخاطر بهذه القياسات
                 </a>
             }
@@ -452,7 +729,7 @@
                     <i class="fas fa-clipboard-medical text-primary mb-3" style="font-size:2.5rem;"></i>
                     <strong class="d-block mb-2">لا يوجد قياس محفوظ</strong>
                     <p class="mb-3">سجل أول قياس حتى تظهر مؤشراتك هنا.</p>
-                    <a asp-controller="MedicalRecords" asp-action="Create" class="btn btn-primary btn-sm fw-bold">تسجيل قياس</a>
+                    <a asp-controller="MedicalRecords" asp-action="Create" class="btn btn-primary btn-sm fw-bold" style="border-radius:8px;">تسجيل قياس</a>
                 </div>
             }
         </aside>
@@ -462,7 +739,7 @@
         <div class="dashboard-panel">
             <div class="panel-head">
                 <h2 class="panel-title">المواعيد القادمة</h2>
-                <span class="badge bg-primary">@Model.UpcomingAppointmentsCount موعد</span>
+                <span class="badge bg-primary px-3 py-2" style="border-radius:20px; font-size:0.75rem;">@Model.UpcomingAppointmentsCount موعد قادم</span>
             </div>
 
             @if (Model.UpcomingAppointments.Any())
@@ -471,11 +748,18 @@
                     @foreach (var apt in Model.UpcomingAppointments)
                     {
                         <div class="timeline-item">
-                            <div>
-                                <strong>د. @apt.DoctorName</strong>
-                                <span class="d-block text-muted small">@apt.Date.ToString("yyyy/MM/dd - hh:mm tt")</span>
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="avatar-circle" style="width: 40px; height: 40px; font-size: 1rem;">
+                                    <i class="fas fa-user-md"></i>
+                                </div>
+                                <div>
+                                    <strong class="text-dark">د. @apt.DoctorName</strong>
+                                    <span class="d-block text-muted small mt-1"><i class="far fa-clock me-1"></i> @apt.Date.ToString("yyyy/MM/dd - hh:mm tt")</span>
+                                </div>
                             </div>
-                            <span class="badge @(apt.Status == "Confirmed" ? "bg-success" : "bg-warning text-dark")">@apt.Status</span>
+                            <span class="badge @(apt.Status == "Confirmed" ? "bg-success" : "bg-warning text-dark") px-3 py-2" style="border-radius:20px; font-size:0.75rem;">
+                                @(apt.Status == "Confirmed" ? "مؤكد" : "معلق")
+                            </span>
                         </div>
                     }
                 </div>
@@ -485,15 +769,15 @@
                 <div class="empty-state">
                     <i class="far fa-calendar-plus text-primary mb-3" style="font-size:2.4rem;"></i>
                     <strong class="d-block mb-2">لا توجد مواعيد قادمة</strong>
-                    <a asp-controller="NearbyProviders" asp-action="Index" class="btn btn-outline-primary btn-sm fw-bold">حجز موعد</a>
+                    <a asp-controller="NearbyProviders" asp-action="Index" class="btn btn-outline-primary btn-sm fw-bold" style="border-radius:8px;">حجز موعد الآن</a>
                 </div>
             }
         </div>
 
         <aside class="dashboard-panel">
             <div class="panel-head">
-                <h2 class="panel-title">آخر التنبيهات</h2>
-                <a asp-controller="Alerts" asp-action="Index" class="btn btn-sm btn-outline-secondary fw-bold">عرض الكل</a>
+                <h2 class="panel-title">آخر التنبيهات الصحية</h2>
+                <a asp-controller="Alerts" asp-action="Index" class="btn btn-sm btn-outline-secondary fw-bold" style="border-radius:8px;">عرض الكل</a>
             </div>
 
             @if (Model.RecentAlerts.Any())
@@ -503,10 +787,12 @@
                     {
                         <div class="timeline-item">
                             <div>
-                                <strong class="@(alert.IsRead ? "" : "text-danger")">@alert.Title</strong>
-                                <span class="d-block text-muted small">@alert.CreatedAt.ToString("yyyy/MM/dd - hh:mm tt")</span>
+                                <strong class="@(alert.IsRead ? "text-dark" : "text-danger")">@alert.Title</strong>
+                                <span class="d-block text-muted small mt-1"><i class="far fa-bell me-1"></i> @alert.CreatedAt.ToString("yyyy/MM/dd - hh:mm tt")</span>
                             </div>
-                            <span class="badge @(alert.IsRead ? "bg-light text-muted" : "bg-danger")">@(alert.IsRead ? "مقروء" : "جديد")</span>
+                            <span class="badge @(alert.IsRead ? "bg-light text-muted border" : "bg-danger") px-2 py-1" style="border-radius:20px; font-size:0.65rem;">
+                                @(alert.IsRead ? "مقروء" : "جديد")
+                            </span>
                         </div>
                     }
                 </div>
@@ -515,7 +801,7 @@
             {
                 <div class="empty-state">
                     <i class="far fa-bell-slash text-success mb-3" style="font-size:2.4rem;"></i>
-                    <strong class="d-block">لا توجد تنبيهات حاليًا</strong>
+                    <strong class="d-block text-dark">لا توجد تنبيهات حاليًا</strong>
                     <span class="text-muted small">سنظهر أي توصية طبية هنا فور توفرها.</span>
                 </div>
             }

@@ -1,4 +1,4 @@
-﻿namespace Etmen_BLL.DTOs.Doctor
+namespace Etmen_BLL.DTOs.Doctor
 {
     public class DoctorProfileDto
     {
@@ -12,6 +12,8 @@
         public bool IsAvailable { get; set; }
         public string? Email { get; set; }
         public string? PhoneNumber { get; set; }
+        public bool IsOnboarded { get; set; }
+        public string? OnboardingDataJson { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
     }

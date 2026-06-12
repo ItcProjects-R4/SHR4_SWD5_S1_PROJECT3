@@ -5,6 +5,7 @@ using Etmen_DAL.Repositories.Interfaces;
 using Etmen_Domain.Entities;
 using Etmen_Domain.Enums;
 using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 
 namespace Etmen_BLL.Repositories.Services
@@ -36,6 +37,65 @@ namespace Etmen_BLL.Repositories.Services
             if (dto is null)
                 return ServiceResult<RiskResultDto>.Failure("بيانات الإدخال مطلوبة.");
 
+            // Check if crisis mode is active
+            var activeCrisis = await _uow.CrisisConfigurations.Table
+                .Include(c => c.SymptomWeights)
+                .FirstOrDefaultAsync(c => c.IsActive && c.SystemMode == SystemMode.Crisis);
+
+            if (activeCrisis != null)
+            {
+                // Crisis Mode Risk Calculation: Calculate purely based on symptoms configured for this crisis
+                decimal riskScore = 0;
+                bool isEmergency = false;
+                var triggeredFactors = new List<string>();
+
+                // Parse selected symptoms
+                var selectedSymptoms = dto.Symptoms?.Split(new[] { ',', '،', ';' }, StringSplitOptions.RemoveEmptyEntries)
+                                                   .Select(s => s.Trim().ToLower())
+                                                   .ToList() ?? new List<string>();
+
+                foreach (var symptomWeight in activeCrisis.SymptomWeights)
+                {
+                    if (selectedSymptoms.Any(s => s.Contains(symptomWeight.SymptomName.ToLower()) || symptomWeight.SymptomName.ToLower().Contains(s)))
+                    {
+                        riskScore += symptomWeight.Weight;
+                        triggeredFactors.Add($"عرض الأزمة: {symptomWeight.SymptomName} (الوزن: {symptomWeight.Weight})");
+                        if (symptomWeight.IsEmergencySymptom)
+                        {
+                            isEmergency = true;
+                        }
+                    }
+                }
+
+                riskScore = Math.Min(riskScore, 1.0m);
+                if (isEmergency && riskScore < activeCrisis.EmergencyThreshold)
+                {
+                    riskScore = Math.Max(riskScore, activeCrisis.EmergencyThreshold);
+                }
+
+                var riskLevel = riskScore >= activeCrisis.EmergencyThreshold
+                    ? RiskLevel.Emergency
+                    : riskScore >= activeCrisis.HighRiskThreshold
+                        ? RiskLevel.High
+                        : riskScore >= activeCrisis.MediumRiskThreshold
+                            ? RiskLevel.Medium
+                            : RiskLevel.Low;
+
+                var recs = RiskCalculatorHelper.GenerateRecommendations(riskLevel, triggeredFactors);
+
+                return ServiceResult<RiskResultDto>.Success(new RiskResultDto
+                {
+                    RiskScore = riskScore,
+                    RiskLevel = riskLevel,
+                    RiskColor = RiskLevelMapper.ToColor(riskLevel),
+                    RiskLabel = RiskLevelMapper.ToArabicLabel(riskLevel),
+                    IsEmergency = isEmergency || riskLevel == RiskLevel.Emergency,
+                    Recommendations = recs,
+                    TriggeredSymptoms = triggeredFactors
+                });
+            }
+
+            // --- Normal Mode Risk Calculation ---
             // Validate required vital signs
             var missingFields = new List<string>();
             if (!dto.HeartRate.HasValue)

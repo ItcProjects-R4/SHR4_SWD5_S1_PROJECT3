@@ -1,3 +1,8 @@
+@inject Etmen_BLL.Repositories.IServices.ICrisisService CrisisService
+@{
+    var activeCrisisResult = await CrisisService.GetActiveCrisisAsync();
+    var isCrisisActive = activeCrisisResult.IsSuccess && activeCrisisResult.Data != null && activeCrisisResult.Data.IsActive && activeCrisisResult.Data.SystemMode == Etmen_Domain.Enums.SystemMode.Crisis;
+}
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -286,6 +291,88 @@
             from { opacity: 0; }
             to { opacity: 1; }
         }
+
+        /* ═══ DARK CRITIC THEME OVERRIDES ══════════════════════ */
+        body.theme-dark {
+            background-color: #0B0E14 !important;
+            color: #ECF0F1 !important;
+        }
+        body.theme-dark .med-card,
+        body.theme-dark .dashboard-card,
+        body.theme-dark .form-group-medical,
+        body.theme-dark .card-checkbox {
+            background-color: #151A22 !important;
+            border-color: #21262D !important;
+            color: #ECF0F1 !important;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4) !important;
+        }
+        body.theme-dark .med-card:hover,
+        body.theme-dark .dashboard-card:hover,
+        body.theme-dark .card-checkbox:hover {
+            border-color: #00E676 !important;
+        }
+        body.theme-dark .card-checkbox.checked {
+            background-color: rgba(0, 230, 118, 0.1) !important;
+            border-color: #00E676 !important;
+        }
+        body.theme-dark .text-dark,
+        body.theme-dark h1,
+        body.theme-dark h2,
+        body.theme-dark h3,
+        body.theme-dark h4,
+        body.theme-dark h5,
+        body.theme-dark h6,
+        body.theme-dark span:not(.badge),
+        body.theme-dark label {
+            color: #ECF0F1 !important;
+        }
+        body.theme-dark .text-muted,
+        body.theme-dark p {
+            color: #8B949E !important;
+        }
+        body.theme-dark .form-control,
+        body.theme-dark .form-select,
+        body.theme-dark textarea {
+            background-color: #21262D !important;
+            border-color: #30363D !important;
+            color: #ECF0F1 !important;
+        }
+        body.theme-dark .form-control:focus,
+        body.theme-dark .form-select:focus,
+        body.theme-dark textarea:focus {
+            background-color: #161B22 !important;
+            border-color: #00E676 !important;
+        }
+        body.theme-dark .input-unit-badge {
+            background-color: #30363D !important;
+            color: #ECF0F1 !important;
+        }
+        body.theme-dark .table th {
+            color: #8B949E !important;
+            border-bottom-color: #30363D !important;
+        }
+        body.theme-dark .table td {
+            color: #ECF0F1 !important;
+            border-bottom-color: #30363D !important;
+        }
+        body.theme-dark .table-hover tbody tr:hover {
+            background-color: #1F242C !important;
+        }
+        body.theme-dark .patient-navbar {
+            background: linear-gradient(135deg, #161B22 0%, #0B0E14 100%) !important;
+            border-bottom-color: #00E676 !important;
+        }
+        body.theme-dark .nav-logo-icon {
+            background: linear-gradient(135deg, #00B0FF, #00E676) !important;
+            box-shadow: 0 0 20px rgba(0, 230, 118, 0.5) !important;
+        }
+        body.theme-dark .nav-logo-text span {
+            color: #00E676 !important;
+        }
+        body.theme-dark .patient-footer {
+            background: #161B22 !important;
+            border-top-color: #21262D !important;
+        }
     </style>
 </head>
 <body>
@@ -425,6 +512,26 @@
             </div>
         </div>
     </div>
+
+    @if (isCrisisActive && activeCrisisResult.Data != null)
+    {
+        <div class="container mt-4 mb-2 animate__animated animate__pulse animate__infinite" style="animation-duration: 4s;">
+            <div class="alert alert-danger border-0 shadow-sm d-flex align-items-center justify-content-between p-3 flex-wrap gap-3" style="border-radius: 16px; background: linear-gradient(135deg, #FF3B30 0%, #C0392B 100%); color: white;">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="d-flex align-items-center justify-content-center" style="width: 42px; height: 42px; background: rgba(255,255,255,0.2); border-radius: 10px; font-size: 1.3rem;">
+                        <i class="fas fa-biohazard"></i>
+                    </div>
+                    <div class="text-start">
+                        <h6 class="fw-bold mb-1 text-white">تنبيه طوارئ نشط: تم تفعيل وضع الأزمات (@activeCrisisResult.Data.CrisisName)</h6>
+                        <p class="mb-0 small text-white-50">نظام المتابعة الصحية في وضع الاستعداد الأقصى. يرجى اتباع إرشادات السلامة.</p>
+                    </div>
+                </div>
+                <a href="/RiskAssessment" class="btn btn-light btn-sm fw-bold px-3 py-2 text-danger" style="border-radius: 10px;">
+                    <i class="fas fa-calculator me-1"></i> ابدأ تقييم الأعراض فوراً
+                </a>
+            </div>
+        </div>
+    }
 
     <!-- ═══ MAIN CONTENT AREA ════════════════════════════════ -->
     <div class="main-wrapper">

@@ -101,10 +101,13 @@ namespace Etmen_PL.Controllers
                 await _chatService.MarkThreadReadAsync(userId, otherUserId);
 
                 var otherUser = await _userManager.FindByIdAsync(otherUserId);
+                var otherUserName = otherUser != null
+                    ? (!string.IsNullOrEmpty(otherUser.FirstName) ? $"{otherUser.FirstName} {otherUser.LastName}".Trim() : otherUser.UserName ?? "مستخدم")
+                    : "مستخدم";
                 var viewModel = new ChatThreadViewModel
                 {
                     OtherUserId = otherUserId,
-                    OtherUserName = otherUser?.UserName ?? "مستخدم",
+                    OtherUserName = otherUserName,
                     Messages = messagesResult.Data?.ToList() ?? new List<ChatMessageDto>()
                 };
 

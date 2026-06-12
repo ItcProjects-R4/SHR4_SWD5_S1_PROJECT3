@@ -41,7 +41,7 @@
                             @foreach (var slot in Model.OrderBy(s => s.Date).ThenBy(s => s.StartTime))
                             {
                                 <tr>
-                                    <td class="fw-bold">@slot.Date.ToString("dddd، dd MMMM yyyy", new System.Globalization.CultureInfo("ar-SA"))</td>
+                                    <td class="fw-bold">@slot.Date.ToString("dddd، dd MMMM yyyy", new System.Globalization.CultureInfo("ar-EG"))</td>
                                     <td>@slot.StartTime.ToString(@"hh\:mm")</td>
                                     <td>@slot.EndTime.ToString(@"hh\:mm")</td>
                                     <td>

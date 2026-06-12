@@ -129,7 +129,11 @@ namespace Etmen_PL.Controllers
                     CrisisType = result.Data.CrisisType.ToString(),
                     SystemMode = result.Data.SystemMode.ToString(),
                     StartDate = result.Data.StartDate,
-                    EndDate = result.Data.EndDate
+                    EndDate = result.Data.EndDate,
+                    Description = result.Data.Description,
+                    EmergencyThreshold = result.Data.EmergencyThreshold,
+                    HighRiskThreshold = result.Data.HighRiskThreshold,
+                    MediumRiskThreshold = result.Data.MediumRiskThreshold
                 };
 
                 return View(viewModel);

@@ -1,0 +1,299 @@
+@model Etmen_PL.Models.ViewModels.Hospital.HospitalEmergencyDetailViewModel
+@{
+    ViewData["Title"] = "تفاصيل الطلب والاستجابة الطبية";
+    Layout = "~/Views/Shared/_HospitalStaffLayout.cshtml";
+    
+    // Parse ProviderId from Query string
+    int.TryParse(Context.Request.Query["providerId"], out var providerId);
+}
+
+<style>
+    .details-card {
+        background: #FFFFFF;
+        border: 1px solid var(--card-border);
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.02);
+        padding: 30px;
+        margin-bottom: 24px;
+        height: 100%;
+    }
+
+    .card-section-title {
+        font-size: 1.15rem;
+        font-weight: 800;
+        color: var(--text-dark);
+        border-bottom: 2px solid var(--primary-light);
+        padding-bottom: 12px;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .info-label {
+        font-size: 0.82rem;
+        font-weight: 800;
+        color: var(--text-muted);
+        margin-bottom: 4px;
+    }
+    .info-value {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: var(--text-dark);
+        margin-bottom: 18px;
+    }
+
+    /* Live Mini Map */
+    #detailMap {
+        width: 100%;
+        height: 250px;
+        border-radius: 16px;
+        border: 1px solid var(--card-border);
+        margin-bottom: 20px;
+    }
+
+    /* Custom radio buttons for acceptance */
+    .decision-buttons {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+    .btn-decision {
+        padding: 14px 20px;
+        border-radius: 12px;
+        font-weight: 800;
+        font-size: 0.95rem;
+        border: 2px solid var(--card-border);
+        background: white;
+        color: var(--text-dark);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        transition: all 0.3s;
+    }
+    .btn-decision-accept:hover, .btn-decision-accept.active {
+        border-color: var(--success);
+        background: #E8F8F5;
+        color: var(--success);
+    }
+    .btn-decision-reject:hover, .btn-decision-reject.active {
+        border-color: var(--danger);
+        background: #FDE8E8;
+        color: var(--danger);
+    }
+</style>
+
+<div class="row g-4 animate__animated animate__fadeIn">
+    
+    <!-- Header Back link -->
+    <div class="col-12 mb-2">
+        <a href="/HospitalQueue?providerId=@providerId" class="btn btn-sm btn-outline-secondary rounded-pill px-3 fw-700">
+            <i class="fas fa-arrow-right me-1"></i> العودة لقائمة الفرز والانتظار
+        </a>
+    </div>
+
+    <!-- Left side: Patient details -->
+    <div class="col-lg-7">
+        <div class="details-card">
+            <h3 class="card-section-title">
+                <i class="fas fa-id-card-medical text-primary"></i>
+                الملف الطبي للحالة الطارئة
+            </h3>
+
+            <div class="row">
+                <!-- Patient Name -->
+                <div class="col-md-6">
+                    <div class="info-label">اسم المريض الثنائي:</div>
+                    <div class="info-value text-primary fw-900">@Model.PatientName</div>
+                </div>
+
+                <!-- Phone -->
+                <div class="col-md-6">
+                    <div class="info-label">رقم الهاتف:</div>
+                    <div class="info-value font-monospace">@(Model.PatientPhone ?? "غير متوفر")</div>
+                </div>
+
+                <!-- Blood Type -->
+                <div class="col-md-6">
+                    <div class="info-label">فصيلة الدم:</div>
+                    <div class="info-value">
+                        <span class="badge bg-danger rounded-pill px-2.5">@Model.BloodType</span>
+                    </div>
+                </div>
+
+                <!-- Emergency Type -->
+                <div class="col-md-6">
+                    <div class="info-label">نوع التدهور الطارئ:</div>
+                    <div class="info-value">
+                        <span class="badge bg-light text-dark border p-2 rounded-3">@Model.EmergencyType</span>
+                    </div>
+                </div>
+
+                <!-- Chronic Diseases -->
+                <div class="col-12">
+                    <div class="info-label">الأمراض المزمنة الحالية:</div>
+                    <div class="info-value">
+                        @if (Model.HasChronicDiseases)
+                        {
+                            <span class="text-danger"><i class="fas fa-circle-exclamation me-1"></i> نعم: @Model.ChronicDiseasesNotes</span>
+                        }
+                        else
+                        {
+                            <span class="text-success"><i class="fas fa-circle-check me-1"></i> لا توجد سجلات لأمراض مزمنة</span>
+                        }
+                    </div>
+                </div>
+
+                <!-- Allergies -->
+                <div class="col-12">
+                    <div class="info-label">مسببات الحساسية:</div>
+                    <div class="info-value text-danger">@(string.IsNullOrWhiteSpace(Model.Allergies) ? "لا توجد حساسية مسجلة" : Model.Allergies)</div>
+                </div>
+
+                <!-- Medications -->
+                <div class="col-12">
+                    <div class="info-label">الأدوية النشطة حالياً:</div>
+                    <div class="info-value">@(string.IsNullOrWhiteSpace(Model.CurrentMedications) ? "لا يتناول أدوية مسجلة" : Model.CurrentMedications)</div>
+                </div>
+
+                <!-- Description -->
+                <div class="col-12">
+                    <div class="info-label">تفاصيل الأعراض والشكوى الواردة:</div>
+                    <div class="p-3 bg-light rounded-3 border text-dark fw-600 mb-3" style="font-size: 0.9rem; line-height: 1.6;">
+                        @(Model.Description ?? "لا توجد تفاصيل إضافية مكتوبة للشكوى الحالية.")
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right side: Map & Decision -->
+    <div class="col-lg-5">
+        
+        <!-- Live Patient Location Map -->
+        <div class="details-card mb-4" style="height: auto;">
+            <h3 class="card-section-title">
+                <i class="fas fa-map-location-dot text-info"></i>
+                الموقع الجغرافي لعربة الإسعاف
+            </h3>
+
+            @if (Model.Latitude.HasValue && Model.Longitude.HasValue)
+            {
+                <div id="detailMap"></div>
+            }
+            else
+            {
+                <div class="text-center py-5 text-muted bg-light rounded-3 border mb-3">
+                    <i class="fas fa-location-slash fs-2 mb-2"></i>
+                    <p class="small mb-0">الموقع الجغرافي غير متوفر لهذا الطلب.</p>
+                </div>
+            }
+        </div>
+
+        <!-- Decision Form Card -->
+        <div class="details-card" style="height: auto;">
+            <h3 class="card-section-title">
+                <i class="fas fa-square-poll-horizontal text-success"></i>
+                اتخاذ القرار الطبي للاستقبال
+            </h3>
+
+            <div class="mb-3 d-flex align-items-center justify-content-between p-2 bg-light rounded-3 border">
+                <span class="small text-muted">الأسرة المتاحة بالمستشفى:</span>
+                <span class="badge bg-primary rounded-pill font-monospace" style="font-size:0.85rem;">@Model.AssignedProviderAvailableBeds سرير شاغر</span>
+            </div>
+
+            <form asp-controller="HospitalQueue" asp-action="Respond" method="post" id="respondForm">
+                <input type="hidden" name="RequestId" value="@Model.RequestId" />
+                <input type="hidden" name="ProviderId" value="@providerId" />
+                
+                <!-- Decision trigger field -->
+                <input type="hidden" name="Status" id="triageDecision" value="" />
+
+                <div class="decision-buttons">
+                    <button type="button" class="btn-decision btn-decision-accept" onclick="selectDecision('Accepted', this)">
+                        <i class="fas fa-circle-check"></i> قبول الاستقبال
+                    </button>
+                    <button type="button" class="btn-decision btn-decision-reject" onclick="selectDecision('Rejected', this)">
+                        <i class="fas fa-circle-xmark"></i> رفض الاستقبال
+                    </button>
+                </div>
+
+                <!-- Notes -->
+                <div class="mb-3">
+                    <label class="form-label small fw-800 text-muted">ملاحظات الاستقبال الطبي والتوجيه:</label>
+                    <textarea class="form-control" name="ResponseNotes" rows="4" placeholder="اكتب تعليمات الاستقبال، مثل: تحضير غرفة الرعاية المركزة أو إرسال فريق إنعاش..."></textarea>
+                </div>
+
+                <button type="button" class="btn btn-primary w-100 rounded-pill py-2.5 fw-800" onclick="submitDecisionForm()">
+                    <i class="fas fa-circle-arrow-left me-1"></i> إرسال القرار والملاحظات
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @if (Model.Latitude.HasValue && Model.Longitude.HasValue)
+    {
+        <!-- Leaflet.js script -->
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+        <script>
+            $(document).ready(function() {
+                const lat = parseFloat('@Model.Latitude.Value');
+                const lng = parseFloat('@Model.Longitude.Value');
+
+                const map = L.map('detailMap', {
+                    zoomControl: true
+                }).setView([lat, lng], 13);
+
+                // Use standard openstreetmap tiles for light dashboard theme
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '&copy; OpenStreetMap contributors'
+                }).addTo(map);
+
+                // Patient Pulse Marker
+                const pulsingIcon = L.divIcon({
+                    className: 'custom-pulsing-marker-wrapper',
+                    html: '<div style="width:14px; height:14px; border-radius:50%; background:#E74C3C; box-shadow:0 0 10px #E74C3C; position:relative;"><div style="width:26px; height:26px; border-radius:50%; position:absolute; top:-6px; left:-6px; border:2px solid #E74C3C; animation: marker-pulse 1.5s infinite ease-out;"></div></div>',
+                    iconSize: [14, 14],
+                    iconAnchor: [7, 7]
+                });
+
+                // Add CSS for pulsing marker animation inline
+                $("<style>")
+                    .prop("type", "text/css")
+                    .html("\
+                    @@keyframes marker-pulse {\
+                        0% { transform: scale(0.4); opacity: 0; }\
+                        50% { opacity: 0.6; }\
+                        100% { transform: scale(1.2); opacity: 0; }\
+                    }")
+                    .appendTo("head");
+
+                L.marker([lat, lng], { icon: pulsingIcon }).addTo(map)
+                    .bindPopup("<div style='font-family:Tajawal,sans-serif; text-align:right; direction:rtl;'><strong>موقع المريض الحرجة</strong></div>")
+                    .openPopup();
+            });
+        </script>
+    }
+
+    <script>
+        function selectDecision(decision, element) {
+            document.getElementById('triageDecision').value = decision;
+            document.querySelectorAll('.btn-decision').forEach(btn => btn.classList.remove('active'));
+            element.classList.add('active');
+        }
+
+        function submitDecisionForm() {
+            const decision = document.getElementById('triageDecision').value;
+            if (!decision) {
+                alert('يجب تحديد قرار الاستقبال أولاً (قبول أو رفض)');
+                return;
+            }
+            document.getElementById('respondForm').submit();
+        }
+    </script>
+}

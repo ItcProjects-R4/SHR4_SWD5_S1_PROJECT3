@@ -1,0 +1,485 @@
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>خريطة الموارد الطبية والحالات — إطمن</title>
+    
+    <!-- Fonts & Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.rtl.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+
+    <!-- Leaflet.js Map CSS & JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <style>
+        :root {
+            --primary: #1A6FBF;
+            --primary-dark: #0D4C8A;
+            --accent: #00C9A7;
+            --success: #2ecc71;
+            --danger: #e74c3c;
+            --warning: #f1c40f;
+            --dark-bg: #0B0E14;
+            --panel-glass: rgba(15, 22, 33, 0.85);
+            --panel-border: rgba(255, 255, 255, 0.1);
+        }
+
+        body, html {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            font-family: 'Tajawal', sans-serif;
+            background-color: var(--dark-bg);
+            overflow: hidden;
+        }
+
+        /* ═══ MAP STYLING ═══════════════════════════════════════ */
+        #map {
+            width: 100%;
+            height: 100vh;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        /* Customize Leaflet Dark Map Popups */
+        .leaflet-popup-content-wrapper {
+            background: rgba(15, 22, 33, 0.95) !important;
+            backdrop-filter: blur(8px);
+            color: #ECF0F1 !important;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            padding: 5px;
+        }
+        .leaflet-popup-tip {
+            background: rgba(15, 22, 33, 0.95) !important;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+        .leaflet-popup-close-button {
+            color: #BDC3C7 !important;
+        }
+
+        /* Pulsing Radar Circle Marker for Critical Cases */
+        .pulsing-gps {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: var(--warning);
+            box-shadow: 0 0 12px var(--warning);
+            position: relative;
+        }
+        .pulsing-gps::after {
+            content: '';
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            position: absolute;
+            top: -8px;
+            left: -8px;
+            border: 2px solid var(--warning);
+            animation: gps-pulse 1.8s infinite ease-out;
+            opacity: 0;
+        }
+        @@keyframes gps-pulse {
+            0% { transform: scale(0.4); opacity: 0; }
+            50% { opacity: 0.6; }
+            100% { transform: scale(1.3); opacity: 0; }
+        }
+
+        /* ═══ FLOATING CONTROL PANEL ═══════════════════════════ */
+        .floating-dashboard {
+            position: absolute;
+            top: 25px;
+            right: 25px;
+            width: 380px;
+            max-height: calc(100vh - 50px);
+            z-index: 1000;
+            background: var(--panel-glass);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--panel-border);
+            border-radius: 24px;
+            box-shadow: 0 15px 45px rgba(0, 0, 0, 0.55);
+            color: #ECF0F1;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            overflow-y: auto;
+        }
+
+        .header-section {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 15px;
+        }
+
+        .dashboard-title {
+            font-size: 1.35rem;
+            font-weight: 900;
+            margin: 0 0 6px 0;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .dashboard-title i {
+            color: var(--primary);
+            animation: pulseMini 2s infinite;
+        }
+
+        @@keyframes pulseMini {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.08); }
+        }
+
+        .dashboard-subtitle {
+            font-size: 0.8rem;
+            color: #BDC3C7;
+            margin: 0;
+        }
+
+        /* Stat Grid */
+        .mini-stat-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 14px;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .mini-stat-icon {
+            width: 40px; height: 40px;
+            border-radius: 10px;
+            display: grid;
+            place-items: center;
+            font-size: 1.2rem;
+            color: white;
+        }
+        .mini-stat-val {
+            font-size: 1.35rem;
+            font-weight: 800;
+            line-height: 1.1;
+        }
+        .mini-stat-lbl {
+            font-size: 0.78rem;
+            color: #BDC3C7;
+        }
+
+        /* Legend */
+        .legend-title {
+            font-size: 0.9rem;
+            font-weight: 800;
+            margin-bottom: 10px;
+            color: white;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 0.82rem;
+            color: #BDC3C7;
+            margin-bottom: 8px;
+        }
+        .legend-color {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            border: 2px solid white;
+        }
+
+        /* Navigation Buttons */
+        .nav-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .btn-panel {
+            background: var(--primary);
+            color: white !important;
+            border: none;
+            border-radius: 14px;
+            padding: 12px;
+            font-weight: bold;
+            font-size: 0.9rem;
+            transition: all 0.25s ease;
+            text-align: center;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 4px 15px rgba(26, 111, 191, 0.35);
+        }
+        .btn-panel:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(26, 111, 191, 0.5);
+        }
+
+        /* Loader Overlay */
+        .map-loader {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--dark-bg);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            transition: opacity 0.5s ease;
+        }
+        .spinner-pulse {
+            width: 50px; height: 50px;
+            border: 3px solid rgba(255,255,255,0.1);
+            border-radius: 50%;
+            border-top-color: var(--primary);
+            animation: spin 1s infinite linear;
+            margin-bottom: 15px;
+        }
+        @@keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Loader -->
+    <div class="map-loader" id="mapLoader">
+        <div class="spinner-pulse"></div>
+        <h5 class="fw-bold">جاري تحميل خريطة الموارد الطبية والحالات...</h5>
+    </div>
+
+    <!-- Map Container -->
+    <div id="map"></div>
+
+    <!-- Floating Dashboard Panel -->
+    <div class="floating-dashboard animate__animated animate__fadeInLeft">
+        <div class="header-section">
+            <h1 class="dashboard-title">
+                <i class="fas fa-map-location-dot"></i>
+                رصد الموارد الطبية
+            </h1>
+            <p class="dashboard-subtitle">الرصد الجغرافي للمراكز الصحية والأطباء والطلبات النشطة</p>
+        </div>
+
+        <!-- Stats -->
+        <div class="d-flex flex-column gap-3">
+            <div class="mini-stat-card">
+                <div class="mini-stat-icon" style="background: rgba(231, 76, 96, 0.2); color: var(--danger);">
+                    <i class="fas fa-hospital"></i>
+                </div>
+                <div>
+                    <div class="mini-stat-val" id="statHospitals">0</div>
+                    <div class="mini-stat-lbl">مستشفيات رعاية حرجة</div>
+                </div>
+            </div>
+
+            <div class="mini-stat-card">
+                <div class="mini-stat-icon" style="background: rgba(52, 152, 219, 0.2); color: #3498db;">
+                    <i class="fas fa-clinic-medical"></i>
+                </div>
+                <div>
+                    <div class="mini-stat-val" id="statClinics">0</div>
+                    <div class="mini-stat-lbl">عيادات ومراكز طبية</div>
+                </div>
+            </div>
+
+            <div class="mini-stat-card">
+                <div class="mini-stat-icon" style="background: rgba(46, 204, 113, 0.2); color: var(--success);">
+                    <i class="fas fa-user-md"></i>
+                </div>
+                <div>
+                    <div class="mini-stat-val" id="statDoctors">0</div>
+                    <div class="mini-stat-lbl">أطباء مسجلين بالنظام</div>
+                </div>
+            </div>
+
+            <div class="mini-stat-card">
+                <div class="mini-stat-icon" style="background: rgba(241, 196, 15, 0.2); color: var(--warning);">
+                    <i class="fas fa-truck-medical"></i>
+                </div>
+                <div>
+                    <div class="mini-stat-val" id="statCases">0</div>
+                    <div class="mini-stat-lbl">حالات طارئة نشطة</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Legend -->
+        <div>
+            <div class="legend-title">رموز الخريطة</div>
+            <div class="legend-item">
+                <span class="legend-color" style="background: var(--danger);"></span>
+                <span>مستشفى طوارئ ورعاية حرجة</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-color" style="background: #3498db;"></span>
+                <span>عيادة أو مركز رعاية أولية</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-color" style="background: var(--success);"></span>
+                <span>طبيب مسجل ومتوفر</span>
+            </div>
+            <div class="legend-item">
+                <div class="pulsing-gps" style="width: 10px; height: 10px; box-shadow: none;"></div>
+                <span>مريض حرج حالي (حالة نشطة)</span>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="nav-buttons">
+            <a href="/AdminDashboard" class="btn-panel">
+                <i class="fas fa-shield-halved"></i>
+                العودة للوحة التحكم
+            </a>
+        </div>
+    </div>
+
+    <!-- Leaflet Setup Scripts -->
+    <script>
+        $(document).ready(function() {
+            // Default center: Cairo
+            let mapCenter = [30.0444, 31.2357];
+            let defaultZoom = 11;
+
+            const map = L.map('map', {
+                zoomControl: false
+            }).setView(mapCenter, defaultZoom);
+
+            // Dark Mode CartoDB Tile Layer
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; OpenStreetMap &copy; CARTO',
+                subdomains: 'abcd',
+                maxZoom: 20
+            }).addTo(map);
+
+            L.control.zoom({
+                position: 'bottomright'
+            }).addTo(map);
+
+            // Load Map Data asynchronously
+            $.getJSON('/AdminDashboard/GetMapData', function(data) {
+                if (data && data.success) {
+                    let hospitalCount = 0;
+                    let clinicCount = 0;
+                    let doctorCount = data.doctors.length;
+                    let caseCount = data.criticalCases.length;
+
+                    // Centering logic
+                    if (data.providers.length > 0) {
+                        map.setView([data.providers[0].latitude, data.providers[0].longitude], 11);
+                    }
+
+                    // 1. Plot Healthcare Providers (Clinics & Hospitals)
+                    data.providers.forEach(function(item) {
+                        let color = '#3498db'; // Clinic
+                        if (item.type === 'Hospital') {
+                            color = '#e74c3c'; // Hospital
+                            hospitalCount++;
+                        } else {
+                            clinicCount++;
+                        }
+
+                        let markerHtml = `<div style="background-color: ${color}; width: 14px; height: 14px; border-radius: 50%; border: 2.5px solid white; box-shadow: 0 0 6px rgba(0,0,0,0.6);"></div>`;
+                        let customIcon = L.divIcon({
+                            html: markerHtml,
+                            className: 'custom-div-icon',
+                            iconSize: [14, 14],
+                            iconAnchor: [7, 7]
+                        });
+
+                        L.marker([item.latitude, item.longitude], { icon: customIcon })
+                            .bindPopup(`
+                                <div style="font-family: 'Tajawal', sans-serif; text-align: right; direction: rtl; min-width: 180px;">
+                                    <h6 style="font-weight: 800; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 6px; margin-bottom: 8px; color: ${color};">
+                                        <i class="fas ${item.type === 'Hospital' ? 'fa-hospital' : 'fa-clinic-medical'}"></i> ${item.name}
+                                    </h6>
+                                    <p style="margin: 0 0 5px 0; font-size: 0.8rem;"><strong>النوع:</strong> ${item.type === 'Hospital' ? 'مستشفى رعاية حرجة' : 'عيادة طبية'}</p>
+                                    <p style="margin: 0 0 5px 0; font-size: 0.8rem;"><strong>العنوان:</strong> ${item.address || '-'}</p>
+                                    <p style="margin: 0 0 5px 0; font-size: 0.8rem;"><strong>الهاتف:</strong> ${item.phone || '-'}</p>
+                                </div>
+                            `)
+                            .addTo(map);
+                    });
+
+                    // 2. Plot Registered Doctors
+                    data.doctors.forEach(function(item) {
+                        let markerHtml = `<div style="background-color: #2ecc71; width: 14px; height: 14px; border-radius: 50%; border: 2.5px solid white; box-shadow: 0 0 6px rgba(0,0,0,0.6);"></div>`;
+                        let customIcon = L.divIcon({
+                            html: markerHtml,
+                            className: 'custom-div-icon',
+                            iconSize: [14, 14],
+                            iconAnchor: [7, 7]
+                        });
+
+                        L.marker([item.latitude, item.longitude], { icon: customIcon })
+                            .bindPopup(`
+                                <div style="font-family: 'Tajawal', sans-serif; text-align: right; direction: rtl; min-width: 180px;">
+                                    <h6 style="font-weight: 800; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 6px; margin-bottom: 8px; color: #2ecc71;">
+                                        <i class="fas fa-user-md"></i> د. ${item.name}
+                                    </h6>
+                                    <p style="margin: 0 0 5px 0; font-size: 0.8rem;"><strong>التخصص:</strong> ${item.specialization || '-'}</p>
+                                    <p style="margin: 0 0 5px 0; font-size: 0.8rem;"><strong>العنوان:</strong> ${item.clinicAddress || '-'}</p>
+                                    <p style="margin: 0 0 5px 0; font-size: 0.8rem;"><strong>رسوم الكشف:</strong> ${item.consultationFee || '-'} ج.م.</p>
+                                </div>
+                            `)
+                            .addTo(map);
+                    });
+
+                    // 3. Plot Critical Cases (Emergency requests)
+                    data.criticalCases.forEach(function(item) {
+                        let customIcon = L.divIcon({
+                            className: 'custom-pulsing-marker',
+                            html: '<div class="pulsing-gps"></div>',
+                            iconSize: [14, 14],
+                            iconAnchor: [7, 7]
+                        });
+
+                        L.marker([item.latitude, item.longitude], { icon: customIcon })
+                            .bindPopup(`
+                                <div style="font-family: 'Tajawal', sans-serif; text-align: right; direction: rtl; min-width: 180px;">
+                                    <h6 style="font-weight: 800; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 6px; margin-bottom: 8px; color: var(--warning);">
+                                        <i class="fas fa-truck-medical"></i> حالة طارئة نشطة
+                                    </h6>
+                                    <p style="margin: 0 0 5px 0; font-size: 0.8rem;"><strong>المريض:</strong> ${item.patientName}</p>
+                                    <p style="margin: 0 0 5px 0; font-size: 0.8rem;"><strong>نوع الطوارئ:</strong> ${item.emergencyType || '-'}</p>
+                                    <p style="margin: 0 0 5px 0; font-size: 0.8rem;"><strong>التفاصيل:</strong> ${item.description || '-'}</p>
+                                    <p style="margin: 0 0 5px 0; font-size: 0.8rem;"><strong>معدل الأولوية:</strong> ${item.priorityScore}%</p>
+                                </div>
+                            `)
+                            .addTo(map);
+                    });
+
+                    // Update UI Statistics
+                    $('#statHospitals').text(hospitalCount);
+                    $('#statClinics').text(clinicCount);
+                    $('#statDoctors').text(doctorCount);
+                    $('#statCases').text(caseCount);
+                }
+
+                // Hide Loader
+                $('#mapLoader').fadeOut(400);
+            }).fail(function() {
+                $('#mapLoader').html('<h5 class="text-danger fw-bold"><i class="fas fa-exclamation-triangle"></i> فشل تحميل بيانات الخريطة!</h5>');
+            });
+        });
+    </script>
+</body>
+</html>

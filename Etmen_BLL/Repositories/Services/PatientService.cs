@@ -43,6 +43,26 @@ namespace Etmen_BLL.Repositories.Services
             }
         }
 
+        public async Task<ServiceResult<ProfileDto>> GetProfileByIdAsync(int patientProfileId)
+        {
+            try
+            {
+                if (patientProfileId <= 0)
+                    return ServiceResult<ProfileDto>.Failure("Patient Profile ID is invalid.");
+
+                var patient = await _uow.PatientProfiles.GetByIdAsync(patientProfileId);
+                if (patient == null)
+                    return ServiceResult<ProfileDto>.Failure("Patient profile not found.");
+
+                var profileDto = patient.Adapt<ProfileDto>();
+                return ServiceResult<ProfileDto>.Success(profileDto);
+            }
+            catch (Exception ex)
+            {
+                return ServiceResult<ProfileDto>.Failure($"Failed to retrieve patient profile: {ex.Message}");
+            }
+        }
+
         public async Task<ServiceResult<ProfileDto>> UpdateProfileAsync(string userId, ProfileDto dto)
         {
             try
@@ -114,120 +134,145 @@ namespace Etmen_BLL.Repositories.Services
                 if (patient == null)
                     return ServiceResult<DashboardDto>.Failure("Patient profile not found.");
 
-                // Get latest risk assessment
-                var latestRisk = await _uow.RiskAssessments.GetLatestByPatientIdAsync(patient.Id);
-                RiskResultDto? latestRiskDto = null;
-                if (latestRisk != null)
-                {
-                    latestRiskDto = new RiskResultDto
-                    {
-                        RiskScore = latestRisk.RiskScore,
-                        RiskLevel = latestRisk.RiskLevel,
-                        RiskColor = RiskLevelMapper.ToColor(latestRisk.RiskLevel),
-                        RiskLabel = RiskLevelMapper.ToArabicLabel(latestRisk.RiskLevel),
-                        IsEmergency = latestRisk.IsEmergency,
-                        Recommendations = latestRisk.RecommendationsJson != null
-                            ? System.Text.Json.JsonSerializer.Deserialize<List<string>>(latestRisk.RecommendationsJson) ?? new List<string>()
-                            : new List<string>(),
-                        TriggeredSymptoms = latestRisk.Symptoms != null
-                            ? latestRisk.Symptoms.Split(',').Select(s => s.Trim()).ToList()
-                            : new List<string>(),
-                        AssessmentDate = latestRisk.AssessmentDate
-                    };
-                }
-
-                // Get unread alerts count
-                var unreadAlertsCount = await _uow.Alerts.GetUnreadCountAsync(userId);
-
-                // Get upcoming appointments
-                var upcomingAppointments = await _uow.Appointments.GetUpcomingAppointmentsAsync(patient.Id);
-                var appointmentDtos = upcomingAppointments
-                    .Select(a => new RecentAppointmentDto
-                    {
-                        Id = a.Id,
-                        DoctorName = !string.IsNullOrWhiteSpace(a.DoctorProfile?.ApplicationUser?.FirstName)
-                            ? $"{a.DoctorProfile.ApplicationUser.FirstName} {a.DoctorProfile.ApplicationUser.LastName}".Trim()
-                            : a.DoctorProfile?.FullName ?? "Unknown",
-                        Date = a.AppointmentDate,
-                        Status = a.Status.ToString()
-                    })
-                    .Take(5)
-                    .ToList();
-
-                var upcomingAppointmentsCount = upcomingAppointments.Count();
-
-                // Get latest BMI and category
-                decimal? latestBmi = null;
-                if (patient.Height.HasValue && patient.Weight.HasValue && patient.Height > 0)
-                {
-                    // Height is stored in centimeters and weight in kilograms.
-                    latestBmi = patient.Weight.Value / ((patient.Height.Value / 100) * (patient.Height.Value / 100));
-                }
-
-                string? latestBmiCategory = null;
-                if (latestBmi.HasValue)
-                {
-                    latestBmiCategory = latestBmi.Value switch
-                    {
-                        < 18.5m => "Underweight",
-                        < 25m => "Normal",
-                        < 30m => "Overweight",
-                        _ => "Obese"
-                    };
-                }
-
-                // Get recent alerts
-                var recentAlerts = await _uow.Alerts.GetByUserIdAsync(userId);
-                var alertDtos = recentAlerts
-                    .OrderByDescending(a => a.CreatedAt)
-                    .Take(5)
-                    .Select(a => new RecentAlertDto
-                    {
-                        Id = a.Id,
-                        Title = a.Title,
-                        CreatedAt = a.CreatedAt,
-                        IsRead = a.Status == AlertStatus.Read
-                    })
-                    .ToList();
-
-                var medicalRecords = await _uow.MedicalRecords.GetByPatientIdAsync(patient.Id);
-                var orderedMedicalRecords = medicalRecords
-                    .OrderByDescending(r => r.RecordDate)
-                    .ToList();
-                var latestMedicalRecord = orderedMedicalRecords.FirstOrDefault();
-
-                var dashboard = new DashboardDto
-                {
-                    PatientName = patient.FullName ?? "Unknown",
-                    LatestRiskAssessment = latestRiskDto,
-                    UnreadAlertsCount = unreadAlertsCount,
-                    UpcomingAppointmentsCount = upcomingAppointmentsCount,
-                    LatestBmi = latestBmi,
-                    LatestBmiCategory = latestBmiCategory,
-                    MedicalRecordsCount = orderedMedicalRecords.Count,
-                    LatestMedicalRecord = latestMedicalRecord == null ? null : new MedicalRecordDto
-                    {
-                        Id = latestMedicalRecord.Id,
-                        RecordDate = latestMedicalRecord.RecordDate,
-                        SystolicBP = latestMedicalRecord.SystolicBP,
-                        DiastolicBP = latestMedicalRecord.DiastolicBP,
-                        BloodSugar = latestMedicalRecord.BloodSugar,
-                        HeartRate = latestMedicalRecord.HeartRate,
-                        Temperature = latestMedicalRecord.Temperature,
-                        OxygenSaturation = latestMedicalRecord.OxygenSaturation,
-                        Symptoms = latestMedicalRecord.Symptoms,
-                        Notes = latestMedicalRecord.Notes
-                    },
-                    UpcomingAppointments = appointmentDtos,
-                    RecentAlerts = alertDtos
-                };
-
-                return ServiceResult<DashboardDto>.Success(dashboard);
+                return await GetDashboardForPatientAsync(patient);
             }
             catch (Exception ex)
             {
                 return ServiceResult<DashboardDto>.Failure($"Failed to retrieve dashboard: {ex.Message}");
             }
+        }
+
+        public async Task<ServiceResult<DashboardDto>> GetDashboardByProfileIdAsync(int patientProfileId)
+        {
+            try
+            {
+                if (patientProfileId <= 0)
+                    return ServiceResult<DashboardDto>.Failure("Patient Profile ID is required.");
+
+                var patient = await _uow.PatientProfiles.GetByIdAsync(patientProfileId);
+                if (patient == null)
+                    return ServiceResult<DashboardDto>.Failure("Patient profile not found.");
+
+                return await GetDashboardForPatientAsync(patient);
+            }
+            catch (Exception ex)
+            {
+                return ServiceResult<DashboardDto>.Failure($"Failed to retrieve dashboard: {ex.Message}");
+            }
+        }
+
+        private async Task<ServiceResult<DashboardDto>> GetDashboardForPatientAsync(PatientProfile patient)
+        {
+            var userId = patient.ApplicationUserId;
+            // Get latest risk assessment
+            var latestRisk = await _uow.RiskAssessments.GetLatestByPatientIdAsync(patient.Id);
+            RiskResultDto? latestRiskDto = null;
+            if (latestRisk != null)
+            {
+                latestRiskDto = new RiskResultDto
+                {
+                    RiskScore = latestRisk.RiskScore,
+                    RiskLevel = latestRisk.RiskLevel,
+                    RiskColor = RiskLevelMapper.ToColor(latestRisk.RiskLevel),
+                    RiskLabel = RiskLevelMapper.ToArabicLabel(latestRisk.RiskLevel),
+                    IsEmergency = latestRisk.IsEmergency,
+                    Recommendations = latestRisk.RecommendationsJson != null
+                        ? System.Text.Json.JsonSerializer.Deserialize<List<string>>(latestRisk.RecommendationsJson) ?? new List<string>()
+                        : new List<string>(),
+                    TriggeredSymptoms = latestRisk.Symptoms != null
+                        ? latestRisk.Symptoms.Split(',').Select(s => s.Trim()).ToList()
+                        : new List<string>(),
+                    AssessmentDate = latestRisk.AssessmentDate
+                };
+            }
+
+            // Get unread alerts count
+            var unreadAlertsCount = await _uow.Alerts.GetUnreadCountAsync(userId);
+
+            // Get upcoming appointments
+            var upcomingAppointments = await _uow.Appointments.GetUpcomingAppointmentsAsync(patient.Id);
+            var appointmentDtos = upcomingAppointments
+                .Select(a => new RecentAppointmentDto
+                {
+                    Id = a.Id,
+                    DoctorName = !string.IsNullOrWhiteSpace(a.DoctorProfile?.ApplicationUser?.FirstName)
+                        ? $"{a.DoctorProfile.ApplicationUser.FirstName} {a.DoctorProfile.ApplicationUser.LastName}".Trim()
+                        : a.DoctorProfile?.FullName ?? "Unknown",
+                    Date = a.AppointmentDate,
+                    Status = a.Status.ToString()
+                })
+                .Take(5)
+                .ToList();
+
+            var upcomingAppointmentsCount = upcomingAppointments.Count();
+
+            // Get latest BMI and category
+            decimal? latestBmi = null;
+            if (patient.Height.HasValue && patient.Weight.HasValue && patient.Height > 0)
+            {
+                // Height is stored in centimeters and weight in kilograms.
+                latestBmi = patient.Weight.Value / ((patient.Height.Value / 100) * (patient.Height.Value / 100));
+            }
+
+            string? latestBmiCategory = null;
+            if (latestBmi.HasValue)
+            {
+                latestBmiCategory = latestBmi.Value switch
+                {
+                    < 18.5m => "Underweight",
+                    < 25m => "Normal",
+                    < 30m => "Overweight",
+                    _ => "Obese"
+                };
+            }
+
+            // Get recent alerts
+            var recentAlerts = await _uow.Alerts.GetByUserIdAsync(userId);
+            var alertDtos = recentAlerts
+                .OrderByDescending(a => a.CreatedAt)
+                .Take(5)
+                .Select(a => new RecentAlertDto
+                {
+                    Id = a.Id,
+                    Title = a.Title,
+                    CreatedAt = a.CreatedAt,
+                    IsRead = a.Status == AlertStatus.Read
+                })
+                .ToList();
+
+            var medicalRecords = await _uow.MedicalRecords.GetByPatientIdAsync(patient.Id);
+            var orderedMedicalRecords = medicalRecords
+                .OrderByDescending(r => r.RecordDate)
+                .ToList();
+            var latestMedicalRecord = orderedMedicalRecords.FirstOrDefault();
+
+            var dashboard = new DashboardDto
+            {
+                PatientName = patient.FullName ?? "Unknown",
+                LatestRiskAssessment = latestRiskDto,
+                UnreadAlertsCount = unreadAlertsCount,
+                UpcomingAppointmentsCount = upcomingAppointmentsCount,
+                LatestBmi = latestBmi,
+                LatestBmiCategory = latestBmiCategory,
+                MedicalRecordsCount = orderedMedicalRecords.Count,
+                LatestMedicalRecord = latestMedicalRecord == null ? null : new MedicalRecordDto
+                {
+                    Id = latestMedicalRecord.Id,
+                    RecordDate = latestMedicalRecord.RecordDate,
+                    SystolicBP = latestMedicalRecord.SystolicBP,
+                    DiastolicBP = latestMedicalRecord.DiastolicBP,
+                    BloodSugar = latestMedicalRecord.BloodSugar,
+                    HeartRate = latestMedicalRecord.HeartRate,
+                    Temperature = latestMedicalRecord.Temperature,
+                    OxygenSaturation = latestMedicalRecord.OxygenSaturation,
+                    Symptoms = latestMedicalRecord.Symptoms,
+                    Notes = latestMedicalRecord.Notes
+                },
+                UpcomingAppointments = appointmentDtos,
+                RecentAlerts = alertDtos
+            };
+
+            return ServiceResult<DashboardDto>.Success(dashboard);
         }
 
         public async Task<ServiceResult<IEnumerable<MedicalRecordDto>>> GetMedicalRecordsAsync(string userId)

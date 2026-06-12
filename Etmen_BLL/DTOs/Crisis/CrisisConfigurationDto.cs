@@ -1,4 +1,4 @@
-﻿using Etmen_Domain.Enums;
+using Etmen_Domain.Enums;
 
 namespace Etmen_BLL.DTOs.Crisis
 {
@@ -11,6 +11,10 @@ namespace Etmen_BLL.DTOs.Crisis
         public bool IsActive { get; set; }
         public DateTime StartDate { get; set; }
         public DateTime? EndDate { get; set; }
+        public string? Description { get; set; }
+        public decimal EmergencyThreshold { get; set; }
+        public decimal HighRiskThreshold { get; set; }
+        public decimal MediumRiskThreshold { get; set; }
         public List<SymptomWeightDto> SymptomWeights { get; set; } = new List<SymptomWeightDto>();
         public int ZonesCount { get; set; }
     }

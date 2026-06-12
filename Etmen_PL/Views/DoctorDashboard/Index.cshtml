@@ -5,27 +5,250 @@
     Layout = "~/Views/Shared/_DoctorLayout.cshtml";
 }
 
+<style>
+    :root {
+        --glow-blue: rgba(26, 111, 191, 0.12);
+        --glow-orange: rgba(243, 156, 18, 0.12);
+        --glow-green: rgba(39, 174, 96, 0.12);
+        --glow-purple: rgba(142, 68, 173, 0.12);
+    }
+
+    .doctor-dashboard {
+        display: grid;
+        gap: 1.5rem;
+    }
+
+    /* ═══ DOCTOR HERO ══════════════════════════════════════ */
+    .doctor-hero {
+        position: relative;
+        overflow: hidden;
+        border-radius: 24px;
+        padding: 2.5rem;
+        background: linear-gradient(135deg, #0A1C2C 0%, #156082 100%) !important;
+        box-shadow: 0 15px 35px rgba(10, 28, 44, 0.15);
+        color: white;
+    }
+    .doctor-hero-glow {
+        position: absolute;
+        top: -20%; left: -10%;
+        width: 350px; height: 350px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(0, 201, 167, 0.18) 0%, transparent 70%);
+        filter: blur(35px);
+        pointer-events: none;
+    }
+    .doctor-hero-glow-2 {
+        position: absolute;
+        bottom: -20%; right: 10%;
+        width: 250px; height: 250px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(26, 111, 191, 0.15) 0%, transparent 70%);
+        filter: blur(25px);
+        pointer-events: none;
+    }
+
+    /* ═══ STAT CARDS ═══════════════════════════════════════ */
+    .stat-card {
+        background: rgba(255, 255, 255, 0.75);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.8);
+        border-radius: 20px;
+        padding: 1.5rem;
+        box-shadow: 0 10px 30px rgba(15, 36, 55, .04);
+        transition: all .35s cubic-bezier(0.4, 0, 0.2, 1);
+        display: flex;
+        align-items: center;
+        gap: 1.25rem;
+        position: relative;
+        overflow: hidden;
+    }
+    .stat-card::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: 20px;
+        padding: 1px;
+        background: linear-gradient(135deg, rgba(255,255,255,0.4), rgba(26,111,191,0.1));
+        -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        -webkit-mask-composite: xor;
+        mask-composite: exclude;
+        pointer-events: none;
+    }
+    .stat-card:hover {
+        transform: translateY(-6px);
+        box-shadow: 0 20px 40px rgba(15, 36, 55, 0.08);
+        background: rgba(255, 255, 255, 0.85);
+    }
+    .stat-card-icon {
+        width: 54px; height: 54px;
+        border-radius: 16px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.4rem;
+        box-shadow: 0 6px 15px rgba(0,0,0,0.03);
+        flex-shrink: 0;
+        transition: transform 0.3s;
+    }
+    .stat-card:hover .stat-card-icon {
+        transform: scale(1.1) rotate(-5deg);
+    }
+    .stat-card-icon.blue { background: var(--primary-light); color: var(--primary); }
+    .stat-card-icon.green { background: #E8F8F0; color: var(--success); }
+    .stat-card-icon.orange { background: #FEF5E7; color: var(--warning); }
+    .stat-card-icon.purple { background: #F0E8FF; color: #8E44AD; }
+
+    .stat-card-number {
+        font-size: 1.95rem;
+        font-weight: 900;
+        color: var(--dark);
+        line-height: 1.1;
+    }
+    .stat-card-label {
+        font-size: 0.82rem;
+        font-weight: 700;
+        color: var(--text-muted);
+        margin-top: 2px;
+    }
+    .stat-card-trend {
+        font-size: 0.7rem;
+        font-weight: 700;
+        padding: 2px 10px;
+        border-radius: 20px;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        margin-top: 6px;
+    }
+    .stat-card-trend.up { background: #E8F8F0; color: var(--success); }
+
+    /* ═══ TABLE & GRID ═════════════════════════════════════ */
+    .dr-card {
+        background: white;
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 1.5rem;
+        box-shadow: 0 10px 30px rgba(15, 36, 55, 0.03);
+        transition: all 0.3s;
+    }
+    .dr-card:hover {
+        box-shadow: 0 16px 35px rgba(15, 36, 55, 0.06);
+    }
+    .dr-card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1.25rem;
+        border-bottom: 1px solid #f0f4f8;
+        padding-bottom: 0.75rem;
+    }
+    .dr-card-title {
+        font-size: 1.1rem;
+        font-weight: 900;
+        color: var(--dark);
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .dr-card-title::before {
+        content: '';
+        width: 4px; height: 18px;
+        background: var(--primary);
+        border-radius: 2px;
+        display: inline-block;
+    }
+
+    .dr-table {
+        border-collapse: separate;
+        border-spacing: 0 8px;
+        width: 100%;
+        margin-top: -8px;
+    }
+    .dr-table th {
+        background: transparent;
+        border: none;
+        padding: 0.75rem 1rem;
+        font-weight: 800;
+        color: var(--text-muted);
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        text-align: start;
+    }
+    .dr-table tbody tr {
+        background: #f8fafc;
+        transition: all 0.25s ease;
+    }
+    .dr-table tbody tr td {
+        border: none;
+        padding: 1rem;
+        vertical-align: middle;
+        font-size: 0.88rem;
+    }
+    .dr-table tbody tr td:first-child {
+        border-radius: 0 16px 16px 0;
+    }
+    .dr-table tbody tr td:last-child {
+        border-radius: 16px 0 0 16px;
+    }
+    .dr-table tbody tr:hover {
+        background: white;
+        box-shadow: 0 8px 22px rgba(15, 36, 55, 0.05);
+        transform: scale(1.005);
+    }
+
+    /* ═══ PATIENTS LIST FEED ═══════════════════════════════ */
+    .patient-feed-card {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        padding: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        transition: all 0.25s ease;
+        text-decoration: none;
+    }
+    .patient-feed-card:hover {
+        background: white;
+        border-color: rgba(26, 111, 191, 0.25);
+        box-shadow: 0 8px 22px rgba(15, 36, 55, 0.05);
+        transform: translateX(-4px);
+    }
+
+    /* Floating visual details */
+    .float-icon {
+        animation: floatIcon 3.5s ease-in-out infinite;
+    }
+    @@keyframes floatIcon {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-6px); }
+    }
+</style>
+
 <div class="doctor-dashboard">
     <!-- Welcome Hero -->
-    <div class="glass-panel mb-4" style="background:linear-gradient(135deg, rgba(10,28,44,0.97), rgba(14,96,121,0.92)), url('https://images.unsplash.com/photo-1551076805-e1869033e561?auto=format&fit=crop&w=1600&q=80') center/cover; color:white; border:none;">
-        <div class="row align-items-center">
+    <div class="doctor-hero glass-panel mb-4">
+        <div class="doctor-hero-glow"></div>
+        <div class="doctor-hero-glow-2"></div>
+        <div class="row align-items-center position-relative z-index-1">
             <div class="col-md-8">
-                <h2 class="fw-bold mb-2" style="font-size:1.6rem;">
-                    <i class="fas fa-hand-wave ms-2" style="color:var(--accent);"></i> مرحباً، دكتور @Model.DoctorName
+                <h2 class="fw-bold mb-2" style="font-size:1.75rem;">
+                    <i class="fas fa-stethoscope ms-2 text-accent float-icon d-inline-block"></i> مرحباً بك، دكتور @Model.DoctorName
                 </h2>
-                <p class="mb-0" style="color:rgba(255,255,255,0.7);font-weight:500;">
-                    <i class="fas fa-stethoscope ms-1" style="color:var(--accent);"></i> @(Model.Specialization ?? "طبيب عام")
+                <p class="mb-0" style="color:rgba(255,255,255,0.75); font-weight:500; font-size:1rem;">
+                    <i class="fas fa-user-md ms-1 text-accent"></i> تخصصك: @(Model.Specialization ?? "طبيب عام")
                     <span class="mx-2">•</span>
-                    <i class="far fa-calendar-alt ms-1"></i> @DateTime.Now.ToString("dddd, dd MMMM yyyy", new System.Globalization.CultureInfo("ar-SA"))
+                    <i class="far fa-calendar-alt ms-1 text-accent"></i> @DateTime.Now.ToString("dddd, dd MMMM yyyy", new System.Globalization.CultureInfo("ar-EG"))
                 </p>
             </div>
             <div class="col-md-4 text-md-start text-center mt-3 mt-md-0">
                 @if (Model.AverageRating.HasValue)
                 {
-                    <div class="d-inline-flex align-items-center gap-2 px-4 py-2 rounded-pill" style="background:rgba(255,255,255,0.1);backdrop-filter:blur(10px);">
-                        <i class="fas fa-star" style="color:var(--warning);"></i>
-                        <span class="fw-bold fs-5">@Model.AverageRating.Value.ToString("F1")</span>
-                        <span style="color:rgba(255,255,255,0.5);font-size:0.8rem;">تقييم</span>
+                    <div class="d-inline-flex align-items-center gap-2 px-4 py-2 rounded-pill" style="background:rgba(255,255,255,0.1); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); border: 1px solid rgba(255,255,255,0.15);">
+                        <i class="fas fa-star" style="color:var(--warning); animation: pulseMini 2s infinite;"></i>
+                        <span class="fw-bold fs-5 text-white">@Model.AverageRating.Value.ToString("F1")</span>
+                        <span style="color:rgba(255,255,255,0.6); font-size:0.8rem;">تقييم الأطباء</span>
                     </div>
                 }
             </div>
@@ -37,33 +260,41 @@
         <div class="col-xl-3 col-lg-6 col-md-6">
             <div class="stat-card animate__animated animate__fadeInUp">
                 <div class="stat-card-icon blue"><i class="fas fa-calendar-day"></i></div>
-                <div class="stat-card-number count-up" data-target="@Model.TodayAppointmentsCount">0</div>
-                <div class="stat-card-label">مواعيد اليوم</div>
+                <div>
+                    <div class="stat-card-number count-up" data-target="@Model.TodayAppointmentsCount">0</div>
+                    <div class="stat-card-label">مواعيد اليوم</div>
+                </div>
             </div>
         </div>
         <div class="col-xl-3 col-lg-6 col-md-6">
             <div class="stat-card animate__animated animate__fadeInUp" style="animation-delay:0.1s;">
-                <div class="stat-card-icon orange"><i class="fas fa-hourglass-half"></i></div>
-                <div class="stat-card-number count-up" data-target="@Model.PendingAppointmentsCount">0</div>
-                <div class="stat-card-label">مواعيد معلقة</div>
+                <div class="stat-card-icon orange"><i class="fas fa-hourglass-half animate-pulse"></i></div>
+                <div>
+                    <div class="stat-card-number count-up" data-target="@Model.PendingAppointmentsCount">0</div>
+                    <div class="stat-card-label">مواعيد معلقة</div>
+                </div>
             </div>
         </div>
         <div class="col-xl-3 col-lg-6 col-md-6">
             <div class="stat-card animate__animated animate__fadeInUp" style="animation-delay:0.2s;">
                 <div class="stat-card-icon green"><i class="fas fa-user-friends"></i></div>
-                <div class="stat-card-number count-up" data-target="@Model.TotalPatientsCount">0</div>
-                <div class="stat-card-label">إجمالي المرضى</div>
+                <div>
+                    <div class="stat-card-number count-up" data-target="@Model.TotalPatientsCount">0</div>
+                    <div class="stat-card-label">إجمالي المرضى</div>
+                </div>
             </div>
         </div>
         <div class="col-xl-3 col-lg-6 col-md-6">
             <div class="stat-card animate__animated animate__fadeInUp" style="animation-delay:0.3s;">
                 <div class="stat-card-icon purple"><i class="fas fa-chart-line"></i></div>
-                <div class="stat-card-number count-up" data-target="@(Model.Statistics?.CompletionRate ?? 0)" data-suffix="%">0</div>
-                <div class="stat-card-label">معدل الإنجاز</div>
-                @if (Model.Statistics?.NewPatientsThisMonth > 0)
-                {
-                    <div class="stat-card-trend up"><i class="fas fa-arrow-up"></i> @Model.Statistics.NewPatientsThisMonth مريض جديد هذا الشهر</div>
-                }
+                <div class="flex-grow-1">
+                    <div class="stat-card-number count-up" data-target="@(Model.Statistics?.CompletionRate ?? 0)" data-suffix="%">0</div>
+                    <div class="stat-card-label">معدل الإنجاز</div>
+                    @if (Model.Statistics?.NewPatientsThisMonth > 0)
+                    {
+                        <div class="stat-card-trend up"><i class="fas fa-arrow-up"></i> @Model.Statistics.NewPatientsThisMonth مريض جديد</div>
+                    }
+                </div>
             </div>
         </div>
     </div>
@@ -73,8 +304,8 @@
         <div class="col-lg-7">
             <div class="dr-card animate__animated animate__fadeInUp" style="animation-delay:0.2s;">
                 <div class="dr-card-header">
-                    <h5 class="dr-card-title"><i class="fas fa-calendar-alt"></i> المواعيد القادمة</h5>
-                    <a href="/DoctorAppointments" class="btn-outline-custom btn-sm py-1 px-3" style="font-size:0.75rem;">
+                    <h5 class="dr-card-title"><i class="fas fa-calendar-alt text-primary"></i> المواعيد القادمة</h5>
+                    <a href="/DoctorAppointments" class="btn-outline-custom btn-sm py-1 px-3" style="font-size:0.75rem; border-radius:10px;">
                         عرض الكل <i class="fas fa-arrow-left ms-1"></i>
                     </a>
                 </div>
@@ -95,9 +326,9 @@
                                 @foreach (var apt in Model.UpcomingAppointments)
                                 {
                                     <tr>
-                                        <td class="fw-bold">@apt.PatientName</td>
-                                        <td>@apt.AppointmentDate.ToString("dd/MM/yyyy")</td>
-                                        <td>@apt.StartTime.ToString(@"hh\:mm") - @apt.EndTime.ToString(@"hh\:mm")</td>
+                                        <td class="fw-bold text-dark">@apt.PatientName</td>
+                                        <td><i class="far fa-calendar text-muted me-1"></i> @apt.AppointmentDate.ToString("dd/MM/yyyy")</td>
+                                        <td style="font-family: monospace;"><i class="far fa-clock text-muted me-1"></i> @apt.StartTime.ToString(@"hh\:mm") - @apt.EndTime.ToString(@"hh\:mm")</td>
                                         <td>
                                             <span class="status-badge @(apt.Status == "Confirmed" ? "confirmed" : apt.Status == "Pending" ? "pending" : "completed")">
                                                 <span class="dot"></span>
@@ -105,8 +336,8 @@
                                             </span>
                                         </td>
                                         <td>
-                                            <a href="/DoctorAppointments/Details/@apt.Id" class="table-action-btn" title="التفاصيل">
-                                                <i class="fas fa-eye"></i>
+                                            <a href="/DoctorAppointments/Details/@apt.Id" class="table-action-btn" title="التفاصيل" style="border-radius:8px;">
+                                                <i class="fas fa-eye text-primary"></i>
                                             </a>
                                         </td>
                                     </tr>
@@ -118,9 +349,9 @@
                 else
                 {
                     <div class="empty-state py-4">
-                        <div class="empty-state-icon"><i class="far fa-calendar-check"></i></div>
-                        <div class="empty-state-text">لا توجد مواعيد قادمة</div>
-                        <p class="text-muted small mt-2">سيتم عرض المواعيد القادمة هنا</p>
+                        <div class="empty-state-icon"><i class="far fa-calendar-check text-muted"></i></div>
+                        <div class="empty-state-text text-dark fw-bold">لا توجد مواعيد قادمة حالياً</div>
+                        <p class="text-muted small mt-2">سيتم عرض أي مواعيد يتم حجزها هنا فوراً.</p>
                     </div>
                 }
             </div>
@@ -130,33 +361,31 @@
         <div class="col-lg-5">
             <div class="dr-card animate__animated animate__fadeInUp" style="animation-delay:0.3s;">
                 <div class="dr-card-header">
-                    <h5 class="dr-card-title"><i class="fas fa-user-clock"></i> آخر المرضى</h5>
-                    <a href="/DoctorPatients/Search" class="btn-outline-custom btn-sm py-1 px-3" style="font-size:0.75rem;">
-                        بحث <i class="fas fa-search ms-1"></i>
+                    <h5 class="dr-card-title"><i class="fas fa-user-clock text-primary"></i> آخر المرضى المسجلين</h5>
+                    <a href="/DoctorPatients/Search" class="btn-outline-custom btn-sm py-1 px-3" style="font-size:0.75rem; border-radius:10px;">
+                        بحث المرضى <i class="fas fa-search ms-1"></i>
                     </a>
                 </div>
                 @if (Model.RecentPatients.Any())
                 {
-                    <div class="d-flex flex-column gap-2">
+                    <div class="d-flex flex-column gap-3">
                         @foreach (var pt in Model.RecentPatients)
                         {
-                            <a href="/DoctorPatients/Details/@pt.PatientId" class="text-decoration-none">
-                                <div class="d-flex align-items-center gap-3 p-3 rounded-3" style="background:#F8FAFC;transition:all 0.25s;" onmouseover="this.style.background='var(--primary-light)'" onmouseout="this.style.background='#F8FAFC'">
-                                    <div class="sidebar-user-avatar flex-shrink-0" style="width:42px;height:42px;background:linear-gradient(135deg,var(--primary),var(--accent));">
-                                        <i class="fas fa-user" style="font-size:0.9rem;"></i>
-                                    </div>
-                                    <div class="flex-grow-1 min-w-0">
-                                        <div class="fw-bold text-dark" style="font-size:0.9rem;">@pt.PatientName</div>
-                                        <small class="text-muted">
-                                            <i class="far fa-calendar-alt ms-1"></i> آخر زيارة: @(pt.LastVisitDate?.ToString("dd/MM/yyyy") ?? "غير متاح")
-                                            @if (pt.TotalVisits > 0)
-                                            {
-                                                <span class="mx-1">•</span> @pt.TotalVisits @(pt.TotalVisits == 1 ? "زيارة" : "زيارات")
-                                            }
-                                        </small>
-                                    </div>
-                                    <i class="fas fa-chevron-left text-muted" style="font-size:0.75rem;"></i>
+                            <a href="/DoctorPatients/Details/@pt.PatientId" class="patient-feed-card text-decoration-none">
+                                <div class="avatar-circle flex-shrink-0" style="width:44px; height:44px; font-size:1.1rem;">
+                                    <i class="fas fa-user"></i>
                                 </div>
+                                <div class="flex-grow-1 min-w-0">
+                                    <div class="fw-bold text-dark mb-1" style="font-size:0.95rem;">@pt.PatientName</div>
+                                    <small class="text-muted d-block">
+                                        <i class="far fa-calendar-alt ms-1"></i> آخر زيارة: @(pt.LastVisitDate?.ToString("dd/MM/yyyy") ?? "غير متاح")
+                                        @if (pt.TotalVisits > 0)
+                                        {
+                                            <span class="mx-1">•</span> <i class="fas fa-hospital-user ms-1"></i> @pt.TotalVisits @(pt.TotalVisits == 1 ? "زيارة" : "زيارات")
+                                        }
+                                    </small>
+                                </div>
+                                <i class="fas fa-chevron-left text-muted" style="font-size:0.8rem;"></i>
                             </a>
                         }
                     </div>
@@ -164,8 +393,8 @@
                 else
                 {
                     <div class="empty-state py-4">
-                        <div class="empty-state-icon"><i class="fas fa-users"></i></div>
-                        <div class="empty-state-text">لا يوجد مرضى حديثين</div>
+                        <div class="empty-state-icon"><i class="fas fa-users text-muted"></i></div>
+                        <div class="empty-state-text text-dark fw-bold">لا يوجد مرضى حديثين</div>
                     </div>
                 }
             </div>

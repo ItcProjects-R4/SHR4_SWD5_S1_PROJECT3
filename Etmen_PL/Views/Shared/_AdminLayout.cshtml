@@ -1,0 +1,297 @@
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] — إطمن إدارة النظام</title>
+    
+    <!-- Fonts & Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.rtl.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+
+    <style>
+        :root {
+            --primary: #1A6FBF;
+            --primary-dark: #0D4C8A;
+            --primary-light: #E8F4FD;
+            --accent: #3cd5cb;
+            --success: #27AE60;
+            --danger: #E74C3C;
+            --warning: #F39C12;
+            --bg: #F4F7F9;
+            --card-border: #E2E8F0;
+            --text-dark: #2C3E50;
+            --text-muted: #7F8C8D;
+            --white: #FFFFFF;
+        }
+
+        body {
+            font-family: 'Tajawal', sans-serif;
+            background-color: var(--bg);
+            color: var(--text-dark);
+            min-height: 100vh;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Top Header Navbar */
+        .admin-navbar {
+            background: #FFFFFF;
+            border-bottom: 1px solid var(--card-border);
+            box-shadow: 0 4px 25px rgba(0, 0, 0, 0.02);
+            padding: 0.8rem 2.5rem;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .brand-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            transition: transform 0.2s;
+        }
+        .brand-logo:hover {
+            transform: scale(1.02);
+        }
+        .logo-box {
+            width: 38px; height: 38px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            color: white; font-size: 1.15rem;
+            box-shadow: 0 4px 12px rgba(26, 111, 191, 0.2);
+        }
+        .logo-text {
+            font-size: 1.4rem; font-weight: 900; color: var(--text-dark);
+            line-height: 1;
+        }
+        .logo-text span {
+            color: var(--primary);
+        }
+        .logo-subtitle {
+            font-size: 0.65rem; color: var(--text-muted);
+            font-weight: 500; letter-spacing: 1px;
+            display: block; margin-top: 2px;
+        }
+
+        /* Nav links */
+        .admin-nav-menu {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin: 0; padding: 0;
+            list-style: none;
+        }
+        .admin-nav-link {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 0.85rem;
+            padding: 8px 14px;
+            border-radius: 10px;
+            transition: all 0.3s;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .admin-nav-link:hover {
+            color: var(--primary);
+            background: var(--primary-light);
+        }
+        .admin-nav-link.active {
+            color: var(--primary);
+            background: var(--primary-light);
+            box-shadow: inset 0 0 0 1px rgba(26, 111, 191, 0.15);
+        }
+
+        .user-badge {
+            background: var(--primary-light);
+            border: 1px solid rgba(26, 111, 191, 0.1);
+            color: var(--primary-dark);
+            border-radius: 20px;
+            padding: 5px 12px;
+            font-size: 0.8rem;
+            font-weight: 800;
+            display: flex; align-items: center; gap: 8px;
+        }
+
+        /* Alerts */
+        .alert-container {
+            position: fixed;
+            top: 90px;
+            left: 20px;
+            z-index: 9999;
+            width: 320px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .custom-alert {
+            background: white;
+            border-radius: 14px;
+            padding: 15px 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+            border-right: 5px solid var(--primary);
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            font-size: 0.85rem;
+            color: var(--text-dark);
+        }
+        .custom-alert-success { border-right-color: var(--success); }
+        .custom-alert-danger { border-right-color: var(--danger); }
+        .custom-alert-info { border-right-color: var(--primary); }
+
+        .main-wrapper {
+            flex: 1;
+            padding: 2rem 0;
+        }
+
+        /* Cards style */
+        .dashboard-card {
+            background: #FFFFFF;
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            box-shadow: var(--light-shadow);
+            padding: 24px;
+            margin-bottom: 24px;
+            transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+            position: relative;
+        }
+        .dashboard-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.04);
+        }
+        .card-header-sm {
+            font-size: 1.15rem;
+            font-weight: 800;
+            color: var(--text-dark);
+            border-bottom: 2px solid var(--primary-light);
+            padding-bottom: 12px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .admin-footer {
+            background: white;
+            border-top: 1px solid var(--card-border);
+            padding: 1.5rem 0;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Top Navbar -->
+    <nav class="admin-navbar">
+        <div class="container-fluid d-flex align-items-center justify-content-between">
+            <a href="/AdminDashboard" class="brand-logo">
+                <div class="logo-box">
+                    <i class="fas fa-shield-halved"></i>
+                </div>
+                <div>
+                    <span class="logo-text">إطمن <span>إدارة النظام</span></span>
+                    <span class="logo-subtitle">التحكم المركزي بالمنصة</span>
+                </div>
+            </a>
+
+            <ul class="admin-nav-menu d-none d-lg-flex">
+                <li>
+                    <a href="/AdminDashboard" class="admin-nav-link @(Context.Request.Path.StartsWithSegments("/AdminDashboard") ? "active" : "")">
+                        <i class="fas fa-chart-line"></i> الإحصائيات
+                    </a>
+                </li>
+                <li>
+                    <a href="/AdminCrisis" class="admin-nav-link @(Context.Request.Path.StartsWithSegments("/AdminCrisis") && !(Context.Request.Path.Value?.Contains("CommandCenter") ?? false) && !(Context.Request.Path.Value?.Contains("Heatmap") ?? false) ? "active" : "")">
+                        <i class="fas fa-viruses"></i> الأزمات والأوبئة
+                    </a>
+                </li>
+                <li>
+                    <a href="/AdminCrisis/CommandCenter" class="admin-nav-link @(Context.Request.Path.Value?.Contains("CommandCenter") == true ? "active" : "")">
+                        <i class="fas fa-tower-observation"></i> مركز العمليات
+                    </a>
+                </li>
+                <li>
+                    <a href="/AdminCrisis/Heatmap" class="admin-nav-link @(Context.Request.Path.Value?.Contains("Heatmap") == true ? "active" : "")">
+                        <i class="fas fa-map-location-dot"></i> الخريطة الوبائية
+                    </a>
+                </li>
+                <li>
+                    <a href="/AdminProviders" class="admin-nav-link @(Context.Request.Path.StartsWithSegments("/AdminProviders") ? "active" : "")">
+                        <i class="fas fa-hospital"></i> المراكز والمستشفيات
+                    </a>
+                </li>
+                <li>
+                    <a href="/AdminUsers" class="admin-nav-link @(Context.Request.Path.StartsWithSegments("/AdminUsers") ? "active" : "")">
+                        <i class="fas fa-users-gear"></i> المستخدمين
+                    </a>
+                </li>
+                <li>
+                    <a href="/AdminReports" class="admin-nav-link @(Context.Request.Path.StartsWithSegments("/AdminReports") ? "active" : "")">
+                        <i class="fas fa-chart-pie"></i> التقارير والإعدادات
+                    </a>
+                </li>
+            </ul>
+
+            <div class="d-flex align-items-center gap-3">
+                <div class="user-badge">
+                    <i class="fas fa-user-shield"></i> مدير النظام
+                </div>
+                <form asp-controller="Account" asp-action="Logout" method="post" class="m-0">
+                    <button type="submit" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+                        <i class="fas fa-sign-out-alt"></i> خروج
+                    </button>
+                </form>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Floating Alerts -->
+    <div class="alert-container">
+        @if (TempData["Success"] != null)
+        {
+            <div class="custom-alert custom-alert-success animate__animated animate__fadeInLeft" role="alert">
+                <i class="fas fa-check-circle text-success fs-5"></i>
+                <div>@TempData["Success"]</div>
+            </div>
+        }
+        @if (TempData["Error"] != null)
+        {
+            <div class="custom-alert custom-alert-danger animate__animated animate__fadeInLeft" role="alert">
+                <i class="fas fa-exclamation-circle text-danger fs-5"></i>
+                <div>@TempData["Error"]</div>
+            </div>
+        }
+    </div>
+
+    <!-- Main Content Wrapper -->
+    <div class="main-wrapper">
+        <main class="container-fluid px-4">
+            @RenderBody()
+        </main>
+    </div>
+
+    <!-- Footer -->
+    <footer class="admin-footer">
+        <span>© @DateTime.Now.Year — منصة إطمن للخدمات الطبية | لوحة التحكم المركزي والعمليات</span>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

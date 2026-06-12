@@ -1,0 +1,254 @@
+@model List<Etmen_BLL.DTOs.Crisis.CrisisConfigurationDto>
+@{
+    ViewData["Title"] = "إدارة الأزمات والأوبئة";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<style>
+    .triage-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0 12px;
+        margin-top: -12px;
+    }
+    .triage-table th {
+        border: none;
+        color: var(--text-muted);
+        font-weight: 800;
+        font-size: 0.85rem;
+        padding: 8px 16px;
+        text-align: right;
+    }
+    .triage-row {
+        background: #FFFFFF;
+        border-radius: 16px;
+        transition: all 0.3s;
+    }
+    .triage-row td {
+        padding: 18px 16px;
+        border-top: 1px solid var(--card-border);
+        border-bottom: 1px solid var(--card-border);
+        background: #FFFFFF;
+        font-size: 0.9rem;
+        font-weight: 600;
+        text-align: right;
+        vertical-align: middle;
+    }
+    .triage-row td:first-child {
+        border-right: 1px solid var(--card-border);
+        border-top-right-radius: 16px;
+        border-bottom-right-radius: 16px;
+    }
+    .triage-row td:last-child {
+        border-left: 1px solid var(--card-border);
+        border-top-left-radius: 16px;
+        border-bottom-left-radius: 16px;
+    }
+    .triage-row:hover td {
+        background: #F9FBFC;
+        border-color: rgba(26, 111, 191, 0.2);
+    }
+    .triage-row:hover {
+        box-shadow: 0 8px 25px rgba(0,0,0,0.03);
+        transform: translateY(-2px);
+    }
+
+    .badge-pill-custom {
+        font-size: 0.75rem;
+        font-weight: 800;
+        padding: 6px 14px;
+        border-radius: 20px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .badge-active { background: #E8F8F5; color: #27AE60; }
+    .badge-inactive { background: #F5F7F8; color: #7F8C8D; }
+    .badge-emergency { background: #FDE8E8; color: #E74C3C; }
+    .badge-mode-normal { background: #E8F4FD; color: #1A6FBF; }
+    .badge-mode-crisis { background: #FEF9E7; color: #F39C12; }
+
+    .action-btn {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+        border: none;
+        background: var(--primary-light);
+        color: var(--primary);
+    }
+    .action-btn:hover {
+        background: var(--primary);
+        color: white;
+        transform: scale(1.05);
+    }
+    .action-btn-danger {
+        background: #FDE8E8;
+        color: #E74C3C;
+    }
+    .action-btn-danger:hover {
+        background: #E74C3C;
+        color: white;
+    }
+    .action-btn-success {
+        background: #E8F8F5;
+        color: #27AE60;
+    }
+    .action-btn-success:hover {
+        background: #27AE60;
+        color: white;
+    }
+</style>
+
+<div class="row g-4 animate__animated animate__fadeIn">
+    <!-- Top Header Navigation and Actions -->
+    <div class="col-12 d-flex align-items-center justify-content-between flex-wrap gap-3 mb-2">
+        <div>
+            <h2 class="fw-900 m-0" style="font-weight: 900;">إدارة تهيئة الأزمات والأوبئة</h2>
+            <p class="text-muted small mb-0">
+                <i class="fas fa-viruses me-1"></i> تعريف الأوبئة، وتحديد الأوزان الخاصة بالأعراض، والتحكم بنمط تفعيل النظام.
+            </p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="/AdminCrisis/CommandCenter" class="btn btn-outline-primary rounded-pill px-4 py-2 fw-800">
+                <i class="fas fa-tower-observation me-1"></i> مركز العمليات
+            </a>
+            <a href="/AdminCrisis/Create" class="btn btn-primary rounded-pill px-4 py-2 fw-800">
+                <i class="fas fa-plus me-1"></i> إنشاء أزمة/وباء جديد
+            </a>
+        </div>
+    </div>
+
+    <!-- Main List Card -->
+    <div class="col-12">
+        <div class="dashboard-card">
+            <h3 class="card-header-sm">
+                <i class="fas fa-sliders text-primary"></i>
+                الأزمات المبرمجة بالمنصة
+            </h3>
+
+            @if (Model == null || Model.Count == 0)
+            {
+                <div class="text-center py-5 text-muted opacity-75">
+                    <i class="fas fa-shield-virus fs-1 text-primary mb-3"></i>
+                    <h5>لا توجد أزمات أو أوبئة مبرمجة حالياً.</h5>
+                    <p class="small mb-0">ابدأ بتهيئة أزمة جديدة لتحديد تصنيف الأعراض ومخاطر تفشي المرض.</p>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="triage-table">
+                        <thead>
+                            <tr>
+                                <th>اسم الأزمة / الوباء</th>
+                                <th>نوع الأزمة</th>
+                                <th>وضع النظام</th>
+                                <th>تاريخ البدء</th>
+                                <th>تاريخ الانتهاء</th>
+                                <th>بؤر التفشي</th>
+                                <th>حالة التفعيل</th>
+                                <th class="text-center">إجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var crisis in Model)
+                            {
+                                <tr class="triage-row">
+                                    <td>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <div class="bg-light p-2 rounded text-primary">
+                                                <i class="fas fa-virus"></i>
+                                            </div>
+                                            <div>
+                                                <span class="fw-800">@crisis.CrisisName</span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge-pill-custom badge-inactive">
+                                            <i class="fas fa-biohazard"></i>
+                                            @crisis.CrisisType
+                                        </span>
+                                    </td>
+                                    <td>
+                                        @if (crisis.SystemMode == Etmen_Domain.Enums.SystemMode.Crisis)
+                                        {
+                                            <span class="badge-pill-custom badge-mode-crisis">
+                                                <i class="fas fa-triangle-exclamation"></i> وضع طوارئ
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge-pill-custom badge-mode-normal">
+                                                <i class="fas fa-hand-holding-heart"></i> وضع اعتيادي
+                                            </span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <span class="text-muted font-monospace">@crisis.StartDate.ToString("yyyy-MM-dd")</span>
+                                    </td>
+                                    <td>
+                                        <span class="text-muted font-monospace">
+                                            @(crisis.EndDate?.ToString("yyyy-MM-dd") ?? "مستمر")
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge-pill-custom badge-inactive fw-bold">
+                                            <i class="fas fa-map-location-dot"></i> @crisis.ZonesCount بؤرة
+                                        </span>
+                                    </td>
+                                    <td>
+                                        @if (crisis.IsActive)
+                                        {
+                                            <span class="badge-pill-custom badge-active">
+                                                <span class="spinner-grow spinner-grow-sm text-success" role="status" style="width: 8px; height: 8px;"></span>
+                                                نشط ومفعل
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge-pill-custom badge-inactive">
+                                                غير نشط
+                                            </span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center justify-content-center gap-2">
+                                            <a href="/AdminCrisis/Details/@crisis.Id" class="action-btn" title="عرض التفاصيل والأعراض">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <a href="/AdminCrisis/Edit/@crisis.Id" class="action-btn" title="تعديل الإعدادات">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+
+                                            @if (crisis.IsActive)
+                                            {
+                                                <form asp-controller="AdminCrisis" asp-action="Deactivate" asp-route-id="@crisis.Id" method="post" class="m-0" onsubmit="return confirm('هل أنت متأكد من إلغاء تفعيل هذه الأزمة؟ سيؤدي ذلك لإرجاع المنصة للوضع العادي.');">
+                                                    <button type="submit" class="action-btn action-btn-danger" title="إلغاء التفعيل">
+                                                        <i class="fas fa-power-off"></i>
+                                                    </button>
+                                                </form>
+                                            }
+                                            else
+                                            {
+                                                <form asp-controller="AdminCrisis" asp-action="Activate" asp-route-id="@crisis.Id" method="post" class="m-0" onsubmit="return confirm('هل أنت متأكد من تفعيل هذه الأزمة؟ سيتم تحويل المنصة لوضع الأزمات فوراً.');">
+                                                    <button type="submit" class="action-btn action-btn-success" title="تفعيل الأزمة">
+                                                        <i class="fas fa-play"></i>
+                                                    </button>
+                                                </form>
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>

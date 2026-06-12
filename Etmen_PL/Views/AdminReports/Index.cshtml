@@ -1,0 +1,214 @@
+@model Etmen_BLL.Helpers.PaginatedResult<Etmen_BLL.DTOs.Admin.AdminReportDto>
+@{
+    ViewData["Title"] = "التقارير وسجلات العمليات وإعدادات النظام";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<style>
+    .triage-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0 12px;
+        margin-top: -12px;
+    }
+    .triage-table th {
+        border: none;
+        color: var(--text-muted);
+        font-weight: 800;
+        font-size: 0.85rem;
+        padding: 8px 16px;
+    }
+    .triage-row {
+        background: #FFFFFF;
+        border-radius: 16px;
+        transition: all 0.3s;
+    }
+    .triage-row td {
+        padding: 18px 16px;
+        border-top: 1px solid var(--card-border);
+        border-bottom: 1px solid var(--card-border);
+        background: #FFFFFF;
+        font-size: 0.9rem;
+        font-weight: 600;
+    }
+    .triage-row td:first-child {
+        border-right: 1px solid var(--card-border);
+        border-top-right-radius: 16px;
+        border-bottom-right-radius: 16px;
+    }
+    .triage-row td:last-child {
+        border-left: 1px solid var(--card-border);
+        border-top-left-radius: 16px;
+        border-bottom-left-radius: 16px;
+    }
+    .triage-row:hover td {
+        background: #F9FBFC;
+        border-color: rgba(26, 111, 191, 0.2);
+    }
+    .triage-row:hover {
+        box-shadow: 0 8px 25px rgba(0,0,0,0.03);
+    }
+</style>
+
+<div class="row g-4 animate__animated animate__fadeIn">
+    
+    <!-- Top actions header -->
+    <div class="col-12 mb-2">
+        <h2 class="fw-900 m-0" style="font-weight: 900;">التقارير وسجلات الأداء وإعدادات النظام</h2>
+        <p class="text-muted small mb-0"><i class="fas fa-gears me-1"></i> استخراج التقارير التشغيلية، ومراقبة جودة الخدمة، والتحكم في إعدادات المنصة البرمجية.</p>
+    </div>
+
+    <!-- Right Column: System Config Panel -->
+    <div class="col-lg-5">
+        <div class="dashboard-card h-100">
+            <h3 class="card-header-sm">
+                <i class="fas fa-sliders text-success"></i>
+                إعدادات تشغيل خدمات المنصة
+            </h3>
+
+            <form asp-controller="AdminReports" asp-action="Schedule" method="post" class="mt-2">
+                
+                <!-- Toggle Crisis mode -->
+                <div class="form-check form-switch mb-3 p-0 d-flex justify-content-between align-items-center">
+                    <label class="form-check-label fw-800" for="EnableCrisisMode">تفعيل وضع الأزمات الوبائية:</label>
+                    <input class="form-check-input ms-0" type="checkbox" name="EnableCrisisMode" id="EnableCrisisMode" value="true" />
+                </div>
+
+                <!-- Toggle AI Chatbot -->
+                <div class="form-check form-switch mb-3 p-0 d-flex justify-content-between align-items-center">
+                    <label class="form-check-label fw-800" for="EnableAIChat">تفعيل مستشار الذكاء الاصطناعي:</label>
+                    <input class="form-check-input ms-0" type="checkbox" name="EnableAIChat" id="EnableAIChat" value="true" checked />
+                </div>
+
+                <!-- Toggle OCR reading -->
+                <div class="form-check form-switch mb-3 p-0 d-flex justify-content-between align-items-center">
+                    <label class="form-check-label fw-800" for="EnableOCR">تفعيل الفحص البصري للمستندات (OCR):</label>
+                    <input class="form-check-input ms-0" type="checkbox" name="EnableOCR" id="EnableOCR" value="true" checked />
+                </div>
+
+                <!-- Toggle Family link -->
+                <div class="form-check form-switch mb-3 p-0 d-flex justify-content-between align-items-center">
+                    <label class="form-check-label fw-800" for="EnableFamilyLinking">تفعيل ربط العائلات بالملفات:</label>
+                    <input class="form-check-input ms-0" type="checkbox" name="EnableFamilyLinking" id="EnableFamilyLinking" value="true" checked />
+                </div>
+
+                <!-- Toggle Emergency requests -->
+                <div class="form-check form-switch mb-4 p-0 d-flex justify-content-between align-items-center">
+                    <label class="form-check-label fw-800" for="EnableEmergencyRequests">تفعيل بلاغات الطوارئ المباشرة:</label>
+                    <input class="form-check-input ms-0" type="checkbox" name="EnableEmergencyRequests" id="EnableEmergencyRequests" value="true" checked />
+                </div>
+
+                <hr class="text-muted" />
+
+                <!-- Login limits -->
+                <div class="mb-3">
+                    <label class="form-label small fw-800 text-muted">الحد الأقصى لمحاولات تسجيل الدخول الخاطئة:</label>
+                    <input type="number" class="form-control rounded-pill" name="MaxLoginAttempts" value="5" min="1" max="20" />
+                </div>
+
+                <!-- Lock duration -->
+                <div class="mb-4">
+                    <label class="form-label small fw-800 text-muted">مدة قفل الحساب عند تجاوز المحاولات (بالدقائق):</label>
+                    <input type="number" class="form-control rounded-pill" name="LockoutDurationMinutes" value="15" min="1" max="180" />
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100 rounded-pill py-2.5 fw-800">
+                    <i class="fas fa-save me-1"></i> حفظ إعدادات النظام
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Left Column: Reports List & Export Form -->
+    <div class="col-lg-7">
+        
+        <!-- Export form -->
+        <div class="dashboard-card mb-4">
+            <h3 class="card-header-sm">
+                <i class="fas fa-file-export text-primary"></i>
+                تصدير واستخراج التقارير الطبية والتشغيلية
+            </h3>
+
+            <form asp-controller="AdminReports" asp-action="Export" method="post" class="row g-3">
+                <div class="col-md-12">
+                    <label class="form-label small fw-800 text-muted">نوع التقرير المطلوب تصديره:</label>
+                    <select class="form-select rounded-pill" name="ReportType" required>
+                        <option value="System">ملخص أداء النظام العام (System Summary)</option>
+                        <option value="Crisis">تقرير التطور الوبائي والأوبئة (Epidemiology Report)</option>
+                        <option value="Emergencies">سجل طلبات الطوارئ وعربات الإسعاف (Operational Report)</option>
+                    </select>
+                </div>
+                
+                <div class="col-md-6">
+                    <label class="form-label small fw-800 text-muted">من تاريخ البدء:</label>
+                    <input type="date" class="form-control rounded-pill" name="startDate" />
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label small fw-800 text-muted">إلى تاريخ الانتهاء:</label>
+                    <input type="date" class="form-control rounded-pill" name="endDate" />
+                </div>
+
+                <div class="col-12 mt-4 text-end">
+                    <button type="submit" class="btn btn-outline-primary rounded-pill px-4 fw-800">
+                        <i class="fas fa-download me-1"></i> تصدير البيانات بصيغة CSV
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Generated Reports List -->
+        <div class="dashboard-card">
+            <h3 class="card-header-sm">
+                <i class="fas fa-history text-info"></i>
+                سجل التقارير الجاهزة للتنزيل
+            </h3>
+
+            @if (Model.Items.Count == 0)
+            {
+                <div class="text-center py-4 text-muted opacity-75">
+                    <i class="fas fa-folder-open fs-1 text-info mb-2"></i>
+                    <p class="small mb-0">لا توجد تقارير منشأة في السجلات حالياً.</p>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="triage-table">
+                        <thead>
+                            <tr>
+                                <th>نوع التقرير</th>
+                                <th>الفترة المغطاة</th>
+                                <th>عدد السجلات</th>
+                                <th>تاريخ الإنشاء</th>
+                                <th class="text-center">الملف</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model.Items)
+                            {
+                                <tr class="triage-row">
+                                    <td>
+                                        <span class="badge bg-light text-dark border p-2 rounded-3">
+                                            <i class="fas fa-file-invoice-dollar me-1"></i> @item.ReportType
+                                        </span>
+                                    </td>
+                                    <td class="small font-monospace">
+                                        @item.StartDate.ToString("yyyy/MM/dd") - @item.EndDate.ToString("yyyy/MM/dd")
+                                    </td>
+                                    <td class="font-monospace fw-800">@item.TotalRecords</td>
+                                    <td class="font-monospace small text-muted">@item.GeneratedAt.ToString("yyyy-MM-dd HH:mm")</td>
+                                    <td class="text-center">
+                                        <a href="@item.FileUrl" download class="btn btn-sm btn-outline-info rounded-pill px-3 fw-700">
+                                            <i class="fas fa-circle-down"></i> تنزيل PDF
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>

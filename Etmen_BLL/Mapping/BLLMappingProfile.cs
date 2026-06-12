@@ -87,6 +87,8 @@ namespace Etmen_BLL.Mapping
                 .Map(dest => dest.IsAvailable,         src => src.IsAvailable)
                 .Map(dest => dest.Email,               src => src.ApplicationUser != null ? src.ApplicationUser.Email : null)
                 .Map(dest => dest.PhoneNumber,         src => src.ApplicationUser != null ? src.ApplicationUser.PhoneNumber : null)
+                .Map(dest => dest.IsOnboarded,         src => src.IsOnboarded)
+                .Map(dest => dest.OnboardingDataJson,  src => src.OnboardingDataJson)
                 .Map(dest => dest.CreatedAt,           src => src.CreatedAt)
                 .Map(dest => dest.UpdatedAt,           src => src.UpdatedAt);
         }

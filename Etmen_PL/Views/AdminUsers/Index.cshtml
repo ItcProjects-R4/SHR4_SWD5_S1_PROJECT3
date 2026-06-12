@@ -1,0 +1,174 @@
+@model Etmen_BLL.Helpers.PaginatedResult<Etmen_BLL.DTOs.Admin.UserListItemDto>
+@{
+    ViewData["Title"] = "إدارة الكوادر الطبية والمستخدمين";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<style>
+    .triage-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0 12px;
+        margin-top: -12px;
+    }
+    .triage-table th {
+        border: none;
+        color: var(--text-muted);
+        font-weight: 800;
+        font-size: 0.85rem;
+        padding: 8px 16px;
+    }
+    .triage-row {
+        background: #FFFFFF;
+        border-radius: 16px;
+        transition: all 0.3s;
+    }
+    .triage-row td {
+        padding: 18px 16px;
+        border-top: 1px solid var(--card-border);
+        border-bottom: 1px solid var(--card-border);
+        background: #FFFFFF;
+        font-size: 0.9rem;
+        font-weight: 600;
+    }
+    .triage-row td:first-child {
+        border-right: 1px solid var(--card-border);
+        border-top-right-radius: 16px;
+        border-bottom-right-radius: 16px;
+    }
+    .triage-row td:last-child {
+        border-left: 1px solid var(--card-border);
+        border-top-left-radius: 16px;
+        border-bottom-left-radius: 16px;
+    }
+    .triage-row:hover td {
+        background: #F9FBFC;
+        border-color: rgba(26, 111, 191, 0.2);
+    }
+    .triage-row:hover {
+        box-shadow: 0 8px 25px rgba(0,0,0,0.03);
+    }
+
+    .badge-pill-custom {
+        font-size: 0.75rem;
+        font-weight: 800;
+        padding: 4px 12px;
+        border-radius: 20px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .badge-active { background: #E8F8F5; color: #27AE60; }
+    .badge-inactive { background: #FDE8E8; color: #E74C3C; }
+    .badge-unverified { background: #FEF9E7; color: #F39C12; }
+</style>
+
+<div class="row g-4 animate__animated animate__fadeIn">
+    
+    <!-- Top actions header -->
+    <div class="col-12 d-flex align-items-center justify-content-between flex-wrap gap-3 mb-2">
+        <div>
+            <h2 class="fw-900 m-0" style="font-weight: 900;">الحسابات والكوادر الطبية</h2>
+            <p class="text-muted small mb-0"><i class="fas fa-users-gear me-1"></i> تتبع حسابات المنصة، تأكيد هويات الأطباء، وإدارة التراخيص الطبية.</p>
+        </div>
+    </div>
+
+    <div class="col-12">
+        <div class="dashboard-card">
+            <h3 class="card-header-sm">
+                <i class="fas fa-address-book text-primary"></i>
+                سجل حسابات المستخدمين بالمنصة
+            </h3>
+
+            @if (Model.Items.Count == 0)
+            {
+                <div class="text-center py-5 text-muted opacity-75">
+                    <i class="fas fa-user-slash fs-1 text-primary mb-3"></i>
+                    <h5>لا يوجد مستخدمون مسجلون حالياً.</h5>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="triage-table">
+                        <thead>
+                            <tr>
+                                <th>الاسم الكامل</th>
+                                <th>البريد الإلكتروني</th>
+                                <th>الهاتف</th>
+                                <th>تأكيد البريد</th>
+                                <th>تاريخ التسجيل</th>
+                                <th>الحالة</th>
+                                <th class="text-center">تغيير الحالة / الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model.Items)
+                            {
+                                <tr class="triage-row">
+                                    <td>
+                                        <div class="fw-800 text-dark">@item.FullName</div>
+                                        <div class="text-muted small">UID: #@item.Id</div>
+                                    </td>
+                                    <td class="font-monospace">@item.Email</td>
+                                    <td class="font-monospace">@(item.PhoneNumber ?? "غير متوفر")</td>
+                                    <td>
+                                        <span class="badge-pill-custom @(item.IsEmailVerified ? "badge-active" : "badge-unverified")">
+                                            <i class="fas @(item.IsEmailVerified ? "fa-envelope-circle-check" : "fa-envelope")"></i>
+                                            @(item.IsEmailVerified ? "مؤكد" : "معلق")
+                                        </span>
+                                    </td>
+                                    <td class="font-monospace small text-muted">@item.CreatedAt.ToString("yyyy-MM-dd HH:mm")</td>
+                                    <td>
+                                        <span class="badge-pill-custom @(item.IsActive ? "badge-active" : "badge-inactive")">
+                                            <i class="fas @(item.IsActive ? "fa-circle-check" : "fa-circle-xmark")"></i>
+                                            @(item.IsActive ? "نشط" : "معطل")
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center justify-content-center gap-2">
+                                            <!-- Toggle status action -->
+                                            <form asp-controller="AdminUsers" asp-action="UpdateStatus" method="post" class="m-0">
+                                                <input type="hidden" name="UserId" value="@item.Id" />
+                                                <input type="hidden" name="IsActive" value="@(item.IsActive ? "false" : "true")" />
+                                                <button type="submit" class="btn btn-sm @(item.IsActive ? "btn-outline-warning" : "btn-outline-success") rounded-pill px-3 fw-700">
+                                                    <i class="fas @(item.IsActive ? "fa-ban" : "fa-circle-check")"></i>
+                                                    @(item.IsActive ? "تعطيل" : "تفعيل")
+                                                </button>
+                                            </form>
+                                            
+                                            <!-- Delete user -->
+                                            <form asp-controller="AdminUsers" asp-action="Delete" method="post" onsubmit="return confirm('هل أنت متأكد من حذف هذا المستخدم نهائياً؟');" class="m-0">
+                                                <input type="hidden" name="UserId" value="@item.Id" />
+                                                <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-3 fw-700">
+                                                    <i class="fas fa-trash-can"></i> حذف
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                @if (Model.TotalCount > Model.PageSize)
+                {
+                    <div class="d-flex justify-content-center mt-4">
+                        <nav>
+                            <ul class="pagination">
+                                @for (int i = 1; i <= Math.Ceiling((double)Model.TotalCount / Model.PageSize); i++)
+                                {
+                                    <li class="page-item @(Model.PageNumber == i ? "active" : "")">
+                                        <a class="page-link" href="/AdminUsers?pageNumber=@i">@i</a>
+                                    </li>
+                                }
+                            </ul>
+                        </nav>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+</div>

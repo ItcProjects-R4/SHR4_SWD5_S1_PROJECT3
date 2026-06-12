@@ -74,7 +74,7 @@ namespace Etmen_PL.Controllers
         /// GET: /DoctorPatients/Details
         /// Renders patient clinical records, AI summary, and deterioration warnings
         /// </summary>
-        [HttpGet]
+        [HttpGet("DoctorPatients/Details/{patientProfileId}")]
         public async Task<IActionResult> Details(int patientProfileId)
         {
             try
@@ -91,11 +91,11 @@ namespace Etmen_PL.Controllers
 
                 _logger.LogInformation("Doctor {UserId} accessing patient {PatientId} details", userId, patientProfileId);
 
-                // Get patient profile
-                var profileResult = await _patientService.GetProfileAsync(patientProfileId.ToString());
-                if (!profileResult.IsSuccess)
+                // Get patient dashboard
+                var dashboardResult = await _patientService.GetDashboardByProfileIdAsync(patientProfileId);
+                if (!dashboardResult.IsSuccess || dashboardResult.Data == null)
                 {
-                    _logger.LogWarning("Failed to fetch patient profile {PatientId}", patientProfileId);
+                    _logger.LogWarning("Failed to fetch patient dashboard {PatientId}", patientProfileId);
                     TempData["Error"] = "Failed to load patient data";
                     return RedirectToAction(nameof(Search));
                 }
@@ -110,9 +110,16 @@ namespace Etmen_PL.Controllers
 
                 var viewModel = new Etmen_PL.Models.ViewModels.Patient.PatientDashboardViewModel
                 {
-                    PatientName = profileResult.Data?.FullName ?? "",
-                    RecentAlerts = new List<Etmen_BLL.DTOs.Patient.RecentAlertDto>(),
-                    UpcomingAppointments = new List<Etmen_BLL.DTOs.Patient.RecentAppointmentDto>()
+                    PatientName = dashboardResult.Data.PatientName,
+                    LatestRiskAssessment = dashboardResult.Data.LatestRiskAssessment,
+                    UnreadAlertsCount = dashboardResult.Data.UnreadAlertsCount,
+                    UpcomingAppointmentsCount = dashboardResult.Data.UpcomingAppointmentsCount,
+                    LatestBmi = dashboardResult.Data.LatestBmi,
+                    LatestBmiCategory = dashboardResult.Data.LatestBmiCategory,
+                    MedicalRecordsCount = dashboardResult.Data.MedicalRecordsCount,
+                    LatestMedicalRecord = dashboardResult.Data.LatestMedicalRecord,
+                    UpcomingAppointments = dashboardResult.Data.UpcomingAppointments,
+                    RecentAlerts = dashboardResult.Data.RecentAlerts
                 };
 
                 return View(viewModel);
@@ -129,7 +136,7 @@ namespace Etmen_PL.Controllers
         /// GET: /DoctorPatients/AddMedicalRecord
         /// Show form to add medical record for patient
         /// </summary>
-        [HttpGet]
+        [HttpGet("DoctorPatients/AddMedicalRecord/{patientProfileId}")]
         public IActionResult AddMedicalRecord(int patientProfileId)
         {
             try
@@ -158,7 +165,7 @@ namespace Etmen_PL.Controllers
         /// POST: /DoctorPatients/AddMedicalRecord
         /// Documents diagnosis and treatment notes for a patient
         /// </summary>
-        [HttpPost]
+        [HttpPost("DoctorPatients/AddMedicalRecord/{patientProfileId}")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AddMedicalRecord(int patientProfileId, MedicalRecordCreateViewModel viewModel)
         {

@@ -124,8 +124,12 @@ namespace Etmen_BLL.Repositories.Services
             var crisis = await _uow.CrisisConfigurations.GetByIdAsync(crisisId);
             if (crisis is null)
                 return ServiceResult.NotFound("Crisis was not found.");
+            
             if (crisis.SystemMode == SystemMode.Normal)
-                return ServiceResult.Failure("Cannot activate a crisis in Normal system mode.");
+            {
+                crisis.SystemMode = SystemMode.Crisis;
+                _uow.CrisisConfigurations.Update(crisis);
+            }
 
             await _uow.CrisisConfigurations.ActivateCrisisAsync(crisisId);
             await _uow.CompleteAsync();
@@ -304,6 +308,10 @@ namespace Etmen_BLL.Repositories.Services
             IsActive = crisis.IsActive,
             StartDate = crisis.StartDate,
             EndDate = crisis.EndDate,
+            Description = crisis.Description,
+            EmergencyThreshold = crisis.EmergencyThreshold,
+            HighRiskThreshold = crisis.HighRiskThreshold,
+            MediumRiskThreshold = crisis.MediumRiskThreshold,
             SymptomWeights = crisis.SymptomWeights.OrderByDescending(s => s.Weight).Select(MapSymptom).ToList(),
             ZonesCount = crisis.OutbreakZones.Count
         };

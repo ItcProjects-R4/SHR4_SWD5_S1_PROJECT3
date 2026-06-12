@@ -1,0 +1,304 @@
+@model Etmen_PL.Models.ViewModels.Patient.NearbySearchViewModel
+@{
+    ViewData["Title"] = "البحث عن المراكز الصحية والعيادات";
+    Layout = "~/Views/Shared/_PatientLayout.cshtml";
+}
+
+<style>
+    .search-panel {
+        background: white;
+        border-radius: 20px;
+        border: 1px solid var(--border);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.02);
+    }
+    .provider-card-custom {
+        background: white;
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        transition: all 0.3s;
+    }
+    .provider-card-custom:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(26,111,191,0.06);
+        border-color: rgba(26,111,191,0.2);
+    }
+    .map-container-custom {
+        height: 500px;
+        border-radius: 20px;
+        border: 1px solid var(--border);
+        overflow: hidden;
+        z-index: 1;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.02);
+    }
+</style>
+
+<div class="container-fluid py-3 animate__animated animate__fadeIn">
+    <!-- Header -->
+    <div class="col-12 d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4">
+        <div>
+            <h2 class="fw-900 m-0" style="font-weight: 900;">📍 البحث عن المراكز والعيادات القريبة</h2>
+            <p class="text-muted small mb-0"><i class="fas fa-search-location"></i> حدد موقعك للعثور على أقرب المستشفيات والعيادات التخصصية وحجز موعدك فوراً.</p>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Search and Results Panel -->
+        <div class="col-lg-4 col-12">
+            <!-- Search Form -->
+            <div class="search-panel p-4 mb-4">
+                <h5 class="fw-bold mb-3 text-dark"><i class="fas fa-sliders text-primary me-1"></i> معايير البحث</h5>
+                
+                <form asp-controller="NearbyProviders" asp-action="Index" method="post" id="searchForm">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" asp-for="Latitude" id="latitudeInput" />
+                    <input type="hidden" asp-for="Longitude" id="longitudeInput" />
+
+                    <div class="row g-3">
+                        <!-- Type -->
+                        <div class="col-12">
+                            <label asp-for="Type" class="form-label fw-bold text-dark">نوع المنشأة</label>
+                            <select asp-for="Type" class="form-select rounded-pill px-3" required style="height: 38px;">
+                                <option value="Hospital">مستشفيات استقبال (Hospital)</option>
+                                <option value="Clinic">عيادات تخصصية (Clinic)</option>
+                                <option value="HealthCenter">مراكز صحية (HealthCenter)</option>
+                            </select>
+                        </div>
+
+                        <!-- Radius -->
+                        <div class="col-12">
+                            <label asp-for="RadiusInKm" class="form-label fw-bold text-dark">نطاق البحث (كيلومتر)</label>
+                            <select asp-for="RadiusInKm" class="form-select rounded-pill px-3" required style="height: 38px;">
+                                <option value="5">5 كيلومتر</option>
+                                <option value="10">10 كيلومتر</option>
+                                <option value="20">20 كيلومتر</option>
+                                <option value="50">50 كيلومتر</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 d-grid">
+                        <button type="submit" class="btn btn-primary rounded-pill fw-800" id="searchBtn">
+                            <i class="fas fa-search me-1"></i> ابحث الآن
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Search Results List -->
+            <h5 class="fw-bold mb-3 text-dark"><i class="fas fa-list-check text-primary me-1"></i> نتائج البحث (@Model.SearchResults.Count)</h5>
+            
+            <div class="d-flex flex-column gap-3" style="max-height: 480px; overflow-y: auto; padding-left: 5px;">
+                @if (!Model.SearchResults.Any())
+                {
+                    <div class="text-center py-5 text-muted bg-white border rounded-4">
+                        <i class="fas fa-map-pin fs-1 text-primary opacity-50 mb-3"></i>
+                        <h6>لا توجد نتائج بحث حالية</h6>
+                        <p class="small mb-0 px-3">يرجى السماح بالوصول لموقعك والضغط على زر البحث للعثور على عيادات قريبة.</p>
+                    </div>
+                }
+                else
+                {
+                    @foreach (var item in Model.SearchResults)
+                    {
+                        <div class="provider-card-custom p-3">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div>
+                                    <h6 class="fw-bold mb-0 text-dark">@item.Name</h6>
+                                    <span class="badge bg-light text-primary border p-1 rounded-2 mt-1 small" style="font-size:0.7rem;">@item.Type</span>
+                                </div>
+                                <span class="badge bg-primary rounded-pill">@item.DistanceKm.ToString("F1") كم</span>
+                            </div>
+                            <p class="text-muted small mb-2"><i class="fas fa-location-dot me-1"></i> @item.Address</p>
+                            
+                            <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top">
+                                <span class="text-muted small">الأسرة الشاغرة: <strong class="text-primary">@(item.AvailableBeds ?? 0)</strong></span>
+                                <a href="/NearbyProviders/DoctorDetails/@item.Id" class="btn btn-xs btn-outline-primary py-1 px-3 rounded-pill" style="font-size:0.75rem; text-decoration: none;">
+                                    <i class="fas fa-calendar-check me-1"></i> حجز موعد
+                                </a>
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+
+        <!-- Leaflet Map Panel -->
+        <div class="col-lg-8 col-12">
+            <div class="map-container-custom">
+                <div id="searchMap" style="width: 100%; height: 100%;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Booking Slots Modal -->
+<div class="modal fade" id="slotsModal" tabindex="-1" aria-labelledby="slotsModalLabel" aria-hidden="true" style="z-index:9999;">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 20px;">
+            <div class="modal-header border-bottom-0 pb-0">
+                <h5 class="modal-title fw-bold" id="slotsModalLabel">📅 الفترات الزمنية المتاحة</h5>
+                <button type="button" class="btn-close ms-0 me-auto" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <h6 class="text-primary mb-3" id="modalProviderName">اسم العيادة / المركز</h6>
+                
+                <div id="slotsLoader" class="text-center py-4">
+                    <i class="fas fa-circle-notch fa-spin fs-2 text-primary"></i>
+                    <p class="small text-muted mt-2 mb-0">جاري تحميل الفترات المتاحة...</p>
+                </div>
+
+                <div id="slotsList" class="d-flex flex-column gap-2" style="max-height: 300px; overflow-y: auto;">
+                    <!-- Dynamically populated via AJAX -->
+                </div>
+
+                <form asp-controller="NearbyProviders" asp-action="Book" method="post" id="bookForm" style="display:none;">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="providerId" id="bookProviderId" />
+                    <input type="hidden" name="slotId" id="bookSlotId" />
+                    
+                    <div class="mt-4 pt-3 border-top d-flex justify-content-end gap-2">
+                        <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">إلغاء</button>
+                        <button type="submit" class="btn btn-primary rounded-pill px-4 fw-800">تأكيد الحجز</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <!-- Include Leaflet.js -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        let map;
+        let markers = [];
+        let defaultLat = 30.0444;
+        let defaultLng = 31.2357;
+
+        $(document).ready(function() {
+            // Check if coordinates already filled
+            let savedLat = parseFloat($('#latitudeInput').val());
+            let savedLng = parseFloat($('#longitudeInput').val());
+
+            if (!isNaN(savedLat) && !isNaN(savedLng)) {
+                initMap(savedLat, savedLng);
+            } else {
+                // Get current location via browser Geolocation API
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(function(position) {
+                        $('#latitudeInput').val(position.coords.latitude);
+                        $('#longitudeInput').val(position.coords.longitude);
+                        initMap(position.coords.latitude, position.coords.longitude);
+                    }, function(error) {
+                        console.warn("Geolocation denied or unavailable, defaulting to Cairo.");
+                        $('#latitudeInput').val(defaultLat);
+                        $('#longitudeInput').val(defaultLng);
+                        initMap(defaultLat, defaultLng);
+                    });
+                } else {
+                    $('#latitudeInput').val(defaultLat);
+                    $('#longitudeInput').val(defaultLng);
+                    initMap(defaultLat, defaultLng);
+                }
+            }
+        });
+
+        function initMap(lat, lng) {
+            map = L.map('searchMap').setView([lat, lng], 13);
+
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(map);
+
+            // Add center marker (User current location)
+            L.circle([lat, lng], {
+                color: '#1A6FBF',
+                fillColor: '#1A6FBF',
+                fillOpacity: 0.15,
+                radius: 1000
+            }).addTo(map);
+
+            L.marker([lat, lng], {
+                icon: L.divIcon({
+                    className: 'user-loc-marker',
+                    html: '<div style="background:#1A6FBF;width:12px;height:12px;border:2px solid white;border-radius:50%;box-shadow:0 0 10px #1A6FBF;"></div>',
+                    iconSize: [12, 12]
+                })
+            }).addTo(map).bindPopup("<b>موقعك الحالي</b>").openPopup();
+
+            // Populate provider markers
+            let rawResults = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.SearchResults));
+            rawResults.forEach(item => {
+                let marker = L.marker([item.Latitude, item.Longitude]).addTo(map);
+                marker.bindPopup(`
+                    <div style="font-family:'Tajawal', sans-serif; text-align:right; direction:rtl; min-width:180px;">
+                        <h6 style="font-weight:bold; margin-bottom:5px; color:#1A6FBF;">${item.Name}</h6>
+                        <p style="margin:0 0 5px 0; font-size:0.75rem;"><strong>النوع:</strong> ${item.Type}</p>
+                        <p style="margin:0 0 5px 0; font-size:0.75rem;"><strong>العنوان:</strong> ${item.Address}</p>
+                        <a href="/NearbyProviders/DoctorDetails/${item.Id}" class="btn btn-xs btn-primary py-1 px-3 mt-2 rounded-pill text-white text-center d-block" style="font-size:0.7rem; width:100%; text-decoration:none;">
+                            <i class="fas fa-calendar-check"></i> حجز موعد
+                        </a>
+                    </div>
+                `);
+                markers.push(marker);
+            });
+
+            if (markers.length > 0) {
+                let group = new L.featureGroup(markers);
+                map.fitBounds(group.getBounds().pad(0.1));
+            }
+        }
+
+        // AJAX Load Slots
+        function loadSlots(providerId, providerName) {
+            $('#modalProviderName').text(providerName);
+            $('#bookProviderId').val(providerId);
+            $('#slotsLoader').show();
+            $('#slotsList').hide().empty();
+            $('#bookForm').hide();
+
+            const myModal = new bootstrap.Modal(document.getElementById('slotsModal'));
+            myModal.show();
+
+            $.get('/NearbyProviders/GetSlots', { providerId: providerId }, function(response) {
+                $('#slotsLoader').hide();
+                
+                if (response && response.length > 0) {
+                    response.forEach((slot, index) => {
+                        const dateStr = new Date(slot.date).toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+                        const startStr = slot.startTime.substring(0, 5);
+                        const endStr = slot.endTime.substring(0, 5);
+                        
+                        const html = `
+                            <div class="d-flex align-items-center gap-3 p-3 border rounded-3 slot-item" style="cursor:pointer; transition:all 0.2s;" onclick="selectSlot(this, ${slot.id})">
+                                <input class="form-check-input" type="radio" name="selectedSlotRadio" id="slotCheck_${slot.id}" value="${slot.id}">
+                                <div class="flex-grow-1">
+                                    <div class="fw-bold text-dark small">${dateStr}</div>
+                                    <div class="text-muted small"><i class="far fa-clock"></i> الوقت: ${startStr} - ${endStr}</div>
+                                </div>
+                            </div>
+                        `;
+                        $('#slotsList').append(html);
+                    });
+                    
+                    $('#slotsList').show();
+                    $('#bookForm').show();
+                } else {
+                    $('#slotsList').html('<div class="text-center py-4 text-muted small"><i class="far fa-calendar-xmark fs-2 mb-2"></i><br>عذراً، لا توجد فترات حجز متاحة حالياً لدى هذا المزود.</div>').show();
+                }
+            }).fail(function() {
+                $('#slotsLoader').hide();
+                $('#slotsList').html('<div class="text-center py-4 text-danger small"><i class="fas fa-exclamation-triangle fs-2 mb-2"></i><br>فشل تحميل الفترات. يرجى المحاولة لاحقاً.</div>').show();
+            });
+        }
+
+        function selectSlot(element, slotId) {
+            $('.slot-item').removeClass('border-primary bg-primary-light');
+            $(element).addClass('border-primary bg-primary-light');
+            $(element).find('input[type="radio"]').prop('checked', true);
+            $('#bookSlotId').val(slotId);
+        }
+    </script>
+}

@@ -43,7 +43,10 @@ namespace Etmen_BLL.Repositories.Services
                 foreach (var msg in messages)
                 {
                     string otherUserId = msg.SenderId == userId ? msg.ReceiverId : msg.SenderId;
-                    string otherUserName = msg.SenderId == userId ? msg.Receiver?.UserName ?? "Unknown" : msg.Sender?.UserName ?? "Unknown";
+                    var partner = msg.SenderId == userId ? msg.Receiver : msg.Sender;
+                    string otherUserName = partner != null 
+                        ? (!string.IsNullOrEmpty(partner.FirstName) ? $"{partner.FirstName} {partner.LastName}".Trim() : partner.UserName ?? "Unknown")
+                        : "Unknown";
 
                     if (threads.ContainsKey(otherUserId))
                     {
@@ -101,15 +104,18 @@ namespace Etmen_BLL.Repositories.Services
                         new List<ChatMessageDto>());
                 }
 
-                // Sort by date (ascending) and apply pagination
-                var sorted = messages.OrderBy(m => m.SentAt).ToList();
-                var paginated = sorted.Skip((page - 1) * pageSize).Take(pageSize);
+                // Sort by date (descending) to get the latest messages first, then apply pagination
+                var sorted = messages.OrderByDescending(m => m.SentAt).ToList();
+                var paginated = sorted.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+                
+                // Reverse the page to lay them out chronologically (ascending) in the UI
+                paginated.Reverse();
 
                 var dtos = paginated.Select(m => new ChatMessageDto
                 {
                     Id = m.Id,
                     SenderId = m.SenderId,
-                    SenderName = m.Sender?.UserName ?? "Unknown",
+                    SenderName = m.Sender != null && !string.IsNullOrEmpty(m.Sender.FirstName) ? $"{m.Sender.FirstName} {m.Sender.LastName}".Trim() : m.Sender?.UserName ?? "Unknown",
                     ReceiverId = m.ReceiverId,
                     Message = m.Message,
                     IsRead = m.IsRead,

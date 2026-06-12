@@ -19,6 +19,7 @@ namespace Etmen_PL.Controllers
         private readonly IPatientService _patientService;
         private readonly IPdfReportService _pdfReportService;
         private readonly ICriticalIntelligenceService _criticalIntelligenceService;
+        private readonly ICrisisService _crisisService;
         private readonly ILogger<RiskAssessmentController> _logger;
 
         public RiskAssessmentController(
@@ -26,12 +27,14 @@ namespace Etmen_PL.Controllers
             IPatientService patientService,
             IPdfReportService pdfReportService,
             ICriticalIntelligenceService criticalIntelligenceService,
+            ICrisisService crisisService,
             ILogger<RiskAssessmentController> logger)
         {
             _riskService    = riskService;
             _patientService = patientService;
             _pdfReportService = pdfReportService;
             _criticalIntelligenceService = criticalIntelligenceService;
+            _crisisService = crisisService;
             _logger         = logger;
         }
 
@@ -40,8 +43,14 @@ namespace Etmen_PL.Controllers
         /// Accepts optional query params from the dashboard "آخر قياس طبي" to pre-fill vitals.
         /// </summary>
         [HttpGet]
-        public IActionResult Index(decimal? hr, decimal? sbp, decimal? dbp, decimal? temp, decimal? spo2, decimal? bs)
+        public async Task<IActionResult> Index(decimal? hr, decimal? sbp, decimal? dbp, decimal? temp, decimal? spo2, decimal? bs)
         {
+            var activeCrisisResult = await _crisisService.GetActiveCrisisAsync();
+            if (activeCrisisResult.IsSuccess && activeCrisisResult.Data != null)
+            {
+                ViewBag.ActiveCrisis = activeCrisisResult.Data;
+            }
+
             var model = new RiskAssessmentInputViewModel
             {
                 HeartRate = hr,
@@ -62,6 +71,24 @@ namespace Etmen_PL.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Index(RiskAssessmentInputViewModel viewModel)
         {
+            var activeCrisisResult = await _crisisService.GetActiveCrisisAsync();
+            var isCrisisMode = activeCrisisResult.IsSuccess && activeCrisisResult.Data != null && activeCrisisResult.Data.IsActive && activeCrisisResult.Data.SystemMode == Etmen_Domain.Enums.SystemMode.Crisis;
+            
+            if (activeCrisisResult.IsSuccess && activeCrisisResult.Data != null)
+            {
+                ViewBag.ActiveCrisis = activeCrisisResult.Data;
+            }
+
+            if (!isCrisisMode)
+            {
+                if (!viewModel.HeartRate.HasValue) ModelState.AddModelError(nameof(viewModel.HeartRate), "يرجى إدخال معدل نبضات القلب");
+                if (!viewModel.SystolicBP.HasValue) ModelState.AddModelError(nameof(viewModel.SystolicBP), "يرجى إدخال ضغط الدم الانقباضي");
+                if (!viewModel.DiastolicBP.HasValue) ModelState.AddModelError(nameof(viewModel.DiastolicBP), "يرجى إدخال ضغط الدم الانبساطي");
+                if (!viewModel.Temperature.HasValue) ModelState.AddModelError(nameof(viewModel.Temperature), "يرجى إدخال درجة حرارة الجسم");
+                if (!viewModel.OxygenSaturation.HasValue) ModelState.AddModelError(nameof(viewModel.OxygenSaturation), "يرجى إدخال نسبة تشبّع الأكسجين");
+                if (!viewModel.BloodSugar.HasValue) ModelState.AddModelError(nameof(viewModel.BloodSugar), "يرجى إدخال مستوى السكر في الدم");
+            }
+
             if (!ModelState.IsValid)
                 return View(viewModel);
 

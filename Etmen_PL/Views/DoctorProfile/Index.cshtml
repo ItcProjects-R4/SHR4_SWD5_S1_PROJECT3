@@ -1,114 +1,192 @@
 @using Etmen_PL.Models.ViewModels.Doctor
 @model DoctorProfileViewModel
 @{
-    ViewData["Title"] = "الملف الشخصي";
+    ViewData["Title"] = "الملف الشخصي المهني";
     Layout = "~/Views/Shared/_DoctorLayout.cshtml";
 }
 
-<div class="row g-4">
-    <div class="col-lg-4">
-        <div class="dr-card animate__animated animate__fadeInUp text-center">
-            <div class="sidebar-user-avatar mx-auto mb-3" style="width:90px;height:90px;background:linear-gradient(135deg,var(--primary),var(--accent));font-size:2.5rem;">
-                <i class="fas fa-user-md"></i>
-            </div>
-            <h4 class="fw-bold mb-1">د. @Model.FullName</h4>
-            <p class="text-muted mb-3">
-                @(Model.Specialization ?? "طبيب عام")
-                @if (Model.YearsOfExperience.HasValue)
-                {
-                    <span class="mx-2">•</span> <text>@Model.YearsOfExperience.Value سنة خبرة</text>
-                }
-            </p>
+<style>
+    .profile-hero {
+        background: linear-gradient(135deg, #0f1923 0%, #1c3245 100%);
+        border-radius: 24px;
+        padding: 2.5rem;
+        color: white;
+        margin-bottom: 2rem;
+        position: relative;
+        overflow: hidden;
+        border-bottom: 3px solid var(--accent);
+    }
+    .profile-avatar-large {
+        width: 110px; height: 110px;
+        border-radius: 24px;
+        background: linear-gradient(135deg, var(--primary), var(--accent));
+        display: flex; align-items: center; justify-content: center;
+        font-size: 3rem; color: white;
+        box-shadow: 0 10px 25px rgba(0,201,167,0.3);
+        flex-shrink: 0;
+    }
+    .profile-card-side {
+        background: white;
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 2rem;
+    }
+    .info-item-custom {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px;
+        border-radius: 12px;
+        background: #F8FAFC;
+        margin-bottom: 8px;
+    }
+    .info-item-custom i {
+        color: var(--primary);
+        font-size: 1.1rem;
+        width: 20px;
+        text-align: center;
+    }
+</style>
 
-            @if (!string.IsNullOrEmpty(Model.Email) || !string.IsNullOrEmpty(Model.PhoneNumber))
-            {
-                <div class="d-flex flex-column gap-2 text-start mb-3 p-3 rounded-3" style="background:#F8FAFC;">
-                    @if (!string.IsNullOrEmpty(Model.Email))
-                    {
-                        <div>
-                            <small class="text-muted fw-bold d-block">البريد الإلكتروني</small>
-                            <span class="fw-bold small">@Model.Email</span>
-                        </div>
-                    }
-                    @if (!string.IsNullOrEmpty(Model.PhoneNumber))
-                    {
-                        <div>
-                            <small class="text-muted fw-bold d-block">رقم الهاتف</small>
-                            <span class="fw-bold small" dir="ltr" style="direction:ltr;">@Model.PhoneNumber</span>
-                        </div>
-                    }
-                </div>
-            }
-
-            <div class="d-flex align-items-center justify-content-center gap-2 p-3 rounded-3" style="background:#F8FAFC;">
-                <span class="fw-bold small">الحالة:</span>
-                @if (Model.IsAvailable)
-                {
-                    <span class="status-badge completed"><span class="dot"></span> متاح</span>
-                }
-                else
-                {
-                    <span class="status-badge cancelled"><span class="dot"></span> غير متاح</span>
-                }
-            </div>
+<div class="container-fluid animate__animated animate__fadeIn">
+    <!-- Profile Hero banner -->
+    <div class="profile-hero d-flex align-items-center gap-4 flex-wrap mb-4">
+        <div class="profile-avatar-large">
+            <i class="fas fa-user-md"></i>
+        </div>
+        <div>
+            <span class="badge bg-success mb-2 px-3 py-2 fw-bold" style="font-size:0.75rem;"><i class="fas fa-shield-halved me-1"></i> حساب ممارس طبي معتمد</span>
+            <h2 class="fw-black text-white mb-1">د. @Model.FullName</h2>
+            <p class="text-white-50 mb-0">تخصص: @(Model.Specialization ?? "طبيب عام") | @(Model.YearsOfExperience ?? 0) سنة خبرة مهنية</p>
         </div>
     </div>
 
-    <div class="col-lg-8">
-        <div class="dr-card animate__animated animate__fadeInUp" style="animation-delay:0.1s;">
-            <div class="dr-card-header">
-                <h5 class="dr-card-title"><i class="fas fa-edit"></i> تعديل الملف الشخصي</h5>
-            </div>
-
-            <form asp-action="Index" method="post">
-                @Html.AntiForgeryToken()
-                <div asp-validation-summary="ModelOnly" class="custom-alert custom-alert-danger"></div>
-
-                <div class="row g-3 mb-4">
-                    <div class="col-md-6">
-                        <label asp-for="FullName" class="form-label">الاسم الكامل</label>
-                        <input asp-for="FullName" class="form-control" />
-                        <span asp-validation-for="FullName" class="text-danger small fw-bold"></span>
-                    </div>
-                    <div class="col-md-6">
-                        <label asp-for="Specialization" class="form-label">التخصص</label>
-                        <input asp-for="Specialization" class="form-control" placeholder="مثال: قلب وأوعية دموية" />
-                        <span asp-validation-for="Specialization" class="text-danger small fw-bold"></span>
-                    </div>
-                    <div class="col-md-6">
-                        <label asp-for="LicenseNumber" class="form-label">رقم الترخيص</label>
-                        <input asp-for="LicenseNumber" class="form-control" />
-                        <span asp-validation-for="LicenseNumber" class="text-danger small fw-bold"></span>
-                    </div>
-                    <div class="col-md-6">
-                        <label asp-for="YearsOfExperience" class="form-label">سنوات الخبرة</label>
-                        <input asp-for="YearsOfExperience" class="form-control" type="number" min="0" max="60" />
-                        <span asp-validation-for="YearsOfExperience" class="text-danger small fw-bold"></span>
-                    </div>
-                    <div class="col-md-6">
-                        <label asp-for="ConsultationFee" class="form-label">رسوم الاستشارة (جم)</label>
-                        <input asp-for="ConsultationFee" class="form-control" type="number" min="0" step="0.01" />
-                        <span asp-validation-for="ConsultationFee" class="text-danger small fw-bold"></span>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">متاح للعمل</label>
-                        <div class="form-check form-switch mt-2">
-                            <input asp-for="IsAvailable" class="form-check-input" style="width:3rem;height:1.5rem;" />
-                            <label class="form-check-label fw-bold me-2" asp-for="IsAvailable">@(Model.IsAvailable ? "متاح" : "غير متاح")</label>
+    <div class="row g-4">
+        <!-- Sidebar Info -->
+        <div class="col-lg-4 col-12">
+            <div class="profile-card-side mb-4">
+                <h5 class="fw-bold mb-4 pb-2 border-bottom text-dark"><i class="fas fa-id-card text-primary me-1"></i> بطاقة التعريف الطبية</h5>
+                
+                <div class="d-flex flex-column gap-2">
+                    <div class="info-item-custom">
+                        <i class="fas fa-envelope"></i>
+                        <div>
+                            <small class="text-muted d-block" style="font-size:0.7rem;">البريد المهني</small>
+                            <span class="fw-bold small text-dark">@(string.IsNullOrEmpty(Model.Email) ? "غير متوفر" : Model.Email)</span>
                         </div>
                     </div>
-                    <div class="col-12">
-                        <label asp-for="Bio" class="form-label">السيرة الذاتية</label>
-                        <textarea asp-for="Bio" class="form-control" rows="4" placeholder="نبذة عن خبراتك ومؤهلاتك..."></textarea>
-                        <span asp-validation-for="Bio" class="text-danger small fw-bold"></span>
+                    
+                    <div class="info-item-custom">
+                        <i class="fas fa-phone"></i>
+                        <div>
+                            <small class="text-muted d-block" style="font-size:0.7rem;">رقم التواصل</small>
+                            <span class="fw-bold small text-dark font-monospace" dir="ltr">@(string.IsNullOrEmpty(Model.PhoneNumber) ? "غير متوفر" : Model.PhoneNumber)</span>
+                        </div>
+                    </div>
+                    
+                    <div class="info-item-custom">
+                        <i class="fas fa-licence"></i>
+                        <div>
+                            <small class="text-muted d-block" style="font-size:0.7rem;">رقم ترخيص المزاولة</small>
+                            <span class="fw-bold small text-dark font-monospace">@(string.IsNullOrEmpty(Model.LicenseNumber) ? "تحت التدقيق" : Model.LicenseNumber)</span>
+                        </div>
+                    </div>
+                    
+                    <div class="info-item-custom">
+                        <i class="fas fa-money-bill-wave"></i>
+                        <div>
+                            <small class="text-muted d-block" style="font-size:0.7rem;">رسوم الكشف الاسترشادي</small>
+                            <span class="fw-bold small text-primary">@((Model.ConsultationFee ?? 0).ToString("N2")) ج.م</span>
+                        </div>
+                    </div>
+
+                    <div class="info-item-custom align-items-center justify-content-between">
+                        <span class="fw-bold small text-dark">حالة الاستقبال:</span>
+                        @if (Model.IsAvailable)
+                        {
+                            <span class="badge bg-success-light text-success rounded-pill px-3 py-2 fw-bold"><i class="fas fa-circle me-1" style="font-size:0.6rem;"></i> متاح لاستقبال الحجوزات</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-danger-light text-danger rounded-pill px-3 py-2 fw-bold"><i class="fas fa-circle-xmark me-1" style="font-size:0.6rem;"></i> غير متاح مؤقتاً</span>
+                        }
                     </div>
                 </div>
+            </div>
+        </div>
 
-                <hr />
-                <button type="submit" class="btn-primary-custom">
-                    <i class="fas fa-save"></i> حفظ التغييرات
-                </button>
-            </form>
+        <!-- Form Edit Profile -->
+        <div class="col-lg-8 col-12">
+            <div class="dr-card">
+                <div class="dr-card-header border-bottom pb-3 mb-4">
+                    <h5 class="dr-card-title fw-bold"><i class="fas fa-user-edit text-primary me-1"></i> تعديل الملف المهني والسيرة الذاتية</h5>
+                </div>
+
+                <form asp-action="Index" method="post">
+                    @Html.AntiForgeryToken()
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                    <div class="row g-3">
+                        <!-- FullName -->
+                        <div class="col-md-6 col-12">
+                            <label asp-for="FullName" class="form-label fw-800 text-dark">الاسم بالكامل (مع اللقب)</label>
+                            <input asp-for="FullName" class="form-control rounded-pill px-3" required />
+                            <span asp-validation-for="FullName" class="text-danger small"></span>
+                        </div>
+
+                        <!-- Specialization -->
+                        <div class="col-md-6 col-12">
+                            <label asp-for="Specialization" class="form-label fw-800 text-dark">التخصص الطبي الدقيق</label>
+                            <input asp-for="Specialization" class="form-control rounded-pill px-3" placeholder="مثال: استشاري أمراض القلب والأوعية الدموية" />
+                            <span asp-validation-for="Specialization" class="text-danger small"></span>
+                        </div>
+
+                        <!-- LicenseNumber -->
+                        <div class="col-md-6 col-12">
+                            <label asp-for="LicenseNumber" class="form-label fw-800 text-dark">رقم ترخيص نقابة الأطباء</label>
+                            <input asp-for="LicenseNumber" class="form-control rounded-pill px-3" required />
+                            <span asp-validation-for="LicenseNumber" class="text-danger small"></span>
+                        </div>
+
+                        <!-- YearsOfExperience -->
+                        <div class="col-md-6 col-12">
+                            <label asp-for="YearsOfExperience" class="form-label fw-800 text-dark">سنوات الخبرة العملية</label>
+                            <input asp-for="YearsOfExperience" class="form-control rounded-pill px-3" type="number" min="0" max="60" required />
+                            <span asp-validation-for="YearsOfExperience" class="text-danger small"></span>
+                        </div>
+
+                        <!-- ConsultationFee -->
+                        <div class="col-md-6 col-12">
+                            <label asp-for="ConsultationFee" class="form-label fw-800 text-dark">قيمة رسوم الكشف (جم)</label>
+                            <input asp-for="ConsultationFee" class="form-control rounded-pill px-3" type="number" min="0" step="0.01" required />
+                            <span asp-validation-for="ConsultationFee" class="text-danger small"></span>
+                        </div>
+
+                        <!-- IsAvailable -->
+                        <div class="col-md-6 col-12">
+                            <label class="form-label fw-800 text-dark">حالة التوفر والاتصال بالمنصة</label>
+                            <div class="form-check form-switch mt-2">
+                                <input asp-for="IsAvailable" class="form-check-input" type="checkbox" style="width:3rem;height:1.5rem;" />
+                                <label class="form-check-label fw-bold me-2" asp-for="IsAvailable">متاح لاستقبال المرضى</label>
+                            </div>
+                        </div>
+
+                        <!-- Bio -->
+                        <div class="col-12">
+                            <label asp-for="Bio" class="form-label fw-800 text-dark">السيرة الذاتية المهنية (Bio)</label>
+                            <textarea asp-for="Bio" class="form-control" rows="4" style="border-radius: 16px;" placeholder="اكتب نبذة مهنية مختصرة توضح مؤهلاتك العلمية، وخبراتك السابقة، والزمالات الطبية التي حصلت عليها..."></textarea>
+                            <span asp-validation-for="Bio" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 pt-3 border-top d-flex gap-2">
+                        <button type="submit" class="btn btn-primary rounded-pill px-4 fw-800">
+                            <i class="fas fa-save me-1"></i> حفظ التحديثات المهنية
+                        </button>
+                        <a href="/DoctorDashboard" class="btn btn-outline-secondary rounded-pill px-4">إلغاء</a>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 </div>
@@ -116,9 +194,11 @@
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
     <script>
-        // Toggle switch label
-        $('#IsAvailable').on('change', function() {
-            $(this).next('label').text($(this).is(':checked') ? 'متاح' : 'غير متاح');
+        $(document).ready(function() {
+            // Toggle switch text dynamically
+            $('#IsAvailable').on('change', function() {
+                $(this).next('label').text($(this).is(':checked') ? 'متاح لاستقبال المرضى' : 'غير متاح لاستقبال المرضى');
+            });
         });
     </script>
 }
