@@ -171,14 +171,15 @@
             border-color: rgba(26, 111, 191, 0.15);
         }
         body.theme-dark .dashboard-card {
-            background: var(--dark-card-bg);
-            border-color: var(--dark-border);
-            box-shadow: var(--dark-shadow);
+            background: rgba(21, 26, 34, 0.85);
+            backdrop-filter: blur(12px);
+            border-color: rgba(231, 76, 60, 0.2);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
         }
         body.theme-dark .dashboard-card:hover {
             transform: translateY(-3px);
-            box-shadow: 0 15px 35px rgba(0, 230, 118, 0.1);
-            border-color: rgba(0, 230, 118, 0.3);
+            box-shadow: 0 15px 35px rgba(231, 76, 60, 0.12);
+            border-color: rgba(231, 76, 60, 0.45);
         }
 
         .card-header-sm {
@@ -219,9 +220,15 @@
             border-color: rgba(26, 111, 191, 0.2);
         }
         body.theme-dark .stat-card {
-            background: var(--dark-card-bg);
-            border-color: var(--dark-border);
-            box-shadow: var(--dark-shadow);
+            background: rgba(21, 26, 34, 0.9);
+            border-color: rgba(33, 38, 45, 0.8);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+            transition: all 0.3s ease;
+        }
+        body.theme-dark .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 28px rgba(231, 76, 60, 0.15);
+            border-color: rgba(231, 76, 60, 0.4);
         }
         .stat-card-title {
             font-size: 0.82rem;
@@ -447,6 +454,43 @@
         body.theme-light #embedMap { border-color: var(--light-border); }
         body.theme-dark #embedMap { border-color: var(--dark-border); }
 
+        body.theme-dark .bg-dark-glass {
+            background: rgba(18, 22, 31, 0.85);
+            backdrop-filter: blur(10px);
+        }
+
+        /* Daily Stats Panel CSS adaptive styling */
+        body.theme-light #dailyStatsPanel {
+            border-color: var(--light-primary) !important;
+            background: linear-gradient(135deg, #ffffff, #f7fafc) !important;
+        }
+        body.theme-light #dailyStatsPanel .theme-box {
+            background-color: #ffffff !important;
+            border-color: #e2e8f0 !important;
+        }
+        body.theme-light .text-primary-theme {
+            color: var(--light-primary) !important;
+        }
+        body.theme-light #dailyStatsPanel strong.text-primary-theme {
+            color: var(--light-primary) !important;
+        }
+
+        body.theme-dark #dailyStatsPanel {
+            border-color: rgba(231, 76, 60, 0.35) !important;
+            background: linear-gradient(135deg, #151a22, #1c2330) !important;
+            color: #ffffff !important;
+        }
+        body.theme-dark #dailyStatsPanel .theme-box {
+            background-color: #0b0e14 !important;
+            border-color: rgba(231, 76, 60, 0.2) !important;
+        }
+        body.theme-dark .text-primary-theme {
+            color: #ff5252 !important;
+        }
+        body.theme-dark #dailyStatsPanel strong.text-primary-theme {
+            color: #00b0ff !important;
+        }
+
         .pulse-dot {
             width: 12px; height: 12px; border-radius: 50%;
             display: inline-block; animation: pulse-ring 1.5s infinite;
@@ -598,36 +642,38 @@
                     <!-- SVG Chart that dynamically updates styles -->
                     @if (Model.IsCrisisModeActive)
                     {
-                        <!-- Futuristic Dark Crisis Chart (from Analytical tools image) -->
-                        <div class="text-center py-2">
-                            <span class="badge bg-danger rounded-pill px-3 py-1 mb-3">Temporal Trend Graphs</span>
-                            <svg viewBox="0 0 600 200" width="100%" height="100%" style="background:transparent; border-radius:12px;">
-                                <defs>
-                                    <linearGradient id="cyanGrad" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="0%" stop-color="#00B0FF" stop-opacity="0.4"/>
-                                        <stop offset="100%" stop-color="#00B0FF" stop-opacity="0"/>
-                                    </linearGradient>
-                                    <linearGradient id="greenGrad" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="0%" stop-color="#00E676" stop-opacity="0.4"/>
-                                        <stop offset="100%" stop-color="#00E676" stop-opacity="0"/>
-                                    </linearGradient>
-                                </defs>
-                                <grid stroke="#21262D" stroke-width="0.5"/>
-                                <!-- Grid Lines -->
-                                <line x1="0" y1="50" x2="600" y2="50" stroke="#21262D" stroke-dasharray="3,3" />
-                                <line x1="0" y1="100" x2="600" y2="100" stroke="#21262D" stroke-dasharray="3,3" />
-                                <line x1="0" y1="150" x2="600" y2="150" stroke="#21262D" stroke-dasharray="3,3" />
-                                
-                                <!-- Wave 1 -->
-                                <path d="M 0 100 Q 150 40 300 120 T 600 80 L 600 200 L 0 200 Z" fill="url(#cyanGrad)" stroke="#00B0FF" stroke-width="2" />
-                                <!-- Wave 2 -->
-                                <path d="M 0 140 Q 150 80 300 150 T 600 120 L 600 200 L 0 200 Z" fill="url(#greenGrad)" stroke="#00E676" stroke-width="2" />
-                                
-                                <!-- Text labels -->
-                                <text x="10" y="25" fill="#8B949E" font-size="8">معدل انتقال العدوى</text>
-                                <text x="500" y="25" fill="#8B949E" font-size="8">توزيع الحالات بالمحافظات</text>
-                                <circle cx="300" cy="120" r="4" fill="#00E676" />
-                            </svg>
+                        <!-- Complex Crisis Mode Charts Grid -->
+                        <div class="row g-3 py-2">
+                            <div class="col-md-4">
+                                <div class="chart-container-wrapper p-3 border rounded-3 bg-dark-glass shadow-lg" style="border-color: rgba(231, 76, 60, 0.25);">
+                                    <h4 class="h6 text-center mb-3 fw-bold text-danger animate__animated animate__pulse animate__infinite" style="font-size: 0.82rem;">
+                                        <i class="fas fa-biohazard me-1 animate-spin"></i> تفشي الوباء بالمحافظات
+                                    </h4>
+                                    <div style="position: relative; height: 160px; width: 100%;">
+                                        <canvas id="crisisOutbreakChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="chart-container-wrapper p-3 border rounded-3 bg-dark-glass shadow-lg" style="border-color: rgba(231, 76, 60, 0.25);">
+                                    <h4 class="h6 text-center mb-3 fw-bold text-warning" style="font-size: 0.82rem;">
+                                        <i class="fas fa-stethoscope me-1"></i> الأعراض الأكثر انتشاراً
+                                    </h4>
+                                    <div style="position: relative; height: 160px; width: 100%;">
+                                        <canvas id="crisisSymptomsChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="chart-container-wrapper p-3 border rounded-3 bg-dark-glass shadow-lg" style="border-color: rgba(231, 76, 60, 0.25);">
+                                    <h4 class="h6 text-center mb-3 fw-bold text-info" style="font-size: 0.82rem;">
+                                        <i class="fas fa-chart-line me-1"></i> معدل التدهور الوبائي الأسبوعي
+                                    </h4>
+                                    <div style="position: relative; height: 160px; width: 100%;">
+                                        <canvas id="crisisTrendsChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     }
                     else
@@ -826,31 +872,31 @@
                 </div>
 
                 <!-- Interactive Calendar Daily Stats Panel -->
-                <div id="dailyStatsPanel" class="dashboard-card animate__animated animate__fadeInRight mt-3" style="display:none; border-color: var(--light-primary); background: linear-gradient(135deg, #ffffff, #f7fafc);">
-                    <h4 class="card-header-sm mb-3 text-primary" style="font-size: 0.92rem;">
+                <div id="dailyStatsPanel" class="dashboard-card animate__animated animate__fadeInRight mt-3" style="display:none;">
+                    <h4 class="card-header-sm mb-3 text-primary-theme" style="font-size: 0.92rem;">
                         <i class="fas fa-calendar-check me-1"></i> إحصائيات نشاط اليوم المختار (<span id="statsSelectedDay">12</span> يوليو)
                     </h4>
                     <div class="row g-2 text-center" style="font-size: 0.82rem;">
                         <div class="col-6">
-                            <div class="p-2 border rounded bg-white">
+                            <div class="p-2 border rounded theme-box">
                                 <small class="text-muted d-block">حالات الطوارئ</small>
                                 <strong id="statsEmergencies" class="text-danger h5 m-0 d-block font-monospace mt-1">0</strong>
                             </div>
                         </div>
                         <div class="col-6">
-                            <div class="p-2 border rounded bg-white">
-                                <small class="text-muted d-block">المواعيد المحجوزة</small>
-                                <strong id="statsAppointments" class="text-primary h5 m-0 d-block font-monospace mt-1">0</strong>
+                            <div class="p-2 border rounded theme-box">
+                                <small id="statsSecondLabel" class="text-muted d-block">المواعيد المحجوزة</small>
+                                <strong id="statsAppointments" class="text-primary-theme h5 m-0 d-block font-monospace mt-1">0</strong>
                             </div>
                         </div>
                         <div class="col-6 mt-2">
-                            <div class="p-2 border rounded bg-white">
+                            <div class="p-2 border rounded theme-box">
                                 <small class="text-muted d-block">الأطباء النشطين</small>
                                 <strong id="statsDoctors" class="text-success h5 m-0 d-block font-monospace mt-1">0</strong>
                             </div>
                         </div>
                         <div class="col-6 mt-2">
-                            <div class="p-2 border rounded bg-white">
+                            <div class="p-2 border rounded theme-box">
                                 <small class="text-muted d-block">الأسرة المشغولة</small>
                                 <strong id="statsBeds" class="text-warning h5 m-0 d-block font-monospace mt-1">0</strong>
                             </div>
@@ -1017,6 +1063,93 @@
                                     <tbody id="govRiskTableBody">
                                         <tr>
                                             <td colspan="4" class="text-center text-muted py-3">جاري تحميل بيانات المخاطر...</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        @if (Model.IsCrisisModeActive)
+        {
+            <!-- Crisis Mode Telemetry Read-out & Governorate Crisis details -->
+            <div class="row g-4 mb-4 animate__animated animate__fadeInUp" style="animation-delay: 0.2s;">
+                <div class="col-lg-6">
+                    <div class="dashboard-card h-100 bg-dark-glass text-white" style="border-color: rgba(231, 76, 60, 0.25);">
+                        <h3 class="card-header-sm text-danger">
+                            <i class="fas fa-biohazard text-danger me-2 animate__animated animate__flash animate__infinite"></i>
+                            قراءة تفصيلية لمؤشرات الأوبئة والطوارئ (Epidemic Telemetry)
+                        </h3>
+                        <div class="p-2">
+                            <p class="text-muted small mb-4">مراقبة حية لمعدل تكاثر الفيروس وتعبئة الموارد الطبية وسعة العناية المركزة.</p>
+                            
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between mb-1 small fw-bold">
+                                    <span>معدل انتشار وتكاثر العدوى الحرج (\(R_0\))</span>
+                                    <span class="text-danger">1.82</span>
+                                </div>
+                                <div class="progress bg-secondary" style="height: 8px;">
+                                    <div class="progress-bar bg-danger" role="progressbar" style="width: 75%" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between mb-1 small fw-bold">
+                                    <span>نسبة إشغال أسرة العزل والعناية المركزة (ICU)</span>
+                                    <span class="text-danger">84%</span>
+                                </div>
+                                <div class="progress bg-secondary" style="height: 8px;">
+                                    <div class="progress-bar bg-danger" role="progressbar" style="width: 84%" aria-valuenow="84" aria-valuemin="0" aria-valuemax="100"></div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between mb-1 small fw-bold">
+                                    <span>متوسط سرعة استجابة سيارات الإسعاف (بالدقائق)</span>
+                                    <span class="text-warning">8.4 دقيقة</span>
+                                </div>
+                                <div class="progress bg-secondary" style="height: 8px;">
+                                    <div class="progress-bar bg-warning" role="progressbar" style="width: 68%" aria-valuenow="68" aria-valuemin="0" aria-valuemax="100"></div>
+                                </div>
+                            </div>
+
+                            <div class="mb-2">
+                                <div class="d-flex justify-content-between mb-1 small fw-bold">
+                                    <span>معامل استنفار وتعبئة الكادر الطبي الاحتياطي</span>
+                                    <span class="text-success">90%</span>
+                                </div>
+                                <div class="progress bg-secondary" style="height: 8px;">
+                                    <div class="progress-bar bg-success" role="progressbar" style="width: 90%" aria-valuenow="90" aria-valuemin="0" aria-valuemax="100"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-6">
+                    <div class="dashboard-card h-100 bg-dark-glass text-white" style="border-color: rgba(231, 76, 60, 0.25);">
+                        <h3 class="card-header-sm text-danger">
+                            <i class="fas fa-shield-virus text-danger me-2"></i>
+                            جدول الحجر الصحي والتفشي الجغرافي بالمحافظات
+                        </h3>
+                        <div class="p-2">
+                            <p class="text-muted small mb-3">رصد حي لأسرة الحجر الصحي المتوفرة وحالة الانتشار الجغرافي للوباء.</p>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-dark table-hover align-middle m-0" style="font-size: 0.85rem; background: transparent;">
+                                    <thead class="table-dark" style="border-bottom: 1px solid rgba(231, 76, 60, 0.3);">
+                                        <tr>
+                                            <th>المحافظة</th>
+                                            <th class="text-center">إجمالي الحالات</th>
+                                            <th class="text-center">أسرة الحجر المتاحة</th>
+                                            <th>حالة التفشي</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="crisisGovRiskTableBody">
+                                        <tr>
+                                            <td colspan="4" class="text-center text-muted py-3">جاري تحميل بيانات الأوبئة الجغرافية...</td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -1257,6 +1390,152 @@
                 </text>
             }
 
+            // Load Crisis Mode Charts and Tables
+            @if (Model.IsCrisisModeActive)
+            {
+                <text>
+                // Load Governorate Risk/Crisis Stats for Quarantine Table
+                $.getJSON('/AdminDashboard/GetGovernorateRiskStats', function(data) {
+                    if (data && data.success) {
+                        let rowsHtml = '';
+                        data.stats.forEach(function(item) {
+                            let badgeClass = 'bg-success';
+                            let outbreakStatus = 'احتواء كامل';
+                            let quarantineBeds = Math.max(0, 100 - (item.totalCases * 4));
+                            
+                            if (item.threatLevel === 'خطر مرتفع جداً') {
+                                badgeClass = 'bg-danger';
+                                outbreakStatus = 'تفشي متسارع';
+                            } else if (item.threatLevel === 'متوسط الخطورة') {
+                                badgeClass = 'bg-warning text-dark';
+                                outbreakStatus = 'تفشي محدود';
+                            }
+                            
+                            rowsHtml += `
+                                <tr style="border-bottom: 1px solid rgba(231, 76, 60, 0.15);">
+                                    <td class="text-white"><strong>${item.governorate}</strong></td>
+                                    <td class="text-center font-monospace text-danger">${item.totalCases}</td>
+                                    <td class="text-center font-monospace text-success">${quarantineBeds}</td>
+                                    <td><span class="badge ${badgeClass}">${outbreakStatus}</span></td>
+                                </tr>
+                            `;
+                        });
+                        $('#crisisGovRiskTableBody').html(rowsHtml);
+                    } else {
+                        $('#crisisGovRiskTableBody').html('<tr><td colspan="4" class="text-center text-danger">فشل تحميل البيانات الوبائية</td></tr>');
+                    }
+                });
+
+                // Load Crisis Charts Data
+                $.getJSON('/AdminDashboard/GetDashboardProjectCharts', function(data) {
+                    if (data && data.success) {
+                        // 1. Governorate Outbreak active cases - Bar
+                        $.getJSON('/AdminDashboard/GetGovernorateRiskStats', function(riskData) {
+                            if (riskData && riskData.success) {
+                                const labels = riskData.stats.map(s => s.governorate);
+                                const cases = riskData.stats.map(s => s.totalCases);
+                                
+                                const outbreakCtx = document.getElementById('crisisOutbreakChart').getContext('2d');
+                                new Chart(outbreakCtx, {
+                                    type: 'bar',
+                                    data: {
+                                        labels: labels,
+                                        datasets: [{
+                                            label: 'الحالات النشطة',
+                                            data: cases,
+                                            backgroundColor: 'rgba(231, 76, 60, 0.85)',
+                                            borderColor: '#ff5252',
+                                            borderWidth: 1.5,
+                                            borderRadius: 4
+                                        }]
+                                    },
+                                    options: {
+                                        responsive: true,
+                                        maintainAspectRatio: false,
+                                        scales: {
+                                            y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#8b949e', font: { size: 9 } } },
+                                            x: { grid: { display: false }, ticks: { color: '#8b949e', font: { size: 9, family: 'Tajawal' } } }
+                                        },
+                                        plugins: {
+                                            legend: { display: false }
+                                        }
+                                    }
+                                });
+                            }
+                        });
+
+                        // 2. Critical Symptoms Frequency - Doughnut
+                        const symptomsCtx = document.getElementById('crisisSymptomsChart').getContext('2d');
+                        new Chart(symptomsCtx, {
+                            type: 'doughnut',
+                            data: {
+                                labels: ['ضيق تنفس', 'حمى شديدة', 'سعال جاف', 'أعراض أخرى'],
+                                datasets: [{
+                                    data: [45, 30, 15, 10],
+                                    backgroundColor: ['#ff5252', '#ff9800', '#00b0ff', '#8b949e'],
+                                    borderColor: '#12161f',
+                                    borderWidth: 2
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: {
+                                        position: 'bottom',
+                                        labels: { boxWidth: 10, color: '#ecf0f1', font: { family: 'Tajawal', size: 9 } }
+                                    }
+                                }
+                            }
+                        });
+
+                        // 3. Epidemic spread trend - Line
+                        const dayNamesArabic = {
+                            'Sunday': 'الأحد',
+                            'Monday': 'الاثنين',
+                            'Tuesday': 'الثلاثاء',
+                            'Wednesday': 'الأربعاء',
+                            'Thursday': 'الخميس',
+                            'Friday': 'الجمعة',
+                            'Saturday': 'السبت'
+                        };
+                        const trendLabels = data.appointmentsTrend.map(t => dayNamesArabic[t.Day] || t.Day);
+                        const trendValues = data.appointmentsTrend.map(t => t.Count * 2 + 5);
+
+                        const trendCtx = document.getElementById('crisisTrendsChart').getContext('2d');
+                        new Chart(trendCtx, {
+                            type: 'line',
+                            data: {
+                                labels: trendLabels.length ? trendLabels : ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'],
+                                datasets: [{
+                                    label: 'معامل الانتشار',
+                                    data: trendValues.length ? trendValues : [5, 12, 8, 15, 20, 14, 25],
+                                    fill: true,
+                                    backgroundColor: 'rgba(231, 76, 60, 0.12)',
+                                    borderColor: '#ff5252',
+                                    borderWidth: 2.5,
+                                    tension: 0.45,
+                                    pointBackgroundColor: '#ff5252',
+                                    pointBorderColor: '#ffffff'
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                scales: {
+                                    y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#8b949e', font: { size: 9 } } },
+                                    x: { grid: { display: false }, ticks: { color: '#8b949e', font: { size: 9, family: 'Tajawal' } } }
+                                },
+                                plugins: {
+                                    legend: { display: false }
+                                }
+                            }
+                        });
+                    }
+                });
+                </text>
+            }
+
             // Click handler for interactive calendar days
             $('.clickable-day').on('click', function() {
                 $('.calendar-day').removeClass('active');
@@ -1271,6 +1550,14 @@
                         $('#statsAppointments').text(data.appointments);
                         $('#statsDoctors').text(data.activeDoctors);
                         $('#statsBeds').text(data.occupiedBeds);
+                        
+                        // Adapt label based on active theme
+                        const isCrisisMode = $('body').hasClass('theme-dark');
+                        if (isCrisisMode) {
+                            $('#statsSecondLabel').text('الحالات الحرجة');
+                        } else {
+                            $('#statsSecondLabel').text('المواعيد المحجوزة');
+                        }
                         
                         if ($('#dailyStatsPanel').is(':hidden')) {
                             $('#dailyStatsPanel').slideDown(300);
