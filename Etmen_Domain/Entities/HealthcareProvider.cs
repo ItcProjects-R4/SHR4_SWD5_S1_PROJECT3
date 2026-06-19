@@ -21,6 +21,7 @@ namespace Etmen_Domain.Entities
         public string? Address { get; set; }
         [StringLength(20)]
         public string? Phone { get; set; }
+        [ConcurrencyCheck]
         public int? AvailableBeds { get; set; }
         public bool IsEmergencyCenter { get; set; }
         public bool IsActive { get; set; } = true;

@@ -1,10 +1,12 @@
 using Etmen_BLL.DTOs.Emergency;
 using Etmen_BLL.Repositories.IServices;
 using Etmen_PL.Models.ViewModels.Patient;
+using Etmen_DAL.Repositories.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
 
 namespace Etmen_PL.Controllers
 {
@@ -20,19 +22,22 @@ namespace Etmen_PL.Controllers
         private readonly IEmailService _emailService;
         private readonly ILogger<EmergencyController> _logger;
         private readonly Microsoft.AspNetCore.SignalR.IHubContext<Etmen_PL.Hubs.QueueHub> _queueHubContext;
+        private readonly IUnitOfWork _uow;
 
         public EmergencyController(
             IEmergencyService emergencyService,
             IPatientService patientService,
             IEmailService emailService,
             ILogger<EmergencyController> logger,
-            Microsoft.AspNetCore.SignalR.IHubContext<Etmen_PL.Hubs.QueueHub> queueHubContext)
+            Microsoft.AspNetCore.SignalR.IHubContext<Etmen_PL.Hubs.QueueHub> queueHubContext,
+            IUnitOfWork uow)
         {
             _emergencyService = emergencyService;
             _patientService   = patientService;
             _emailService     = emailService;
             _logger           = logger;
             _queueHubContext  = queueHubContext;
+            _uow              = uow;
         }
 
         /// <summary>
@@ -53,8 +58,8 @@ namespace Etmen_PL.Controllers
                     return RedirectToAction("Login", "Account");
 
                 // Get patient profile for email
-                var profileResult = await _patientService.GetProfileAsync(userId);
-                if (!profileResult.IsSuccess || profileResult.Data == null)
+                var patient = HttpContext.Items["PatientProfile"] as Etmen_Domain.Entities.PatientProfile;
+                if (patient == null)
                 {
                     TempData["Error"] = "لم يتم العثور على ملفك الطبي.";
                     return RedirectToAction("Index", "PatientDashboard");
@@ -62,11 +67,12 @@ namespace Etmen_PL.Controllers
 
                 var dto = new EmergencyRequestDto
                 {
-                    PatientProfileId = profileResult.Data.Id,
+                    PatientProfileId = patient.Id,
                     Latitude         = viewModel.Latitude,
                     Longitude        = viewModel.Longitude,
                     EmergencyType    = viewModel.EmergencyType ?? "طوارئ عامة",
-                    Description      = viewModel.Description
+                    Description      = viewModel.Description,
+                    RiskAssessmentId = viewModel.RiskAssessmentId
                 };
 
                 var result = await _emergencyService.CreateEmergencyRequestAsync(dto);
@@ -80,7 +86,7 @@ namespace Etmen_PL.Controllers
                 await _queueHubContext.Clients.All.SendAsync("NewEmergencyRequest", result.Data);
 
                 var patientEmail = User.FindFirstValue(ClaimTypes.Email);
-                var patientName  = profileResult.Data.FullName ?? "المريض";
+                var patientName  = patient.FullName ?? "المريض";
 
                 if (!string.IsNullOrWhiteSpace(patientEmail))
                 {
@@ -138,12 +144,39 @@ namespace Etmen_PL.Controllers
                 if (string.IsNullOrWhiteSpace(userId))
                     return RedirectToAction("Login", "Account");
 
-                var profileResult = await _patientService.GetProfileAsync(userId);
-                if (!profileResult.IsSuccess || profileResult.Data == null || result.Data.PatientProfileId != profileResult.Data.Id)
+                var patient = HttpContext.Items["PatientProfile"] as Etmen_Domain.Entities.PatientProfile;
+                if (patient == null || result.Data.PatientProfileId != patient.Id)
                 {
                     _logger.LogWarning("User {UserId} attempted to track emergency request {RequestId} without ownership.", userId, requestId.Value);
                     return Forbid();
                 }
+
+                // Load latest risk assessment
+                var latestRisk = await _uow.RiskAssessments.Table
+                    .Where(r => r.PatientProfileId == patient.Id)
+                    .OrderByDescending(r => r.CreatedAt)
+                    .FirstOrDefaultAsync();
+                ViewBag.LatestRisk = latestRisk;
+
+                // Load all emergency receiving hospitals for the map
+                var hospitals = await _uow.HealthcareProviders.Table
+                    .Where(h => h.IsActive && (h.IsEmergencyCenter || h.Type == "Hospital"))
+                    .Select(h => new
+                    {
+                        h.Id,
+                        h.Name,
+                        Latitude = (double)h.Latitude,
+                        Longitude = (double)h.Longitude,
+                        AvailableBeds = h.AvailableBeds ?? 0,
+                        h.Address
+                    })
+                    .ToListAsync();
+                ViewBag.Hospitals = hospitals;
+
+                // Load the raw entity to get status and accepted hospital info
+                var rawRequest = await _uow.EmergencyRequests.GetByIdAsync(requestId.Value);
+                ViewBag.CurrentStatus = rawRequest?.Status.ToString() ?? "Pending";
+                ViewBag.AcceptedProviderId = rawRequest?.HealthcareProviderId;
 
                 return View(result.Data);
             }
@@ -152,6 +185,55 @@ namespace Etmen_PL.Controllers
                 _logger.LogError(ex, "Error tracking emergency");
                 TempData["Error"] = "خطأ في تتبع الإسعاف";
                 return RedirectToAction("Index", "PatientDashboard");
+            }
+        }
+
+        /// <summary>
+        /// POST: /Emergency/RequestDirectReception
+        /// Creates a direct hospital reception request from the patient
+        /// </summary>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RequestDirectReception(int hospitalId, string notes, int? riskAssessmentId)
+        {
+            try
+            {
+                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                if (string.IsNullOrEmpty(userId))
+                    return Json(new { success = false, message = "لم يتم تسجيل الدخول" });
+
+                var patient = HttpContext.Items["PatientProfile"] as Etmen_Domain.Entities.PatientProfile;
+                if (patient == null)
+                    return Json(new { success = false, message = "لم يتم العثور على ملفك الطبي" });
+
+                // Find patient profile coordinates
+                decimal lat = patient.Latitude ?? 30.0444m;
+                decimal lng = patient.Longitude ?? 31.2357m;
+
+                var dto = new EmergencyRequestDto
+                {
+                    PatientProfileId = patient.Id,
+                    Latitude         = lat,
+                    Longitude        = lng,
+                    EmergencyType    = "استقبال مباشر",
+                    Description      = notes,
+                    RiskAssessmentId = riskAssessmentId,
+                    HealthcareProviderId = hospitalId
+                };
+
+                var result = await _emergencyService.CreateEmergencyRequestAsync(dto);
+                if (!result.IsSuccess || result.Data == null)
+                    return Json(new { success = false, message = result.ErrorMessage ?? "فشل إرسال الطلب" });
+
+                // Broadcast alert to hospital via SignalR
+                await _queueHubContext.Clients.All.SendAsync("NewEmergencyRequest", result.Data);
+
+                return Json(new { success = true, message = "تم إرسال طلب الاستقبال بنجاح للمستشفى!" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error requesting direct hospital reception");
+                return Json(new { success = false, message = ex.Message });
             }
         }
 

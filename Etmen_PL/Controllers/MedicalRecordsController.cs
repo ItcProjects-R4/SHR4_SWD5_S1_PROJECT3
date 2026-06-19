@@ -242,16 +242,6 @@ namespace Etmen_PL.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized();
 
-                // For now, delete and recreate (since API might not have full update)
-                // A better approach would be if IMedicalRecordService had an UpdateAsync method
-                var deleteResult = await _medicalRecordService.DeleteAsync(userId, id);
-                if (!deleteResult.IsSuccess)
-                {
-                    _logger.LogWarning("Failed to update medical record {RecordId} for user {UserId}", id, userId);
-                    ModelState.AddModelError(string.Empty, "Failed to update record");
-                    return View(viewModel);
-                }
-
                 var recordDto = new Etmen_BLL.DTOs.Medical.MedicalRecordCreateDto
                 {
                     PatientId = 0,
@@ -268,16 +258,16 @@ namespace Etmen_PL.Controllers
                     Notes = viewModel.Notes
                 };
 
-                var createResult = await _medicalRecordService.CreateAsync(userId, recordDto);
-                if (!createResult.IsSuccess)
+                var updateResult = await _medicalRecordService.UpdateAsync(userId, id, recordDto);
+                if (!updateResult.IsSuccess)
                 {
-                    foreach (var error in createResult.Errors)
+                    foreach (var error in updateResult.Errors)
                         ModelState.AddModelError(string.Empty, error);
                     return View(viewModel);
                 }
 
                 _logger.LogInformation("Medical record {RecordId} updated for user {UserId}", id, userId);
-                TempData["Success"] = "Medical record updated successfully";
+                TempData["Success"] = "تم تحديث السجل الطبي بنجاح";
                 return RedirectToAction(nameof(Index));
             }
             catch (Exception ex)

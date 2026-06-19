@@ -33,5 +33,6 @@ namespace Etmen_PL.Models.ViewModels.Hospital
         public decimal? Longitude { get; set; }
         public string? ReferringDoctorName { get; set; }
         public string? Notes { get; set; }
+        public int? AssignedProviderId { get; set; }
     }
 }

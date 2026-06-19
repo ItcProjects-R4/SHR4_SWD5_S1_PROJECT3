@@ -181,7 +181,13 @@ namespace Etmen_PL.Controllers
             ApplicationUser? user = null;
             if (profile.ApplicationUser != null)
             {
-                user = profile.ApplicationUser;
+                user = await _userManager.FindByIdAsync(profile.ApplicationUserId);
+                if (user == null)
+                {
+                    ModelState.AddModelError(string.Empty, "مستخدم هذه الدعوة غير موجود.");
+                    return View(model);
+                }
+
                 user.FirstName = model.FirstName;
                 user.LastName = model.LastName;
                 user.MustChangePassword = false;

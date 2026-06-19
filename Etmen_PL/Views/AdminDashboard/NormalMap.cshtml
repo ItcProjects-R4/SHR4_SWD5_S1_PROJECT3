@@ -256,6 +256,42 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+
+        .drawer-handle {
+            display: none;
+        }
+
+        /* Responsive bottom sheet for mobile */
+        @@media (max-width: 576px) {
+            .floating-dashboard {
+                position: fixed;
+                top: auto !important;
+                bottom: 0 !important;
+                right: 0 !important;
+                left: 0 !important;
+                width: 100% !important;
+                max-height: 75px !important;
+                border-radius: 24px 24px 0 0 !important;
+                box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.5) !important;
+                padding: 10px 20px 24px 20px !important;
+                transition: max-height 0.4s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+                z-index: 1050 !important;
+                overflow: hidden !important;
+            }
+            .floating-dashboard.expanded {
+                max-height: 75vh !important;
+                overflow-y: auto !important;
+            }
+            .drawer-handle {
+                width: 45px;
+                height: 5px;
+                background: rgba(255, 255, 255, 0.25);
+                border-radius: 3px;
+                margin: 0 auto 10px auto;
+                cursor: pointer;
+                display: block !important;
+            }
+        }
     </style>
 </head>
 <body>
@@ -271,12 +307,21 @@
 
     <!-- Floating Dashboard Panel -->
     <div class="floating-dashboard animate__animated animate__fadeInLeft">
-        <div class="header-section">
-            <h1 class="dashboard-title">
-                <i class="fas fa-map-location-dot"></i>
-                رصد الموارد الطبية
-            </h1>
-            <p class="dashboard-subtitle">الرصد الجغرافي للمراكز الصحية والأطباء والطلبات النشطة</p>
+        
+        <div class="drawer-handle" onclick="toggleDashboard()"></div>
+
+        <!-- Header -->
+        <div class="header-section d-flex align-items-center justify-content-between pb-3">
+            <div>
+                <h1 class="dashboard-title">
+                    <i class="fas fa-map-location-dot"></i>
+                    رصد الموارد الطبية
+                </h1>
+                <p class="dashboard-subtitle">الرصد الجغرافي للمراكز الصحية والأطباء والطلبات النشطة</p>
+            </div>
+            <button class="btn btn-link text-light d-block d-sm-none p-0 ms-2" onclick="toggleDashboard()" style="font-size: 1.2rem; text-decoration: none;">
+                <i id="toggleIcon" class="fas fa-chevron-up"></i>
+            </button>
         </div>
 
         <!-- Stats -->
@@ -480,6 +525,19 @@
                 $('#mapLoader').html('<h5 class="text-danger fw-bold"><i class="fas fa-exclamation-triangle"></i> فشل تحميل بيانات الخريطة!</h5>');
             });
         });
+
+        function toggleDashboard() {
+            const dashboard = document.querySelector('.floating-dashboard');
+            dashboard.classList.toggle('expanded');
+            const icon = document.getElementById('toggleIcon');
+            if (icon) {
+                if (dashboard.classList.contains('expanded')) {
+                    icon.className = 'fas fa-chevron-down';
+                } else {
+                    icon.className = 'fas fa-chevron-up';
+                }
+            }
+        }
     </script>
 </body>
 </html>

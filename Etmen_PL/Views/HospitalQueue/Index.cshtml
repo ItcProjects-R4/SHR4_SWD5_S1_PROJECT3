@@ -5,6 +5,8 @@
 
     // Separate items by status
     var pendingItems = Model.Items.Where(i => i.Status == "Pending" && i.EmergencyType != "DoctorTransfer").ToList();
+    var generalPending = pendingItems.Where(i => i.AssignedProviderId == null).ToList();
+    var directPending = pendingItems.Where(i => i.AssignedProviderId == Model.ProviderId).ToList();
     var acceptedItems = Model.Items.Where(i => i.Status == "Accepted" && i.EmergencyType != "DoctorTransfer").ToList();
     var escalatedItems = Model.Items.Where(i => i.Status == "Escalated" && i.EmergencyType != "DoctorTransfer").ToList();
     var doctorTransfers = Model.Items.Where(i => i.EmergencyType == "DoctorTransfer").ToList();
@@ -219,6 +221,13 @@
         color: var(--primary-dark);
         border-bottom-color: var(--primary-light);
     }
+
+    /* Mobile responsive fixes */
+    @@media (max-width: 767px) {
+        .stat-box { min-width: 150px !important; }
+        .stat-box-container { gap: 0.75rem !important; }
+        .triage-table th, .triage-table td { font-size: 0.75rem !important; padding: 0.5rem 0.4rem !important; }
+    }
 </style>
 
 <!-- Main Row -->
@@ -322,9 +331,15 @@
 
             <ul class="nav nav-tabs triage-tabs mb-3" id="triageTabs" role="tablist">
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link active" id="pending-tab" data-bs-toggle="tab" data-bs-target="#pending-pane" type="button" role="tab">
-                        <i class="fas fa-clock text-warning"></i> الحالات المعلقة 
-                        <span class="badge bg-warning text-dark ms-1 rounded-pill">@pendingItems.Count</span>
+                    <button class="nav-link active" id="general-pending-tab" data-bs-toggle="tab" data-bs-target="#general-pending-pane" type="button" role="tab">
+                        <i class="fas fa-truck-medical text-warning"></i> طلبات الإسعاف العامة 
+                        <span class="badge bg-warning text-dark ms-1 rounded-pill">@generalPending.Count</span>
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="direct-pending-tab" data-bs-toggle="tab" data-bs-target="#direct-pending-pane" type="button" role="tab">
+                        <i class="fas fa-hospital-user text-primary"></i> طلبات الاستقبال المباشرة 
+                        <span class="badge bg-primary text-white ms-1 rounded-pill">@directPending.Count</span>
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
@@ -349,14 +364,14 @@
 
             <div class="tab-content" id="triageTabsContent">
                 
-                <!-- Pending Tab Pane -->
-                <div class="tab-pane fade show active" id="pending-pane" role="tabpanel">
-                    @if (pendingItems.Count == 0)
+                <!-- General Pending Tab Pane -->
+                <div class="tab-pane fade show active" id="general-pending-pane" role="tabpanel">
+                    @if (generalPending.Count == 0)
                     {
                         <div class="text-center py-5 text-muted opacity-75">
                             <i class="fas fa-heart-circle-check fs-1 text-success mb-3"></i>
-                            <h5>لا توجد حالات معلقة في قائمة الانتظار.</h5>
-                            <p class="small mb-0">جميع طلبات الإسعاف الواردة تم قبولها أو فرزها بنجاح.</p>
+                            <h5>لا توجد طلبات إسعاف عامة معلقة.</h5>
+                            <p class="small mb-0">جميع طلبات الإسعاف العامة تم قبولها أو توجيهها بنجاح.</p>
                         </div>
                     }
                     else
@@ -374,7 +389,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach (var item in pendingItems)
+                                    @foreach (var item in generalPending)
                                     {
                                         var prioClass = item.PriorityScore >= 80 ? "prio-high" : (item.PriorityScore >= 55 ? "prio-med" : "prio-low");
                                         var prioText = item.PriorityScore >= 80 ? "خطرة جداً" : (item.PriorityScore >= 55 ? "متوسطة" : "مستقرة");
@@ -404,6 +419,71 @@
                                             <td class="text-center">
                                                 <a href="/HospitalQueue/Details/@item.RequestId?providerId=@Model.ProviderId" class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-700">
                                                     <i class="fas fa-notes-medical"></i> فحص واتخاذ قرار
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+
+                <!-- Direct Pending Tab Pane -->
+                <div class="tab-pane fade" id="direct-pending-pane" role="tabpanel">
+                    @if (directPending.Count == 0)
+                    {
+                        <div class="text-center py-5 text-muted opacity-75">
+                            <i class="fas fa-hospital fs-1 text-primary mb-3"></i>
+                            <h5>لا توجد طلبات استقبال مباشر معلقة.</h5>
+                            <p class="small mb-0">لم يرسل أي مريض طلب استقبال مباشر موجه لمستشفاك حالياً.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="triage-table">
+                                <thead>
+                                    <tr>
+                                        <th>اسم المريض</th>
+                                        <th>نوع الطوارئ</th>
+                                        <th>الأولوية والخطورة</th>
+                                        <th>المسافة والوصول (ETA)</th>
+                                        <th>زمن الانتظار</th>
+                                        <th class="text-center">الإجراء</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var item in directPending)
+                                    {
+                                        var prioClass = item.PriorityScore >= 80 ? "prio-high" : (item.PriorityScore >= 55 ? "prio-med" : "prio-low");
+                                        var prioText = item.PriorityScore >= 80 ? "خطرة جداً" : (item.PriorityScore >= 55 ? "متوسطة" : "مستقرة");
+                                        <tr class="triage-row" style="border-right: 4px solid var(--primary);">
+                                            <td>
+                                                <div class="fw-800 text-dark">@item.PatientName</div>
+                                                <div class="text-muted small font-monospace">@item.PatientPhone</div>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-primary text-white p-2 rounded-3">
+                                                    <i class="fas fa-user-injured me-1"></i> @item.EmergencyType
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span class="priority-badge @prioClass">@prioText (@item.PriorityScore%)</span>
+                                            </td>
+                                            <td>
+                                                <div class="small fw-700 text-info eta-calc-cell" data-lat="@item.Latitude" data-lng="@item.Longitude">
+                                                    <i class="fas fa-spinner fa-spin"></i>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="text-danger font-monospace fw-700">
+                                                    <i class="far fa-hourglass me-1"></i> @item.WaitingMinutes د
+                                                </div>
+                                            </td>
+                                            <td class="text-center">
+                                                <a href="/HospitalQueue/Details/@item.RequestId?providerId=@Model.ProviderId" class="btn btn-sm btn-primary rounded-pill px-3 fw-700">
+                                                    <i class="fas fa-notes-medical"></i> فحص وقبول الحجز
                                                 </a>
                                             </td>
                                         </tr>
@@ -740,28 +820,47 @@
             </div>
         </div>
 
-        <!-- Ambulance Telemetry mock widget -->
-        <div class="dashboard-card animate__animated animate__fadeInRight" style="animation-delay: 0.2s;">
-            <h3 class="card-title-lg" style="font-size: 1.05rem; margin-bottom: 15px;">
+        <!-- ════════════════════════════════════════════
+             Ambulance Live Dispatch Map Card
+        ════════════════════════════════════════════ -->
+        <div class="dashboard-card animate__animated animate__fadeInRight" style="animation-delay: 0.2s; padding:18px;">
+            <h3 class="card-title-lg" style="font-size:1.05rem;margin-bottom:14px;">
                 <i class="fas fa-satellite text-info animate__animated animate__pulse animate__infinite"></i>
-                إشارات راديو الإسعاف الواردة
+                خريطة الإسعاف المباشرة
             </h3>
-            <div class="d-flex flex-column gap-3">
-                <div class="d-flex align-items-center gap-3 p-2 bg-light rounded-3 border">
-                    <i class="fas fa-truck-medical text-danger fs-5"></i>
-                    <div class="flex-grow-1">
-                        <div class="fw-800 small">سيارة إسعاف #08 - واردة</div>
-                        <div class="text-muted small">على بعد ٢.٤ كم - اشتباه أزمة تنفسية</div>
-                    </div>
-                </div>
-                <div class="d-flex align-items-center gap-3 p-2 bg-light rounded-3 border">
-                    <i class="fas fa-truck-medical text-warning fs-5"></i>
-                    <div class="flex-grow-1">
-                        <div class="fw-800 small">سيارة إسعاف #14 - واردة</div>
-                        <div class="text-muted small">على بعد ٥.١ كم - اشتباه ذبحة صدرية</div>
-                    </div>
-                </div>
+
+            <!-- Capacity Bar -->
+            <div class="d-flex justify-content-between align-items-center mb-1" style="font-size:.8rem;">
+                <span class="fw-700 text-muted"><i class="fas fa-ambulance me-1 text-danger"></i> السعة</span>
+                <span id="capLabel" class="fw-800"></span>
             </div>
+            <div style="background:#f1f5f9;border-radius:8px;height:10px;overflow:hidden;margin-bottom:12px;">
+                <div id="capBar" style="height:100%;border-radius:8px;transition:width .6s ease;background:#22c55e;"></div>
+            </div>
+
+            <!-- No-ambulance alert -->
+            <div id="noAmbHospAlert" class="alert alert-danger border-0 py-2 px-3 mb-2 small fw-700"
+                 style="border-radius:10px;display:none;">
+                <i class="fas fa-exclamation-triangle me-1"></i>
+                جميع سيارات الإسعاف مشغولة!
+                <div id="altHospText" class="fw-600 mt-1" style="font-size:.75rem;"></div>
+            </div>
+
+            <!-- Map -->
+            <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+            <div id="hospAmbMap" style="height:280px;border-radius:14px;overflow:hidden;
+                 border:1px solid #e2e8f0;"></div>
+
+            <!-- Legend -->
+            <div class="d-flex gap-3 justify-content-center mt-2 flex-wrap" style="font-size:.75rem;color:#64748b;">
+                <span>🏥 المستشفى</span>
+                <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#ef4444;border:1px solid #fff;"></span> المريض</span>
+                <span>🚑 إسعاف متحرك</span>
+                <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#22c55e;"></span> إسعاف متاح</span>
+            </div>
+
+            <!-- Active dispatch list -->
+            <div id="dispatchList" class="mt-3" style="max-height:160px;overflow-y:auto;"></div>
         </div>
 
     </div>
@@ -991,4 +1090,196 @@
         });
     </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+    // ══════════════════════════════════════════════════════
+    //  HOSPITAL AMBULANCE LIVE DISPATCH MAP
+    // ══════════════════════════════════════════════════════
+    (function() {
+        const HOSP_LAT   = parseFloat('@Model.ProviderLatitude') || 30.0444;
+        const HOSP_LNG   = parseFloat('@Model.ProviderLongitude') || 31.2357;
+        const TOTAL_AMBS = 4;   // simulated total ambulances for this hospital
+        const AVG_KMH    = 40;
+        const ANIM_FPS   = 15;
+        const SPEEDUP    = 12;  // 12× real-time
+
+        // Accepted cases (patients that ambulances are heading to)
+        const acceptedCases = [
+            @foreach (var item in acceptedItems)
+            {
+                if (item.Latitude.HasValue && item.Longitude.HasValue)
+                {
+                    @:{ id: @item.RequestId, name: '@item.PatientName.Replace("'","\\'")', lat: @item.Latitude, lng: @item.Longitude, type: '@item.EmergencyType.Replace("'","\\'")', waited: @item.WaitingMinutes },
+                }
+            }
+        ];
+
+        // ── Haversine ──
+        function haversineKm(lat1, lng1, lat2, lng2) {
+            const R = 6371, dLat=(lat2-lat1)*Math.PI/180, dLng=(lng2-lng1)*Math.PI/180;
+            const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+            return R*2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        }
+
+        // ── Init Leaflet map ──
+        const dispMap = L.map('hospAmbMap').setView([HOSP_LAT, HOSP_LNG], 12);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+            {attribution:'&copy; OpenStreetMap'}).addTo(dispMap);
+
+        // Hospital marker
+        L.marker([HOSP_LAT, HOSP_LNG], {
+            icon: L.divIcon({
+                className:'',
+                html:'<div style="font-size:22px;filter:drop-shadow(0 2px 4px rgba(0,0,0,.3))">🏥</div>',
+                iconSize:[28,28], iconAnchor:[14,14]
+            })
+        }).addTo(dispMap).bindPopup('<b>@Html.Raw(Model.ProviderName?.Replace("'", "\\'") ?? "")</b>');
+
+        // ── Capacity calculation ──
+        const usedAmbs  = Math.min(acceptedCases.length, TOTAL_AMBS);
+        const freeAmbs  = TOTAL_AMBS - usedAmbs;
+        const capPct    = Math.max(0, Math.round(freeAmbs / TOTAL_AMBS * 100));
+
+        document.getElementById('capLabel').textContent = `${freeAmbs}/${TOTAL_AMBS} متاح`;
+        const capBar = document.getElementById('capBar');
+        capBar.style.width   = capPct + '%';
+        capBar.style.background = capPct === 0 ? '#ef4444' : capPct < 50 ? '#f59e0b' : '#22c55e';
+
+        // Show no-ambulance alert if all busy
+        if (freeAmbs <= 0) {
+            document.getElementById('noAmbHospAlert').style.display = 'block';
+            // Find nearest hospital hint from static data (just a message here)
+            document.getElementById('altHospText').textContent =
+                'أنصح بتحويل الحالات الجديدة لأقرب مستشفى مجاور حتى تعود إحدى السيارات.';
+        }
+
+        // ── Draw patient markers + animated ambulances ──
+        let dispHtml = '';
+
+        acceptedCases.forEach((c, idx) => {
+            if (!c.lat || !c.lng) return;
+
+            const dist      = haversineKm(HOSP_LAT, HOSP_LNG, c.lat, c.lng);
+            const etaMin    = Math.round((dist / AVG_KMH) * 60);
+            const simMs     = (etaMin * 60000) / SPEEDUP;
+            const stepMs    = 1000 / ANIM_FPS;
+            const steps     = Math.ceil(simMs / stepMs);
+
+            // Patient marker (red circle)
+            L.marker([c.lat, c.lng], {
+                icon: L.divIcon({
+                    className:'',
+                    html:`<div style="background:#ef4444;width:14px;height:14px;border:2px solid #fff;border-radius:50%;box-shadow:0 0 8px #ef4444;"></div>`,
+                    iconSize:[14,14], iconAnchor:[7,7]
+                })
+            }).addTo(dispMap).bindPopup(`<b>${c.name}</b><br>${c.type}`);
+
+            // Route line (dashed)
+            L.polyline([[HOSP_LAT, HOSP_LNG],[c.lat, c.lng]], {
+                color:'#ef4444', dashArray:'6 4', weight:2, opacity:.55
+            }).addTo(dispMap);
+
+            // Ambulance marker (starts at hospital)
+            const ambM = L.marker([HOSP_LAT, HOSP_LNG], {
+                icon: L.divIcon({
+                    className:'',
+                    html:`<div style="font-size:20px;animation:bounce 1s infinite ${idx*0.3}s;">🚑</div>`,
+                    iconSize:[26,26], iconAnchor:[13,13]
+                }),
+                zIndexOffset: 900 + idx
+            }).addTo(dispMap).bindPopup(`إسعاف → ${c.name}`);
+
+            // Animate from hospital to patient (with state persistence)
+            const startTimeKey = "amb_start_" + c.id;
+            let startTimeStr = localStorage.getItem(startTimeKey);
+            if (!startTimeStr) {
+                startTimeStr = Date.now().toString();
+                localStorage.setItem(startTimeKey, startTimeStr);
+            }
+            const startTime = parseInt(startTimeStr);
+            const elapsed = Date.now() - startTime;
+
+            const startReturnJourney = (initialRStep) => {
+                let rStep = initialRStep;
+                const retTimer = setInterval(() => {
+                    rStep = Math.min(rStep + 1, steps);
+                    const rt = rStep / steps;
+                    const re = rt < .5 ? 2*rt*rt : -1+(4-2*rt)*rt;
+                    ambM.setLatLng([c.lat + (HOSP_LAT - c.lat) * re, c.lng + (HOSP_LNG - c.lng) * re]);
+                    if (rStep >= steps) {
+                        clearInterval(retTimer);
+                        localStorage.removeItem(startTimeKey);
+                    }
+                }, stepMs);
+            };
+
+            if (elapsed < simMs) {
+                let step = Math.floor(elapsed / stepMs);
+                const timer = setInterval(() => {
+                    step = Math.min(step + 1, steps);
+                    const t    = step / steps;
+                    const ease = t < .5 ? 2*t*t : -1+(4-2*t)*t;
+                    const lat  = HOSP_LAT + (c.lat - HOSP_LAT) * ease;
+                    const lng  = HOSP_LNG + (c.lng - HOSP_LNG) * ease;
+                    ambM.setLatLng([lat, lng]);
+                    if (step >= steps) {
+                        clearInterval(timer);
+                        setTimeout(() => {
+                            startReturnJourney(0);
+                        }, 3000);
+                    }
+                }, stepMs);
+            } else if (elapsed < simMs + 3000) {
+                ambM.setLatLng([c.lat, c.lng]);
+                const remainingWait = (simMs + 3000) - elapsed;
+                setTimeout(() => {
+                    startReturnJourney(0);
+                }, remainingWait);
+            } else if (elapsed < 2 * simMs + 3000) {
+                const elapsedReturn = elapsed - (simMs + 3000);
+                let initialRStep = Math.floor(elapsedReturn / stepMs);
+                const rt = Math.min(initialRStep / steps, 1);
+                const re = rt < .5 ? 2*rt*rt : -1+(4-2*rt)*rt;
+                ambM.setLatLng([c.lat + (HOSP_LAT - c.lat) * re, c.lng + (HOSP_LNG - c.lng) * re]);
+                
+                startReturnJourney(initialRStep);
+            } else {
+                ambM.setLatLng([HOSP_LAT, HOSP_LNG]);
+                localStorage.removeItem(startTimeKey);
+            }
+
+            // Dispatch list row
+            dispHtml += `
+                <div class="d-flex align-items-center gap-2 p-2 mb-1 rounded-3" style="background:#f8fafc;border:1px solid #e2e8f0;font-size:.78rem;">
+                    <span>🚑</span>
+                    <div class="flex-grow-1 fw-700">${c.name}
+                        <span class="text-muted fw-600"> — ${c.type}</span>
+                    </div>
+                    <span class="badge bg-warning text-dark rounded-pill" style="font-size:.68rem;">${dist.toFixed(1)} كم · ${etaMin} د</span>
+                </div>`;
+        });
+
+        if (acceptedCases.length === 0) {
+            dispHtml = `<div class="text-center text-muted py-3 small">
+                <i class="fas fa-check-circle text-success fs-4 mb-1"></i><br>
+                لا توجد سيارات إسعاف متحركة حالياً — جميع السيارات في المستشفى
+            </div>`;
+            // Show available ambulance markers at hospital
+            for (let i = 0; i < TOTAL_AMBS; i++) {
+                const offsetLat = HOSP_LAT + (Math.random() - 0.5) * 0.005;
+                const offsetLng = HOSP_LNG + (Math.random() - 0.5) * 0.005;
+                L.marker([offsetLat, offsetLng], {
+                    icon: L.divIcon({
+                        className:'',
+                        html:`<div style="background:#22c55e;width:12px;height:12px;border:2px solid #fff;border-radius:50%;box-shadow:0 0 6px #22c55e;"></div>`,
+                        iconSize:[12,12], iconAnchor:[6,6]
+                    })
+                }).addTo(dispMap).bindPopup(`سيارة إسعاف #${(i+1).toString().padStart(2,'0')} — في المستشفى`);
+            }
+        }
+
+        document.getElementById('dispatchList').innerHTML = dispHtml;
+    })();
+    </script>
 }
+

@@ -30,6 +30,11 @@
         z-index: 1;
         box-shadow: 0 10px 30px rgba(0,0,0,0.02);
     }
+    @@media (max-width: 768px) {
+        .map-container-custom {
+            height: 350px;
+        }
+    }
 </style>
 
 <div class="container-fluid py-3 animate__animated animate__fadeIn">
@@ -214,7 +219,7 @@
         });
 
         function initMap(lat, lng) {
-            map = L.map('searchMap').setView([lat, lng], 13);
+            map = L.map('searchMap', { dragging: !L.Browser.mobile, tap: !L.Browser.mobile }).setView([lat, lng], 13);
 
             L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
                 attribution: '&copy; OpenStreetMap contributors'

@@ -57,6 +57,30 @@
             </a>
         </div>
 
+
+        <!-- ═══ URGENT CARE ACTION PANEL ════════════════ -->
+        <div class="med-card p-4 mb-4 animate__animated animate__fadeIn" style="border: 1.5px solid rgba(239,68,68,0.2); background: linear-gradient(135deg, #fff, #fff5f5);">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                <div>
+                    <h5 class="fw-black text-danger mb-1" style="font-size:1.05rem;">
+                        <i class="fas fa-shield-exclamation me-2"></i>هل تحتاج لمساعدة طبية عاجلة؟
+                    </h5>
+                    <p class="text-muted small mb-0">بناءً على نتائج تقييماتك يمكنك التواصل مع طبيب فوراً أو طلب إسعاف عاجل.</p>
+                </div>
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="/NearbyProviders" class="btn btn-primary fw-bold px-4 py-2 d-flex align-items-center gap-2" style="border-radius:12px;">
+                        <i class="fas fa-user-doctor"></i> استشارة طبيب فوري
+                    </a>
+                    <a href="/Chatbot" class="btn btn-outline-primary fw-bold px-4 py-2 d-flex align-items-center gap-2" style="border-radius:12px;">
+                        <i class="fas fa-robot"></i> استشارة الذكاء الاصطناعي
+                    </a>
+                    <button type="button" class="btn btn-danger fw-bold px-4 py-2 d-flex align-items-center gap-2" style="border-radius:12px; animation: pulse 1.5s infinite;" data-bs-toggle="modal" data-bs-target="#emergencyAmbulanceModal">
+                        <i class="fas fa-ambulance"></i> طلب إسعاف عاجل
+                    </button>
+                </div>
+            </div>
+        </div>
+
         @if (Model != null && Model.Any())
         {
             <div class="history-timeline">
@@ -106,7 +130,7 @@
 
                             <!-- Actions Row -->
                             <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top flex-wrap gap-2">
-                                <div class="d-flex gap-2">
+                                <div class="d-flex flex-wrap gap-2">
                                     <button class="btn btn-sm btn-outline-secondary fw-bold px-3" type="button" data-bs-toggle="collapse" data-bs-target="#recCollapse-@item.Id" aria-expanded="false" aria-controls="recCollapse-@item.Id">
                                         عرض التوصيات الطبية <i class="fas fa-chevron-down ms-1"></i>
                                     </button>
@@ -116,6 +140,18 @@
                                         <button class="btn btn-sm btn-outline-primary fw-bold px-3" type="button" onclick="loadHistoryAiExplanation(@item.Id)">
                                             <i class="fas fa-brain"></i> الشرح بالذكاء الاصطناعي
                                         </button>
+                                    }
+
+                                    @if (item.RiskLevel == Etmen_Domain.Enums.RiskLevel.High || item.RiskLevel == Etmen_Domain.Enums.RiskLevel.Emergency)
+                                    {
+                                        <button type="button" class="btn btn-sm btn-danger fw-bold px-3 d-flex align-items-center gap-2"
+                                                data-bs-toggle="modal" data-bs-target="#emergencyAmbulanceModal"
+                                                onclick="if(document.getElementById('navRiskAssessmentId')) document.getElementById('navRiskAssessmentId').value='@item.Id';">
+                                            <i class="fas fa-ambulance"></i> طلب إسعاف
+                                        </button>
+                                        <a href="/Chat/Index" class="btn btn-sm btn-outline-danger fw-bold px-3 d-flex align-items-center gap-2">
+                                            <i class="fas fa-comments"></i> تواصل مع طبيب
+                                        </a>
                                     }
                                 </div>
 

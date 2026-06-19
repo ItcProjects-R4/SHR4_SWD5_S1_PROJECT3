@@ -1,4 +1,4 @@
-﻿namespace Etmen_BLL.DTOs.Emergency
+namespace Etmen_BLL.DTOs.Emergency
 {
     public class EmergencyRequestDto
     {
@@ -8,5 +8,7 @@
         public decimal Longitude { get; set; }
         public string? EmergencyType { get; set; }
         public string? Description { get; set; }
+        public int? RiskAssessmentId { get; set; }
+        public int? HealthcareProviderId { get; set; }
     }
 }

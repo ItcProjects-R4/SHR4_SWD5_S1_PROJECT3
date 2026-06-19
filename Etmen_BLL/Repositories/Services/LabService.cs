@@ -20,7 +20,7 @@ namespace Etmen_BLL.Repositories.Services
         private readonly IEmailService _emailService;
         private readonly IPdfReportService _pdfService;
         private readonly ILogger<LabService> _logger;
-        private readonly IServiceProvider _serviceProvider;
+        private readonly IServiceScopeFactory _scopeFactory;
         private readonly IConfiguration _configuration;
         private readonly IBackgroundTaskQueue _taskQueue;
 
@@ -29,7 +29,7 @@ namespace Etmen_BLL.Repositories.Services
             IEmailService emailService,
             IPdfReportService pdfService,
             ILogger<LabService> logger,
-            IServiceProvider serviceProvider,
+            IServiceScopeFactory scopeFactory,
             IConfiguration configuration,
             IBackgroundTaskQueue taskQueue)
         {
@@ -37,7 +37,7 @@ namespace Etmen_BLL.Repositories.Services
             _emailService = emailService;
             _pdfService   = pdfService;
             _logger       = logger;
-            _serviceProvider = serviceProvider;
+            _scopeFactory = scopeFactory;
             _configuration   = configuration;
             _taskQueue    = taskQueue;
         }
@@ -122,12 +122,17 @@ namespace Etmen_BLL.Repositories.Services
                                 var fileBytes = await System.IO.File.ReadAllBytesAsync(physicalPath);
                                 var base64Data = Convert.ToBase64String(fileBytes);
 
-                                using var scope = _serviceProvider.CreateScope();
+                                using var scope = _scopeFactory.CreateScope();
                                 var scopedUow = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
                                 var httpClient = scope.ServiceProvider.GetRequiredService<HttpClient>();
 
-                                var apiKey = _configuration["ChatbotApi:ApiKey"];
-                                var endpoint = _configuration["ChatbotApi:Endpoint"];
+                                // Use the dedicated vision API config (gemini-1.5-flash supports inlineData)
+                                var apiKey = _configuration["GeminiVisionApi:ApiKey"]
+                                          ?? _configuration["ChatbotApi:ApiKey"];
+                                var endpoint = _configuration["GeminiVisionApi:Endpoint"]
+                                            ?? _configuration["ChatbotApi:Endpoint"];
+
+                                _logger.LogInformation("Starting Gemini Vision OCR for lab {Id}, file={Path}, mime={Mime}", lab.Id, physicalPath, mimeType);
 
                                 if (!string.IsNullOrEmpty(apiKey) && !string.IsNullOrEmpty(endpoint))
                                 {
@@ -185,6 +190,8 @@ namespace Etmen_BLL.Repositories.Services
                                                     ocrData = extractedText;
                                                     resultsSummary = ocrData.Length > 990 ? ocrData.Substring(0, 990) + "..." : ocrData;
 
+                                                    _logger.LogInformation("Gemini Vision OCR succeeded for lab {Id} — extracted {Chars} chars", lab.Id, ocrData.Length);
+
                                                     // Update database record inside scope
                                                     var dbLab = await scopedUow.LabResults.GetByIdAsync(lab.Id);
                                                     if (dbLab != null)
@@ -197,11 +204,17 @@ namespace Etmen_BLL.Repositories.Services
                                                 }
                                             }
                                         }
+                                        else
+                                        {
+                                            // API replied 200 but no candidates — log the full response to diagnose
+                                            _logger.LogWarning("Gemini Vision: 200 OK but no candidates for lab {Id}. Response: {Response}", lab.Id, await response.Content.ReadAsStringAsync(token));
+                                        }
                                     }
                                     else
                                     {
                                         var errorContent = await response.Content.ReadAsStringAsync(token);
-                                        _logger.LogError("Gemini OCR API returned error {StatusCode}: {Error}", response.StatusCode, errorContent);
+                                        _logger.LogError("Gemini Vision OCR API returned error {StatusCode} for lab {Id}: {Error}",
+                                            response.StatusCode, lab.Id, errorContent);
                                     }
                                 }
                             }
@@ -216,7 +229,7 @@ namespace Etmen_BLL.Repositories.Services
                         {
                             try
                             {
-                                using var scope = _serviceProvider.CreateScope();
+                                using var scope = _scopeFactory.CreateScope();
                                 var scopedUow = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
                                 var dbLab = await scopedUow.LabResults.GetByIdAsync(lab.Id);
                                 if (dbLab != null)
@@ -234,7 +247,7 @@ namespace Etmen_BLL.Repositories.Services
                     }
 
                     // Send lab result email with updated data
-                    using (var scope = _serviceProvider.CreateScope())
+                    using (var scope = _scopeFactory.CreateScope())
                     {
                         var scopedUow = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
                         var patient = await scopedUow.PatientProfiles.Table

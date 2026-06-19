@@ -408,15 +408,79 @@ namespace Etmen_BLL.Repositories.Services
                 ? (await _uow.OutbreakZones.GetByCrisisIdAsync(crisisId.Value)).ToList()
                 : (await _uow.OutbreakZones.GetAllAsync()).ToList();
 
-            var zoneDtos = zones.Select(zone => new CrisisHeatmapZoneDto
+            // Fetch active receiving hospitals (emergency centers)
+            var activeHospitals = await _uow.HealthcareProviders.Table
+                .Where(h => h.IsActive && (h.IsEmergencyCenter || h.Type == "Hospital"))
+                .ToListAsync();
+
+            // Fetch doctor-provider relationships
+            var doctorProviders = await _uow.DoctorProviders.Table.ToListAsync();
+
+            var zoneDtos = new List<CrisisHeatmapZoneDto>();
+            foreach (var zone in zones)
             {
-                ZoneId = zone.Id,
-                ZoneName = zone.ZoneName,
-                CenterLatitude = zone.CenterLatitude,
-                CenterLongitude = zone.CenterLongitude,
-                RadiusInKm = zone.RadiusInKm,
-                RiskLevel = zone.RiskLevel,
-                CriticalCasesInside = emergencies.Count(e => IsInsideZone(e, zone))
+                var casesInside = emergencies.Where(e => IsInsideZone(e, zone)).ToList();
+                var casesCount = casesInside.Count;
+
+                // Find hospitals within 30km of the outbreak zone center
+                var nearbyHospitals = activeHospitals
+                    .Where(h => GeoHelper.CalculateDistanceKm(
+                        (double)zone.CenterLatitude, (double)zone.CenterLongitude,
+                        (double)h.Latitude, (double)h.Longitude) <= 30.0)
+                    .ToList();
+
+                var bedsSum = nearbyHospitals.Sum(h => h.AvailableBeds ?? 0);
+                
+                // Doctor count in these nearby hospitals
+                var hospitalIds = nearbyHospitals.Select(h => h.Id).ToList();
+                var doctorsCount = doctorProviders.Count(dp => hospitalIds.Contains(dp.HealthcareProviderId));
+
+                // Support status calculation
+                string supportStatus = "مشبعة";
+                int bedsNeeded = 0;
+                int doctorsNeeded = 0;
+                var needingSupplyAreas = new List<string>();
+
+                if (casesCount > 0)
+                {
+                    if (bedsSum < casesCount)
+                    {
+                        supportStatus = "محتاجة مساعدة";
+                        bedsNeeded = casesCount - bedsSum;
+                        needingSupplyAreas.Add("نقص في الأسرة المتاحة استقبال");
+                    }
+                    else if (doctorsCount < (casesCount / 3) || doctorsCount == 0)
+                    {
+                        supportStatus = "تحتاج دكاترة";
+                        doctorsNeeded = Math.Max(1, (casesCount / 3) - doctorsCount);
+                        needingSupplyAreas.Add("نقص في الطاقم الطبي المتخصص");
+                    }
+                }
+
+                zoneDtos.Add(new CrisisHeatmapZoneDto
+                {
+                    ZoneId = zone.Id,
+                    ZoneName = zone.ZoneName,
+                    CenterLatitude = zone.CenterLatitude,
+                    CenterLongitude = zone.CenterLongitude,
+                    RadiusInKm = zone.RadiusInKm,
+                    RiskLevel = zone.RiskLevel,
+                    CriticalCasesInside = casesCount,
+                    SupportStatus = supportStatus,
+                    BedsNeeded = bedsNeeded,
+                    DoctorsNeeded = doctorsNeeded,
+                    NeedingSupplyAreas = needingSupplyAreas
+                });
+            }
+
+            var hospitalDtos = activeHospitals.Select(h => new HeatmapHospitalDto
+            {
+                Id = h.Id,
+                Name = h.Name,
+                Latitude = (double)h.Latitude,
+                Longitude = (double)h.Longitude,
+                AvailableBeds = h.AvailableBeds ?? 0,
+                Address = h.Address ?? string.Empty
             }).ToList();
 
             var dto = new CrisisHeatmapDto
@@ -432,7 +496,8 @@ namespace Etmen_BLL.Repositories.Services
                     Intensity = Math.Clamp(e.PriorityScore / 10, 1, 100),
                     Label = $"{e.RiskAssessment?.RiskLevel.ToString() ?? "Critical"} - {e.Status}"
                 }).ToList(),
-                Zones = zoneDtos
+                Zones = zoneDtos,
+                Hospitals = hospitalDtos
             };
 
             return ServiceResult<CrisisHeatmapDto>.Success(dto);
@@ -464,8 +529,8 @@ namespace Etmen_BLL.Repositories.Services
                 var visited = new HashSet<int>();
                 var clusters = new List<List<EmergencyRequest>>();
 
-                double clusteringRadiusKm = 15.0; // Distance threshold to group cases
-                int minCasesPerZone = 5;          // Minimum cases to form a zone
+                double clusteringRadiusKm = OutbreakSettingsHelper.ClusteringRadiusKm; // Distance threshold to group cases
+                int minCasesPerZone = OutbreakSettingsHelper.MinCasesPerZone;          // Minimum cases to form a zone
 
                 for (int i = 0; i < points.Count; i++)
                 {
@@ -565,28 +630,7 @@ namespace Etmen_BLL.Repositories.Services
 
         private static string GetRegionName(decimal lat, decimal lng)
         {
-            var cities = new[]
-            {
-                new { Name = "القاهرة", Lat = 30.0444, Lng = 31.2357 },
-                new { Name = "الإسكندرية", Lat = 31.2001, Lng = 29.9187 },
-                new { Name = "الجيزة", Lat = 30.0131, Lng = 31.2089 },
-                new { Name = "الشرقية", Lat = 30.5877, Lng = 31.5020 }
-            };
-
-            double minDist = double.MaxValue;
-            string closest = "المرصودة";
-
-            foreach (var city in cities)
-            {
-                double dist = GeoHelper.CalculateDistanceKm((double)lat, (double)lng, city.Lat, city.Lng);
-                if (dist < minDist)
-                {
-                    minDist = dist;
-                    closest = city.Name;
-                }
-            }
-
-            return closest;
+            return GeoHelper.GetGovernorate(null, null, lat, lng);
         }
 
         public async Task<ServiceResult<AiMedicalSummaryDto>> GenerateMedicalSummaryAsync(int patientProfileId)

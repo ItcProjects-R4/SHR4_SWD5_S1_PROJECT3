@@ -1,4 +1,5 @@
 using Etmen_BLL.DTOs.CriticalIntelligence;
+using System.Collections.Generic;
 
 namespace Etmen_PL.Models.ViewModels.Crisis
 {
@@ -8,5 +9,6 @@ namespace Etmen_PL.Models.ViewModels.Crisis
         public int TotalGeoTaggedCriticalCases { get; set; }
         public List<CrisisHeatmapPointDto> Points { get; set; } = new();
         public List<CrisisHeatmapZoneDto> Zones { get; set; } = new();
+        public List<HeatmapHospitalDto> Hospitals { get; set; } = new();
     }
 }

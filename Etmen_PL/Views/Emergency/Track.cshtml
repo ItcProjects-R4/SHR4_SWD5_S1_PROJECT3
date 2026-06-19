@@ -1,0 +1,556 @@
+@model Etmen_BLL.DTOs.Emergency.EmergencyRequestDto
+@{
+    ViewData["Title"] = "تتبع حالة الطوارئ والإسعاف";
+    Layout = "~/Views/Shared/_PatientLayout.cshtml";
+
+    var latestRisk       = ViewBag.LatestRisk as Etmen_Domain.Entities.RiskAssessment;
+    var currentStatus    = (string)(ViewBag.CurrentStatus ?? "Pending");
+    var acceptedPid      = ViewBag.AcceptedProviderId as int?;
+    var hospitalsJson    = System.Text.Json.JsonSerializer.Serialize(ViewBag.Hospitals);
+}
+
+<style>
+    .tracking-card {
+        background:#fff;border-radius:24px;
+        border:1px solid var(--border);
+        box-shadow:0 15px 35px rgba(0,0,0,.04);
+    }
+    /* ── Timeline ── */
+    .status-timeline{position:relative;padding-left:2.2rem;}
+    .status-timeline::before{content:'';position:absolute;top:0;bottom:0;left:9px;width:2px;background:#e2e8f0;}
+    .status-step{position:relative;padding-bottom:2rem;}
+    .status-step::before{content:'';position:absolute;left:-2.2rem;top:4px;width:20px;height:20px;border-radius:50%;
+        background:#fff;border:4px solid #cbd5e1;z-index:2;transition:all .4s ease;}
+    .status-step.active::before   {border-color:#f59e0b;background:#f59e0b;box-shadow:0 0 12px rgba(245,158,11,.5);}
+    .status-step.completed::before{border-color:#22c55e;background:#22c55e;box-shadow:0 0 12px rgba(34,197,94,.4);}
+    /* ── Delayed Section ── */
+    .delayed-section{background:#fef9f2;border:1px solid #fde68a;border-radius:20px;padding:24px;display:none;}
+    .hospital-map-container{height:350px;border-radius:16px;border:1px solid var(--border);overflow:hidden;margin-top:14px;}
+    .hospital-item{background:#fff;border:1px solid #f1f5f9;border-radius:12px;padding:12px;margin-bottom:10px;cursor:pointer;transition:all .2s;}
+    .hospital-item:hover{border-color:#1a6fbf;background:#f8fafc;}
+    /* ── Ambulance Track Map ── */
+    .amb-map-card{display:none;margin-top:20px;background:#fff;border-radius:20px;
+        border:2px solid #ef4444;box-shadow:0 4px 28px rgba(239,68,68,.15);padding:18px;}
+    .amb-map-card.show{display:block;animation:fadeInUp .4s ease;}
+    #ambulanceTrackMap{height:380px;border-radius:14px;overflow:hidden;}
+    /* ── Capacity Bar ── */
+    .cap-bar-wrap{background:#f1f5f9;border-radius:8px;height:10px;overflow:hidden;margin-top:4px;}
+    .cap-bar{height:100%;border-radius:8px;transition:width .6s ease;}
+    /* ── ETA badge ── */
+    .eta-badge{background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff;
+        border-radius:12px;padding:8px 18px;font-weight:800;display:inline-block;font-size:1.1rem;}
+    /* ── Animations ── */
+    @@keyframes pulseMini  {0%,100%{transform:scale(1)} 50%{transform:scale(1.08)}}
+    @@keyframes fadeInUp   {from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)}}
+    @@keyframes fadeInDown {from{opacity:0;transform:translateY(-12px)} to{opacity:1;transform:translateY(0)}}
+    @@keyframes bounce     {0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)}}
+    
+    @@media (max-width: 768px) {
+        .hospital-map-container {
+            height: 280px;
+        }
+        #ambulanceTrackMap {
+            height: 280px;
+        }
+    }
+</style>
+
+<div class="container py-4 animate__animated animate__fadeIn" dir="rtl">
+
+    <!-- ── Arrival Toast ── -->
+    <div id="arrivalToast" style="display:none;position:fixed;top:20px;right:20px;z-index:9999;
+         background:linear-gradient(135deg,#22c55e,#15803d);color:#fff;padding:14px 22px;
+         border-radius:16px;font-weight:700;font-size:.95rem;box-shadow:0 8px 30px rgba(0,0,0,.25);
+         animation:fadeInDown .4s ease;">
+        <i class="fas fa-check-circle me-2"></i> سيارة الإسعاف وصلت إلى موقعك!
+    </div>
+
+    <!-- ── No-Ambulance Alert ── -->
+    <div id="noAmbAlert" style="display:none;" class="alert alert-danger border-0 mb-3 fw-bold" style="border-radius:14px;">
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        <span id="noAmbMsg">جميع سيارات الإسعاف مشغولة حالياً.</span>
+        <span id="altHospitalsHint"></span>
+    </div>
+
+    <div class="row g-4 justify-content-center">
+
+        <!-- ═══ LEFT: Status + Ambulance GPS ═══ -->
+        <div class="col-lg-6 col-12">
+            <div class="tracking-card p-4">
+
+                <!-- Header -->
+                <div class="d-flex align-items-center gap-3 mb-4">
+                    <div class="p-3 bg-danger text-white rounded-4"
+                         style="font-size:1.8rem;animation:pulseMini 1.5s infinite;">
+                        <i class="fas fa-ambulance"></i>
+                    </div>
+                    <div>
+                        <h4 class="fw-bold mb-1">طلب الإسعاف العاجل #@Model.Id</h4>
+                        <p class="text-muted small mb-0">نوع الطوارئ: @Model.EmergencyType</p>
+                    </div>
+                </div>
+
+                <!-- Timeline -->
+                <div class="status-timeline mt-4 ms-3">
+                    <div class="status-step @(currentStatus != "Pending" ? "completed" : "active")" id="step-pending">
+                        <h6 class="fw-bold mb-1">تلقّي البلاغ في النظام</h6>
+                        <p class="text-muted small">جاري إشعار مستشفيات الطوارئ المحيطة.</p>
+                    </div>
+                    <div class="status-step @(currentStatus == "Accepted" ? "active" : currentStatus == "Completed" ? "completed" : "")" id="step-accepted">
+                        <h6 class="fw-bold mb-1">قبول الطلب وتوجيه الإسعاف</h6>
+                        <p class="text-muted small">تم قبول حالتك وجاري تحرك الإسعاف.</p>
+                    </div>
+                    <div class="status-step @(currentStatus == "Completed" ? "completed" : "")" id="step-completed">
+                        <h6 class="fw-bold mb-1">الوصول للمستشفى</h6>
+                        <p class="text-muted small">تم وصول الحالة والبدء في الرعاية الطبية.</p>
+                    </div>
+                </div>
+
+                <!-- Accepted Banner -->
+                <div id="acceptedBanner" style="display:none;background:linear-gradient(135deg,#22c55e,#16a34a);
+                     color:#fff;border-radius:16px;padding:14px 18px;margin-top:14px;font-weight:700;
+                     animation:fadeInDown .4s ease;">
+                    <i class="fas fa-satellite-dish me-2"></i>
+                    <span id="acceptedHospName">المستشفى</span> قبلت طلبك — الإسعاف في الطريق!
+                </div>
+
+                <!-- ETA panel (visible when accepted) -->
+                <div id="etaPanel" style="display:none;margin-top:14px;">
+                    <div class="d-flex align-items-center gap-3 justify-content-between flex-wrap">
+                        <div>
+                            <div class="text-muted small fw-bold mb-1"><i class="fas fa-road me-1"></i> المسافة التقديرية</div>
+                            <div class="fw-bold" id="distanceLabel">—</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-muted small fw-bold mb-1"><i class="fas fa-clock me-1"></i> وقت الوصول المقدر</div>
+                            <div class="eta-badge" id="etaBadge">— دقيقة</div>
+                        </div>
+                        <div>
+                            <div class="text-muted small fw-bold mb-1"><i class="fas fa-tachometer-alt me-1"></i> متبقى من الرحلة</div>
+                            <div class="progress-bar-container" style="width:100px;">
+                                <div class="cap-bar-wrap"><div class="cap-bar bg-danger" id="progressBar" style="width:100%;"></div></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Waiting Info -->
+                <div class="alert alert-warning border-0 p-3 mt-3" style="border-radius:16px;" id="waitingAlert">
+                    <h6 class="fw-bold"><i class="fas fa-clock"></i> زمن الانتظار المقدر: 10-15 دقيقة</h6>
+                    <p class="small mb-0 opacity-75">يرجى البقاء في موقعك، وسيصلك اتصال من طاقم الإسعاف.</p>
+                </div>
+
+                <!-- Ambulance GPS Map -->
+                <div class="amb-map-card" id="ambulanceMapCard">
+                    <h6 class="fw-bold text-danger mb-3">
+                        <i class="fas fa-map-marked-alt me-2"></i> تتبع مباشر لسيارة الإسعاف
+                    </h6>
+                    <div id="ambulanceTrackMap"></div>
+                    <div class="mt-2 d-flex gap-3 justify-content-center flex-wrap" style="font-size:.8rem;">
+                        <span><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#ef4444;border:2px solid #fff;box-shadow:0 0 6px #ef4444;vertical-align:middle;"></span> موقعك</span>
+                        <span><span style="font-size:16px;">🚑</span> سيارة الإسعاف</span>
+                        <span><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#3b82f6;border:2px solid #fff;vertical-align:middle;font-size:.7rem;color:#fff;text-align:center;line-height:10px;">H</span> المستشفى</span>
+                    </div>
+                </div>
+
+                <!-- Delayed Button -->
+                <button class="btn btn-outline-danger w-100 py-3 mt-3 fw-bold" style="border-radius:12px;"
+                        onclick="toggleDelaySection()">
+                    <i class="fas fa-exclamation-circle"></i> هل تأخرت سيارة الإسعاف؟ (اضغط هنا)
+                </button>
+            </div>
+        </div>
+
+        <!-- ═══ RIGHT: Self-Navigate + Direct Request ═══ -->
+        <div class="col-lg-6 col-12">
+            <div class="delayed-section shadow-sm w-100" id="delayedSection">
+                <h5 class="fw-bold text-danger mb-2"><i class="fas fa-route"></i> التوجه بنفسك للمستشفى</h5>
+                <p class="text-muted small mb-3">اختر أقرب مستشفى شاغر وأرسل طلب الاستقبال المباشر:</p>
+
+                <div class="hospital-map-container">
+                    <div id="hospitalMap" style="width:100%;height:100%;"></div>
+                </div>
+
+                <div class="row mt-4">
+                    <div class="col-md-7 col-12">
+                        <h6 class="fw-bold mb-3"><i class="fas fa-hospital-alt text-primary"></i> المستشفيات القريبة</h6>
+                        <div id="hospitalsList" style="max-height:240px;overflow-y:auto;padding-left:5px;"></div>
+                    </div>
+                    <div class="col-md-5 col-12 border-start">
+                        <h6 class="fw-bold mb-2"><i class="fas fa-file-medical-alt text-danger"></i> إرسال طلب استقبال</h6>
+
+                        @if (latestRisk != null)
+                        {
+                            <div class="card bg-light border-0 p-2 mb-2" style="border-radius:8px;">
+                                <div class="text-xs text-muted">آخر تقييم مخاطر:</div>
+                                <div class="fw-bold text-dark" style="font-size:.85rem;">
+                                    @(latestRisk.RiskLevel == Etmen_Domain.Enums.RiskLevel.Emergency ? "طارئة جداً 🚨" : latestRisk.RiskLevel == Etmen_Domain.Enums.RiskLevel.High ? "عالية ⚠️" : "متوسطة")
+                                </div>
+                            </div>
+                        }
+
+                        <input type="hidden" id="selectedHospitalId" />
+                        <input type="hidden" id="latestRiskId" value="@(latestRisk?.Id)" />
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">الأعراض أو الملاحظات</label>
+                            <textarea class="form-control" id="directNotes" rows="3"
+                                      style="border-radius:8px;font-size:.8rem;"
+                                      placeholder="اكتب حالتك..."></textarea>
+                        </div>
+                        <button class="btn btn-danger w-100 py-2 fw-bold" id="submitDirectBtn"
+                                disabled onclick="submitDirectRequest()" style="border-radius:8px;">
+                            <i class="fas fa-paper-plane"></i> طلب حجز سرير استقبال
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
+
+    <script>
+    // ── Server-injected constants ──
+    const REQUEST_ID      = @Model.Id;
+    const patientLat      = parseFloat("@Model.Latitude");
+    const patientLng      = parseFloat("@Model.Longitude");
+    const hospitals       = @Html.Raw(hospitalsJson);
+    let   currentStatus   = "@currentStatus";
+    const initProviderId  = @(acceptedPid.HasValue ? acceptedPid.Value.ToString() : "null");
+
+    // Ambulance simulation: average Egyptian city speed ~40 km/h = 0.667 km/min
+    const AVG_KMH         = 40;
+    const ANIM_FPS        = 20;    // steps per second of animation
+    const ANIM_SPEEDUP    = 12;    // simulation speed multiplier (12× real-time)
+
+    // ── Map references ──
+    let selectionMap = null, trackMap = null;
+    let ambMarker = null, animTimer = null;
+    let totalDurationMs = 0, elapsedMs = 0;
+
+    /* ══════════════════════════════════════════
+       SECTION 1 — Haversine distance helper
+    ══════════════════════════════════════════ */
+    function haversineKm(lat1, lng1, lat2, lng2) {
+        const R = 6371;
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLng = (lng2 - lng1) * Math.PI / 180;
+        const a = Math.sin(dLat/2)*Math.sin(dLat/2) +
+                  Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*
+                  Math.sin(dLng/2)*Math.sin(dLng/2);
+        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    }
+
+    /* ══════════════════════════════════════════
+       SECTION 2 — Hospital selection map (delayed)
+    ══════════════════════════════════════════ */
+    function toggleDelaySection() {
+        const el = document.getElementById('delayedSection');
+        if (!el.style.display || el.style.display === 'none') {
+            el.style.display = 'block';
+            setTimeout(initHospitalMap, 100);
+        } else { el.style.display = 'none'; }
+    }
+
+    function initHospitalMap() {
+        if (selectionMap) return;
+        selectionMap = L.map('hospitalMap', { dragging: !L.Browser.mobile, tap: !L.Browser.mobile }).setView([patientLat, patientLng], 12);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+            {attribution:'&copy; OpenStreetMap'}).addTo(selectionMap);
+
+        // Patient marker
+        addCircleMarker(selectionMap, patientLat, patientLng, '#ef4444', 14, '<b>موقعك</b>', true);
+
+        let listHtml = '';
+        const sortedHospitals = [...hospitals].sort((a, b) => {
+            const distA = haversineKm(patientLat, patientLng, a.Latitude, a.Longitude);
+            const distB = haversineKm(patientLat, patientLng, b.Latitude, b.Longitude);
+            return distA - distB;
+        });
+
+        sortedHospitals.forEach(h => {
+            const hasBeds = h.AvailableBeds > 0;
+            const dist    = haversineKm(patientLat, patientLng, h.Latitude, h.Longitude);
+            const mc      = hasBeds ? '#22c55e' : '#ef4444';
+            addCircleMarker(selectionMap, h.Latitude, h.Longitude, mc, 16,
+                `<div style="font-family:'Tajawal',sans-serif;text-align:right;direction:rtl;">
+                    <b>${h.Name}</b><br>الأسرة: <b>${h.AvailableBeds}</b><br>المسافة: ${dist.toFixed(1)} كم
+                 </div>`);
+
+            listHtml += `
+                <div class="hospital-item" onclick="selectHospital(${h.Id},'${h.Name}',${h.Latitude},${h.Longitude})">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <h6 class="fw-bold mb-0" style="font-size:.88rem;">${h.Name}</h6>
+                        <span class="badge ${hasBeds ? 'bg-success' : 'bg-danger'} rounded-pill" style="font-size:.68rem;">
+                            ${hasBeds ? 'شاغر' : 'ممتلئ'} (${h.AvailableBeds})
+                        </span>
+                    </div>
+                    <p class="text-muted small mb-0"><i class="fas fa-map-marker-alt me-1"></i>${h.Address}
+                        &nbsp;<span class="text-info fw-bold">${dist.toFixed(1)} كم</span></p>
+                </div>`;
+        });
+        document.getElementById('hospitalsList').innerHTML = listHtml;
+    }
+
+    function addCircleMarker(mapObj, lat, lng, color, size, popup, openPop) {
+        const m = L.marker([lat, lng], {
+            icon: L.divIcon({
+                className: '',
+                html: `<div style="background:${color};width:${size}px;height:${size}px;border:2px solid #fff;
+                              border-radius:50%;box-shadow:0 0 8px ${color};"></div>`,
+                iconSize: [size, size], iconAnchor: [size/2, size/2]
+            })
+        }).addTo(mapObj).bindPopup(popup);
+        if (openPop) m.openPopup();
+    }
+
+    function selectHospital(id, name, lat, lng) {
+        document.getElementById('selectedHospitalId').value = id;
+        const btn = document.getElementById('submitDirectBtn');
+        btn.removeAttribute('disabled');
+        btn.innerHTML = `<i class="fas fa-paper-plane"></i> إرسال لـ ${name}`;
+        if (selectionMap) selectionMap.setView([lat, lng], 14);
+    }
+
+    function submitDirectRequest() {
+        const hospitalId = document.getElementById('selectedHospitalId').value;
+        if (!hospitalId) return;
+        const btn = document.getElementById('submitDirectBtn');
+        btn.setAttribute('disabled','true');
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري إرسال الطلب...';
+        $.ajax({
+            url:'/Emergency/RequestDirectReception', type:'POST',
+            data:{
+                hospitalId, notes: document.getElementById('directNotes').value,
+                riskAssessmentId: document.getElementById('latestRiskId').value,
+                __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').val()
+            },
+            success(res){ res.success ? (alert(res.message), location.reload()) : (alert(res.message||'خطأ'), btn.removeAttribute('disabled')); },
+            error(){ alert('خطأ في الاتصال.'); btn.removeAttribute('disabled'); }
+        });
+    }
+
+    /* ══════════════════════════════════════════
+       SECTION 3 — Ambulance GPS Tracking Map
+    ══════════════════════════════════════════ */
+    function getHospitalById(id) {
+        return id ? hospitals.find(h => h.Id === id) || null : null;
+    }
+
+    function initTrackingMap(hospLat, hospLng, hospName, distKm) {
+        const card = document.getElementById('ambulanceMapCard');
+        card.classList.add('show');
+
+        if (!trackMap) {
+            const midLat = (hospLat + patientLat) / 2;
+            const midLng = (hospLng + patientLng) / 2;
+            trackMap = L.map('ambulanceTrackMap', { dragging: !L.Browser.mobile, tap: !L.Browser.mobile }).setView([midLat, midLng], 12);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+                {attribution:'&copy; OpenStreetMap'}).addTo(trackMap);
+
+            // Patient
+            addCircleMarker(trackMap, patientLat, patientLng, '#ef4444', 16, '<b>موقعك</b>', false);
+
+            // Hospital (blue square)
+            L.marker([hospLat, hospLng], {
+                icon: L.divIcon({
+                    className:'',
+                    html:`<div style="background:#3b82f6;width:22px;height:22px;border-radius:5px;
+                                border:2px solid #fff;box-shadow:0 0 10px #3b82f6;display:flex;
+                                align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:bold;">H</div>`,
+                    iconSize:[22,22], iconAnchor:[11,11]
+                })
+            }).addTo(trackMap).bindPopup(`<b>${hospName}</b>`);
+
+            // Route line
+            L.polyline([[hospLat,hospLng],[patientLat,patientLng]], {
+                color:'#ef4444', dashArray:'8 5', weight:3, opacity:.6
+            }).addTo(trackMap);
+
+            // Ambulance marker (starts at hospital)
+            ambMarker = L.marker([hospLat, hospLng], {
+                icon: L.divIcon({
+                    className:'',
+                    html:'<div style="font-size:26px;animation:bounce 1s infinite;">🚑</div>',
+                    iconSize:[30,30], iconAnchor:[15,15]
+                }),
+                zIndexOffset:1000
+            }).addTo(trackMap).bindPopup('سيارة الإسعاف');
+        }
+
+        startAmbulanceAnimation(hospLat, hospLng, distKm);
+    }
+
+    function startAmbulanceAnimation(fromLat, fromLng, distKm) {
+        if (animTimer) clearInterval(animTimer);
+
+        // Real travel time in minutes, then convert to sim milliseconds
+        const realMinutes   = (distKm / AVG_KMH) * 60;          // real-world ETA in minutes
+        totalDurationMs     = (realMinutes / ANIM_SPEEDUP) * 60000; // compressed sim duration ms
+        const stepMs        = 1000 / ANIM_FPS;
+        const steps         = Math.ceil(totalDurationMs / stepMs);
+
+        // Retrieve start time from localStorage to survive refreshes
+        const startTimeKey = "amb_start_" + REQUEST_ID;
+        let startTimeStr = localStorage.getItem(startTimeKey);
+        if (!startTimeStr) {
+            startTimeStr = Date.now().toString();
+            localStorage.setItem(startTimeKey, startTimeStr);
+        }
+
+        const startTime = parseInt(startTimeStr);
+        elapsedMs = Date.now() - startTime;
+        let step = Math.floor(elapsedMs / stepMs);
+
+        // Show ETA panel
+        document.getElementById('etaPanel').style.display = 'block';
+        document.getElementById('distanceLabel').textContent = distKm.toFixed(1) + ' كم';
+
+        const runTimerStep = () => {
+            const t    = Math.min(step / steps, 1);
+            const ease = t < .5 ? 2*t*t : -1+(4-2*t)*t; // ease-in-out
+
+            // Move ambulance
+            const lat = fromLat + (patientLat - fromLat) * ease;
+            const lng = fromLng + (patientLng - fromLng) * ease;
+            if (ambMarker) ambMarker.setLatLng([lat, lng]);
+
+            // Update ETA countdown based on remaining distance/time
+            const currentEta = Math.max(0, Math.round(realMinutes * (1 - t)));
+            document.getElementById('etaBadge').textContent = currentEta > 0 ? (currentEta + ' دقيقة') : 'أقل من دقيقة';
+
+            // Update progress bar (counts down)
+            const remaining = Math.max(0, 100 - Math.round(t * 100));
+            document.getElementById('progressBar').style.width = remaining + '%';
+
+            if (t >= 1) {
+                clearInterval(animTimer);
+                if (ambMarker) ambMarker.setLatLng([patientLat, patientLng]);
+                showArrivalToast();
+            }
+        };
+
+        // Run the first step immediately to position the ambulance correctly on load
+        runTimerStep();
+
+        if (elapsedMs < totalDurationMs) {
+            animTimer = setInterval(() => {
+                step++;
+                elapsedMs += stepMs;
+                runTimerStep();
+            }, stepMs);
+        } else {
+            // Already arrived
+            if (ambMarker) ambMarker.setLatLng([patientLat, patientLng]);
+            showArrivalToast();
+        }
+    }
+
+    function showArrivalToast() {
+        // Clear start time on arrival
+        localStorage.removeItem("amb_start_" + REQUEST_ID);
+
+        const t = document.getElementById('arrivalToast');
+        if (t) t.style.display = 'block';
+        setTimeout(() => { if (t) t.style.display = 'none'; }, 5500);
+        
+        // Complete timeline
+        const stepAccepted = document.getElementById('step-accepted');
+        if (stepAccepted) stepAccepted.className = 'status-step completed';
+        const stepCompleted = document.getElementById('step-completed');
+        if (stepCompleted) stepCompleted.className = 'status-step completed';
+        
+        const progBar = document.getElementById('progressBar');
+        if (progBar) progBar.style.width = '0%';
+        const badge = document.getElementById('etaBadge');
+        if (badge) badge.textContent = 'وصل!';
+    }
+
+    /* ══════════════════════════════════════════
+       SECTION 4 — Apply accepted state
+    ══════════════════════════════════════════ */
+    function applyAcceptedState(providerId) {
+        // Timeline
+        document.getElementById('step-pending').className  = 'status-step completed';
+        document.getElementById('step-accepted').className = 'status-step active';
+
+        const hosp = getHospitalById(providerId);
+        const hName = hosp ? hosp.Name : 'المستشفى';
+
+        // Banner
+        document.getElementById('acceptedBanner').style.display = 'block';
+        document.getElementById('acceptedHospName').textContent = hName;
+
+        if (hosp) {
+            const distKm = haversineKm(patientLat, patientLng, hosp.Latitude, hosp.Longitude);
+            initTrackingMap(hosp.Latitude, hosp.Longitude, hosp.Name, distKm);
+
+            // Check ambulance capacity (sim: each accepted request = 1 ambulance out)
+            checkAmbulanceCapacity(hosp);
+        }
+    }
+
+    function checkAmbulanceCapacity(hosp) {
+        // Simulated capacity: random between 2-4 total ambulances per hospital
+        // In production this would come from an API endpoint
+        const totalAmbs = 3;
+        const outAmbs   = 2; // sim: 2 out (current + another)
+        const available = totalAmbs - outAmbs;
+        if (available <= 0) {
+            // Find nearest hospital with potential availability
+            const nearest = hospitals
+                .filter(h => h.Id !== hosp.Id && h.AvailableBeds > 0)
+                .sort((a,b) => haversineKm(patientLat,patientLng,a.Latitude,a.Longitude)
+                               - haversineKm(patientLat,patientLng,b.Latitude,b.Longitude))[0];
+            const hint = nearest
+                ? ` يمكنك التوجه لـ <b>${nearest.Name}</b> (${haversineKm(patientLat,patientLng,nearest.Latitude,nearest.Longitude).toFixed(1)} كم)`
+                : '';
+            document.getElementById('noAmbMsg').textContent  = 'جميع سيارات الإسعاف في هذا المستشفى مشغولة حالياً — يمكنك الانتظار أو:';
+            document.getElementById('altHospitalsHint').innerHTML = hint;
+            document.getElementById('noAmbAlert').style.display = 'block';
+        }
+    }
+
+    /* ══════════════════════════════════════════
+       SECTION 5 — SignalR
+    ══════════════════════════════════════════ */
+    const connection = new signalR.HubConnectionBuilder()
+        .withUrl('/hubs/queue').withAutomaticReconnect().build();
+
+    connection.on('EmergencyRequestUpdated', update => {
+        if (update.requestId !== REQUEST_ID) return;
+        const st = (update.status || '').toString();
+        currentStatus = st;
+        if (st === 'Accepted') {
+            applyAcceptedState(update.providerId);
+        } else if (st === 'Completed') {
+            localStorage.removeItem("amb_start_" + REQUEST_ID);
+            ['step-pending','step-accepted','step-completed'].forEach(id =>
+                document.getElementById(id).className = 'status-step completed');
+            showArrivalToast();
+        }
+    });
+
+    connection.start()
+        .then(() => console.log('SignalR connected — tracking #' + REQUEST_ID))
+        .catch(e  => console.error('SignalR error:', e));
+
+    /* ══════════════════════════════════════════
+       SECTION 6 — On page load: restore state
+    ══════════════════════════════════════════ */
+    document.addEventListener('DOMContentLoaded', () => {
+        if (currentStatus === 'Accepted' && initProviderId) {
+            applyAcceptedState(initProviderId);
+        } else if (currentStatus === 'Completed') {
+            ['step-pending','step-accepted','step-completed'].forEach(id =>
+                document.getElementById(id).className = 'status-step completed');
+            if (initProviderId) applyAcceptedState(initProviderId);
+        }
+    });
+    </script>
+}

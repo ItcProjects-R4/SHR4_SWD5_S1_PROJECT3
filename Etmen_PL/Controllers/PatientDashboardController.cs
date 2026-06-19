@@ -60,7 +60,15 @@ namespace Etmen_PL.Controllers
                     MedicalRecordsCount = result.Data.MedicalRecordsCount,
                     LatestMedicalRecord = result.Data.LatestMedicalRecord,
                     UpcomingAppointments = result.Data.UpcomingAppointments,
-                    RecentAlerts = result.Data.RecentAlerts
+                    RecentAlerts = result.Data.RecentAlerts,
+                    HasActiveEmergency = result.Data.HasActiveEmergency,
+                    ActiveEmergencyId = result.Data.ActiveEmergencyId,
+                    ActiveEmergencyDoctorName = result.Data.ActiveEmergencyDoctorName,
+                    ActiveEmergencyDoctorUserId = result.Data.ActiveEmergencyDoctorUserId,
+                    ActiveEmergencyHospitalName = result.Data.ActiveEmergencyHospitalName,
+                    ActiveEmergencyPatientRecommendations = result.Data.ActiveEmergencyPatientRecommendations,
+                    ActiveEmergencyFamilyRecommendations = result.Data.ActiveEmergencyFamilyRecommendations,
+                    ActiveEmergencyPrescribedMedications = result.Data.ActiveEmergencyPrescribedMedications
                 };
 
                 return View(viewModel);

@@ -843,7 +843,7 @@
                 let lat = parseFloat('@Model.Latitude');
                 let lng = parseFloat('@Model.Longitude');
 
-                const map = L.map('clinicMap', { zoomControl: false }).setView([lat, lng], 14);
+                const map = L.map('clinicMap', { zoomControl: false, dragging: !L.Browser.mobile, tap: !L.Browser.mobile }).setView([lat, lng], 14);
 
                 L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
                     attribution: '&copy; OpenStreetMap contributors'

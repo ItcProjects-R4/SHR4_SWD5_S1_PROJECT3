@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+
 namespace Etmen_BLL.DTOs.CriticalIntelligence
 {
     public class CrisisHeatmapDto
@@ -7,5 +10,16 @@ namespace Etmen_BLL.DTOs.CriticalIntelligence
         public int TotalGeoTaggedCriticalCases { get; set; }
         public List<CrisisHeatmapPointDto> Points { get; set; } = new();
         public List<CrisisHeatmapZoneDto> Zones { get; set; } = new();
+        public List<HeatmapHospitalDto> Hospitals { get; set; } = new();
+    }
+
+    public class HeatmapHospitalDto
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public double Latitude { get; set; }
+        public double Longitude { get; set; }
+        public int AvailableBeds { get; set; }
+        public string Address { get; set; } = string.Empty;
     }
 }

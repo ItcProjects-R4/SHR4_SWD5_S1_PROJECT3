@@ -38,6 +38,16 @@ namespace Etmen_BLL.Repositories.Services
                 if (dto.Longitude < -180 || dto.Longitude > 180)
                     return ServiceResult<EmergencyRequestDto>.Failure("Invalid longitude coordinate.");
 
+                int priorityScore = 50;
+                if (dto.RiskAssessmentId.HasValue && dto.RiskAssessmentId.Value > 0)
+                {
+                    var risk = await _uow.RiskAssessments.GetByIdAsync(dto.RiskAssessmentId.Value);
+                    if (risk != null)
+                    {
+                        priorityScore = (int)(risk.RiskScore * 100);
+                    }
+                }
+
                 var emergencyRequest = new EmergencyRequest
                 {
                     PatientProfileId = dto.PatientProfileId,
@@ -46,7 +56,10 @@ namespace Etmen_BLL.Repositories.Services
                     EmergencyType = dto.EmergencyType,
                     Description = dto.Description,
                     Status = EmergencyRequestStatus.Pending,
-                    RequestedAt = DateTime.UtcNow
+                    RequestedAt = DateTime.UtcNow,
+                    RiskAssessmentId = dto.RiskAssessmentId,
+                    HealthcareProviderId = dto.HealthcareProviderId,
+                    PriorityScore = priorityScore
                 };
 
                 await _uow.EmergencyRequests.AddAsync(emergencyRequest);

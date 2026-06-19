@@ -45,17 +45,17 @@ namespace Etmen_PL.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return RedirectToAction("Login", "Account");
 
-                var profileResult = await _patientService.GetProfileAsync(userId);
-                if (!profileResult.IsSuccess || profileResult.Data == null)
+                var patient = HttpContext.Items["PatientProfile"] as Etmen_Domain.Entities.PatientProfile;
+                if (patient == null)
                 {
                     TempData["Error"] = "فشل تحميل ملف المريض";
                     return RedirectToAction("Index", "PatientDashboard");
                 }
 
-                var labResult = await _labService.GetPatientLabResultsAsync(profileResult.Data.Id);
+                var labResult = await _labService.GetPatientLabResultsAsync(patient.Id);
                 var results = labResult.IsSuccess ? labResult.Data : new List<Etmen_BLL.DTOs.Lab.LabResultDto>();
 
-                ViewBag.LabUpload = new LabUploadViewModel { PatientId = profileResult.Data.Id };
+                ViewBag.LabUpload = new LabUploadViewModel { PatientId = patient.Id };
                 return View(results);
             }
             catch (Exception ex)
@@ -109,7 +109,7 @@ namespace Etmen_PL.Controllers
                     Directory.CreateDirectory(uploadFolder);
                 }
 
-                var uniqueFileName = $"{Guid.NewGuid()}_{Path.GetFileName(viewModel.LabFile.FileName)}";
+                var uniqueFileName = $"{Guid.NewGuid()}{Path.GetExtension(viewModel.LabFile.FileName).ToLower()}";
                 var filePath = Path.Combine(uploadFolder, uniqueFileName);
 
                 using (var fileStream = new FileStream(filePath, FileMode.Create))
@@ -170,8 +170,8 @@ namespace Etmen_PL.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return RedirectToAction("Login", "Account");
 
-                var profileResult = await _patientService.GetProfileAsync(userId);
-                if (!profileResult.IsSuccess || profileResult.Data == null)
+                var patient = HttpContext.Items["PatientProfile"] as Etmen_Domain.Entities.PatientProfile;
+                if (patient == null)
                 {
                     TempData["Error"] = "ملف المريض غير موجود";
                     return RedirectToAction(nameof(Index));
@@ -184,7 +184,7 @@ namespace Etmen_PL.Controllers
                     return RedirectToAction(nameof(Index));
                 }
 
-                if (labResult.Data.PatientId != profileResult.Data.Id)
+                if (labResult.Data.PatientId != patient.Id)
                 {
                     _logger.LogWarning("User {UserId} unauthorized download attempt of lab result {LabId}", userId, id);
                     return Forbid();
@@ -192,7 +192,7 @@ namespace Etmen_PL.Controllers
 
                 var data = labResult.Data;
                 var pdfBytes = await _pdfReportService.GenerateLabReportPdfAsync(
-                    profileResult.Data.FullName ?? "المريض",
+                    patient.FullName ?? "المريض",
                     data.TestName,
                     data.TestDate,
                     data.Results,

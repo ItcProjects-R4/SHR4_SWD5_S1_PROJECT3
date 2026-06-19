@@ -659,7 +659,7 @@
             }
 
             <!-- Action Buttons -->
-            <div class="row g-2 justify-content-center">
+            <div class="row g-2 justify-content-center mt-2">
                 <div class="col-md-4">
                     <a href="/PatientDashboard" class="btn btn-action-premium btn-action-outline w-100">
                         <i class="fas fa-chart-pie"></i> لوحة التحكم
@@ -668,14 +668,37 @@
                 @if (Model.Id > 0)
                 {
                     <div class="col-md-4">
-                        <a href="@Url.Action("DownloadPdf", "RiskAssessment", new { id = Model.Id })" class="btn btn-action-premium btn-action-danger w-100">
+                        <a href="@Url.Action("DownloadPdf", "RiskAssessment", new { id = Model.Id })" class="btn btn-action-premium btn-action-primary w-100">
                             <i class="fas fa-file-pdf"></i> تحميل تقرير PDF
                         </a>
                     </div>
                 }
                 <div class="col-md-4">
-                    <a href="/RiskAssessment/History" class="btn btn-action-premium btn-action-primary w-100">
-                        <i class="fas fa-history"></i> عرض سجل التقييمات
+                    <a href="/RiskAssessment/History" class="btn btn-action-premium btn-action-outline w-100">
+                        <i class="fas fa-history"></i> سجل التقييمات
+                    </a>
+                </div>
+
+                @* FIX 4 — طلب إسعاف مرتبط بالتقييم الحالي *@
+                @if (Model.IsEmergency || Model.RiskLevel == Etmen_Domain.Enums.RiskLevel.High || Model.RiskLevel == Etmen_Domain.Enums.RiskLevel.Emergency)
+                {
+                    <div class="col-md-6 mt-1">
+                        <button type="button"
+                                class="btn btn-action-premium btn-action-danger w-100"
+                                style="font-size:1rem;padding:16px 20px;letter-spacing:.2px;"
+                                data-bs-toggle="modal" data-bs-target="#emergencyAmbulanceModal"
+                                onclick="setRiskIdInModal(@Model.Id)">
+                            <i class="fas fa-ambulance"></i> طلب سيارة إسعاف فوري
+                        </button>
+                    </div>
+                }
+
+                @* زر حجز موعد طبيب *@
+                <div class="col-md-@(Model.IsEmergency || Model.RiskLevel == Etmen_Domain.Enums.RiskLevel.High || Model.RiskLevel == Etmen_Domain.Enums.RiskLevel.Emergency ? "6" : "4") mt-1">
+                    <a href="/Appointments"
+                       class="btn btn-action-premium w-100"
+                       style="background:linear-gradient(135deg,#8B5CF6,#6D28D9);color:#fff;font-size:1rem;padding:16px 20px;border:none;">
+                        <i class="fas fa-calendar-check"></i> حجز موعد مع طبيب
                     </a>
                 </div>
             </div>
@@ -751,6 +774,12 @@
                 alert('حدث خطأ في الاتصال بالخادم');
                 $('#btnFetchAiExplain').show();
             });
+        }
+
+        // FIX 4: Pass riskAssessmentId to the emergency modal
+        function setRiskIdInModal(riskId) {
+            var field = document.getElementById('navRiskAssessmentId');
+            if (field) field.value = riskId;
         }
     </script>
 }

@@ -240,14 +240,39 @@
             color: white;
         }
 
-        /* Responsive */
+        .drawer-handle {
+            display: none;
+        }
+
+        /* Responsive bottom sheet for mobile */
         @@media (max-width: 576px) {
             .floating-dashboard {
-                top: 10px;
-                right: 10px;
-                left: 10px;
-                width: auto;
-                max-height: calc(100vh - 20px);
+                position: fixed;
+                top: auto !important;
+                bottom: 0 !important;
+                right: 0 !important;
+                left: 0 !important;
+                width: 100% !important;
+                max-height: 75px !important;
+                border-radius: 24px 24px 0 0 !important;
+                box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.5) !important;
+                padding: 10px 20px 24px 20px !important;
+                transition: max-height 0.4s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+                z-index: 1050 !important;
+                overflow: hidden !important;
+            }
+            .floating-dashboard.expanded {
+                max-height: 75vh !important;
+                overflow-y: auto !important;
+            }
+            .drawer-handle {
+                width: 45px;
+                height: 5px;
+                background: rgba(255, 255, 255, 0.25);
+                border-radius: 3px;
+                margin: 0 auto 10px auto;
+                cursor: pointer;
+                display: block !important;
             }
         }
     </style>
@@ -260,13 +285,20 @@
     <!-- Floating Dashboard Panel -->
     <div class="floating-dashboard animate__animated animate__fadeInRight">
         
+        <div class="drawer-handle" onclick="toggleDashboard()"></div>
+
         <!-- Header -->
-        <div class="header-section">
-            <h2 class="dashboard-title">
-                <i class="fas fa-tower-broadcast"></i>
-                خريطة البؤر الوبائية
-            </h2>
-            <p class="dashboard-subtitle">الرصد الجغرافي الحي ومؤشرات العدوى والتدهور</p>
+        <div class="header-section d-flex align-items-center justify-content-between pb-3">
+            <div>
+                <h2 class="dashboard-title">
+                    <i class="fas fa-tower-broadcast"></i>
+                    خريطة البؤر الوبائية
+                </h2>
+                <p class="dashboard-subtitle">الرصد الجغرافي الحي ومؤشرات العدوى والتدهور</p>
+            </div>
+            <button class="btn btn-link text-light d-block d-sm-none p-0 ms-2" onclick="toggleDashboard()" style="font-size: 1.2rem; text-decoration: none;">
+                <i id="toggleIcon" class="fas fa-chevron-up"></i>
+            </button>
         </div>
 
         <!-- Crises Selector Filter -->
@@ -320,6 +352,56 @@
                 <div class="pulsing-gps" style="width: 10px; height: 10px; box-shadow: none;"></div>
                 <span>مريض حرج حالي (Pulse GPS Point)</span>
             </div>
+            <div class="legend-item">
+                <span class="legend-color" style="background: #2ecc71; border: 2px solid white; display: inline-block;"></span>
+                <span>مستشفى استقبال (بها أسرة شاغرة)</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-color" style="background: #e74c3c; border: 2px solid white; display: inline-block;"></span>
+                <span>مستشفى ممتلئ (بدون أسرة)</span>
+            </div>
+        </div>
+
+        <!-- Support & Outbreak Needs Section -->
+        <div style="border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 15px;">
+            <div class="legend-title"><i class="fas fa-kit-medical text-danger me-1"></i> بؤر التفشي واحتياجات المدد</div>
+            <div style="max-height: 180px; overflow-y: auto; padding-left: 5px; font-size: 0.8rem;">
+                @if (Model.Zones.Count == 0)
+                {
+                    <div class="text-muted text-center py-2">لا توجد بؤر تفشٍّ نشطة حالياً.</div>
+                }
+                else
+                {
+                    @foreach (var zone in Model.Zones)
+                    {
+                        var badgeClass = "bg-success";
+                        var statusText = "مشبعة وآمنة";
+                        if (zone.SupportStatus == "محتاجة مساعدة")
+                        {
+                            badgeClass = "bg-warning text-dark";
+                            statusText = $"عجز أسرة (-{zone.BedsNeeded})";
+                        }
+                        else if (zone.SupportStatus == "تحتاج دكاترة")
+                        {
+                            badgeClass = "bg-info text-white";
+                            statusText = $"عجز دكاترة (-{zone.DoctorsNeeded})";
+                        }
+                        <div class="mb-2 p-2 rounded" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05);">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <strong class="text-white">@zone.ZoneName</strong>
+                                <span class="badge @badgeClass" style="font-size: 0.65rem;">@statusText</span>
+                            </div>
+                            <div class="text-muted small" style="font-size: 0.75rem;">
+                                المرضى بالداخل: @zone.CriticalCasesInside حالة
+                                @if (zone.NeedingSupplyAreas != null && zone.NeedingSupplyAreas.Any())
+                                {
+                                    <div class="text-danger mt-1"><i class="fas fa-triangle-exclamation text-xs"></i> @string.Join("، ", zone.NeedingSupplyAreas)</div>
+                                }
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
         </div>
 
         <!-- Navigation Buttons -->
@@ -344,6 +426,7 @@
         // Parse database points and zones
         const rawPoints = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Points));
         const rawZones = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Zones));
+        const rawHospitals = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Hospitals));
 
         // Default map coordinates center (Egypt/Cairo)
         let mapCenter = [30.0444, 31.2357];
@@ -403,23 +486,59 @@
                 radius: radiusMeters,
                 color: zoneColor,
                 fillColor: zoneColor,
-                fillOpacity: 0.2,
+                fillOpacity: 0.15,
                 weight: 2,
                 dashArray: '5, 5'
             }).addTo(map);
 
+            // Calculate support badge
+            let supportBadge = `<span style="background:#27ae60; color:white; padding:2px 8px; border-radius:10px; font-size:0.7rem; font-weight:bold;">مشبعة وآمنة</span>`;
+            if (zone.SupportStatus === 'محتاجة مساعدة') {
+                supportBadge = `<span style="background:#e67e22; color:white; padding:2px 8px; border-radius:10px; font-size:0.7rem; font-weight:bold;">محتاجة مساعدة (-${zone.BedsNeeded} سرير)</span>`;
+            } else if (zone.SupportStatus === 'تحتاج دكاترة') {
+                supportBadge = `<span style="background:#00b0ff; color:white; padding:2px 8px; border-radius:10px; font-size:0.7rem; font-weight:bold;">تحتاج أطباء (-${zone.DoctorsNeeded} دكتور)</span>`;
+            }
+
             // Add Details Popup on Click
             const popupContent = `
-                <div style="font-family: 'Tajawal', sans-serif; text-align: right; direction: rtl; min-width: 220px; padding: 5px;">
-                    <h5 style="font-weight: 800; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 6px; margin-bottom: 8px; color: ${zoneColor}; display: flex; align-items: center; gap: 6px;">
-                        <i class="fas fa-biohazard"></i> ${zone.ZoneName}
+                <div style="font-family: 'Tajawal', sans-serif; text-align: right; direction: rtl; min-width: 240px; padding: 5px;">
+                    <h5 style="font-weight: 800; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 6px; margin-bottom: 8px; color: ${zoneColor}; display: flex; align-items: center; justify-content: space-between; gap: 6px;">
+                        <span><i class="fas fa-biohazard"></i> ${zone.ZoneName}</span>
                     </h5>
                     <p style="margin: 0 0 5px 0; font-size: 0.85rem;"><strong>مستوى الخطورة:</strong> ${zoneLabel}</p>
+                    <p style="margin: 0 0 5px 0; font-size: 0.85rem;"><strong>حالة الدعم:</strong> ${supportBadge}</p>
                     <p style="margin: 0 0 5px 0; font-size: 0.85rem;"><strong>قطر البؤرة:</strong> ${zone.RadiusInKm} كيلومتر</p>
-                    <p style="margin: 0 0 5px 0; font-size: 0.85rem;"><strong>المرضى المتأثرين بالداخل:</strong> <span class="badge bg-danger rounded-pill">${zone.CriticalCasesInside} حالة</span></p>
+                    <p style="margin: 0 0 5px 0; font-size: 0.85rem;"><strong>المرضى بالداخل:</strong> <span class="badge bg-danger rounded-pill">${zone.CriticalCasesInside} حالة حرجة</span></p>
                 </div>
             `;
             circle.bindPopup(popupContent);
+        });
+
+        // Draw Hospitals on the map
+        rawHospitals.forEach(h => {
+            const hasBeds = h.AvailableBeds > 0;
+            const markerColor = hasBeds ? '#2ecc71' : '#e74c3c';
+            const markerHtml = `<div style="background-color:${markerColor}; width:12px; height:12px; border-radius:50%; border:2px solid white; box-shadow: 0 0 8px ${markerColor};"></div>`;
+
+            const hospitalIcon = L.divIcon({
+                className: 'custom-hospital-marker',
+                html: markerHtml,
+                iconSize: [12, 12],
+                iconAnchor: [6, 6]
+            });
+
+            const marker = L.marker([h.Latitude, h.Longitude], { icon: hospitalIcon }).addTo(map);
+
+            const popupContent = `
+                <div style="font-family: 'Tajawal', sans-serif; text-align: right; direction: rtl; min-width: 200px; padding: 5px;">
+                    <h6 style="font-weight: 800; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 6px; margin-bottom: 6px; color: ${hasBeds ? '#2ecc71' : '#e74c3c'};">
+                        <i class="fas fa-hospital"></i> ${h.Name}
+                    </h6>
+                    <p style="margin: 0 0 4px 0; font-size: 0.8rem;"><strong>الأسرة الشاغرة بالاستقبال:</strong> <b>${h.AvailableBeds}</b></p>
+                    <p style="margin: 0; font-size: 0.8rem;"><strong>العنوان:</strong> ${h.Address}</p>
+                </div>
+            `;
+            marker.bindPopup(popupContent);
         });
 
         // Plot Critical Cases Points (Radar Pulsing Markers)
@@ -463,6 +582,19 @@
                 window.location.href = "/AdminCrisis/Heatmap";
             } else {
                 window.location.href = "/AdminCrisis/Heatmap?crisisId=" + crisisId;
+            }
+        }
+
+        function toggleDashboard() {
+            const dashboard = document.querySelector('.floating-dashboard');
+            dashboard.classList.toggle('expanded');
+            const icon = document.getElementById('toggleIcon');
+            if (icon) {
+                if (dashboard.classList.contains('expanded')) {
+                    icon.className = 'fas fa-chevron-down';
+                } else {
+                    icon.className = 'fas fa-chevron-up';
+                }
             }
         }
     </script>

@@ -21,6 +21,8 @@ namespace Etmen_BLL.Repositories.IServices
         Task<ServiceResult<IEnumerable<MedicalRecordDto>>> GetByDateRangeAsync(
             string userId, DateTime startDate, DateTime endDate);
 
+        Task<ServiceResult<MedicalRecordDto>> UpdateAsync(string userId, int recordId, MedicalRecordCreateDto dto);
+
         Task<ServiceResult<IEnumerable<MedicalRecordDto>>> GetWithAbnormalValuesAsync(string userId);
     }
 }

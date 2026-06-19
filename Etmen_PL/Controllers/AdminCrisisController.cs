@@ -5,6 +5,7 @@ using Etmen_PL.Models.ViewModels.Crisis;
 using Etmen_Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Etmen_BLL.Helpers;
 
 namespace Etmen_PL.Controllers
 {
@@ -469,7 +470,8 @@ namespace Etmen_PL.Controllers
                     CrisisId = result.Data.CrisisId,
                     TotalGeoTaggedCriticalCases = result.Data.TotalGeoTaggedCriticalCases,
                     Points = result.Data.Points,
-                    Zones = result.Data.Zones
+                    Zones = result.Data.Zones,
+                    Hospitals = result.Data.Hospitals
                 };
 
                 return View(viewModel);
@@ -612,6 +614,27 @@ namespace Etmen_PL.Controllers
                 ModelState.AddModelError(nameof(CreateCrisisViewModel.SystemMode), "Invalid system mode");
 
             return isCrisisTypeValid && isSystemModeValid;
+        }
+
+        /// <summary>
+        /// POST: /AdminCrisis/SaveOutbreakSettings
+        /// Saves custom outbreak parameters to outbreak_settings.json
+        /// </summary>
+        [HttpPost]
+        [Authorize(Roles = "Admin,CrisisAdmin")]
+        [ValidateAntiForgeryToken]
+        public IActionResult SaveOutbreakSettings(double radius, int minCases)
+        {
+            try
+            {
+                OutbreakSettingsHelper.Save(radius, minCases);
+                TempData["Success"] = "تم حفظ إعدادات معايير تجميع البؤر بنجاح!";
+            }
+            catch (Exception ex)
+            {
+                TempData["Error"] = "خطأ في حفظ الإعدادات: " + ex.Message;
+            }
+            return RedirectToAction("Index", "AdminDashboard");
         }
     }
 }

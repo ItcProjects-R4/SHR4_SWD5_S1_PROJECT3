@@ -312,7 +312,7 @@
         // Initialize Map
         let lat = @(Model.Latitude ?? 30.0444m);
         let lng = @(Model.Longitude ?? 31.2357m);
-        let map = L.map('patientMap').setView([lat, lng], 14);
+        let map = L.map('patientMap', { dragging: !L.Browser.mobile, tap: !L.Browser.mobile }).setView([lat, lng], 14);
 
         L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
             attribution: '&copy; OpenStreetMap contributors'

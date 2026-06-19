@@ -119,6 +119,36 @@ namespace Etmen_BLL.Repositories.Services
             return ServiceResult<IEnumerable<MedicalRecordDto>>.Success(records.Select(Map));
         }
 
+        public async Task<ServiceResult<MedicalRecordDto>> UpdateAsync(string userId, int recordId, MedicalRecordCreateDto dto)
+        {
+            var validationErrors = Validate(dto).ToList();
+            if (validationErrors.Count > 0)
+                return ServiceResult<MedicalRecordDto>.Failure(validationErrors);
+
+            var patientResult = await GetPatientIdAsync(userId);
+            if (!patientResult.IsSuccess)
+                return ServiceResult<MedicalRecordDto>.Failure(patientResult.ErrorMessage ?? "Patient profile not found.", patientResult.StatusCode);
+
+            var record = await _uow.MedicalRecords.GetByIdAsync(recordId);
+            if (record is null || record.PatientProfileId != patientResult.Data)
+                return ServiceResult<MedicalRecordDto>.NotFound("Medical record was not found.");
+
+            record.RecordDate = NormalizeDate(dto.RecordDate);
+            record.SystolicBP = dto.SystolicBP;
+            record.DiastolicBP = dto.DiastolicBP;
+            record.BloodSugar = dto.BloodSugar;
+            record.HeartRate = dto.HeartRate;
+            record.Temperature = dto.Temperature;
+            record.OxygenSaturation = dto.OxygenSaturation;
+            record.Symptoms = Normalize(dto.Symptoms);
+            record.Notes = BuildClinicalNotes(dto);
+
+            _uow.MedicalRecords.Update(record);
+            await _uow.CompleteAsync();
+
+            return ServiceResult<MedicalRecordDto>.Success(Map(record));
+        }
+
         private async Task<ServiceResult<int>> GetPatientIdAsync(string userId)
         {
             if (string.IsNullOrWhiteSpace(userId))

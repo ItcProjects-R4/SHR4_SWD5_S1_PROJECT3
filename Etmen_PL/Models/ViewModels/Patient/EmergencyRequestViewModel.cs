@@ -19,5 +19,8 @@ namespace Etmen_PL.Models.ViewModels.Patient
 
         [StringLength(500)]
         public string? Description { get; set; }
+
+        /// <summary>Optional — links this emergency request to the risk assessment that triggered it</summary>
+        public int? RiskAssessmentId { get; set; }
     }
 }

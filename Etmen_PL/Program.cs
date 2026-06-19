@@ -157,6 +157,7 @@ builder.Services.AddSingleton(mapsterConfig);
 builder.Services.AddControllersWithViews(options =>
 {
     options.Filters.Add<Etmen_PL.Filters.DoctorOnboardingFilter>();
+    options.Filters.Add<Etmen_PL.Filters.PatientProfileFilter>();
 })
     .AddJsonOptions(options =>
     {

@@ -625,7 +625,10 @@
                                 </div>
                             }
                         </div>
-                        <div class="mt-auto pt-2">
+                        <div class="mt-auto pt-2 d-flex gap-2 flex-column">
+                            <a href="/Emergency/Track/@Model.ActiveEmergencyId" class="btn btn-danger w-100 fw-bold d-flex align-items-center justify-content-center gap-2" style="border-radius:10px; font-size: 0.88rem; animation: redFlash 1.5s infinite;">
+                                <i class="fas fa-satellite-dish"></i> تتبع الإسعاف مباشرة (#@Model.ActiveEmergencyId)
+                            </a>
                             <a href="/MedicalRecords/Create" class="btn btn-sm btn-outline-primary w-100 fw-bold d-flex align-items-center justify-content-center gap-2" style="border-radius:10px; font-size: 0.82rem;">
                                 <i class="fas fa-heart-pulse"></i> تسجيل قياسات حيوية عاجلة الآن
                             </a>
@@ -775,6 +778,11 @@
                     <span class="service-icon"><i class="fas fa-users"></i></span>
                     <strong class="d-block mt-2">الارتباط العائلي</strong>
                     <small class="text-muted">ربط ومتابعة صحة أفراد عائلتك الكرام.</small>
+                </a>
+                <a href="#" class="service-card" data-bs-toggle="modal" data-bs-target="#trackAmbulanceModal" style="border-color: rgba(239,68,68,0.2); background: linear-gradient(135deg, #fff5f5, #fff);">
+                    <span class="service-icon" style="background:#fee2e2;color:#b91c1c;"><i class="fas fa-truck-medical"></i></span>
+                    <strong class="d-block mt-2" style="color:#b91c1c;">تتبع رقم إسعاف</strong>
+                    <small class="text-muted">أدخل رقم الطلب لمعرفة موقع الإسعاف فورًا.</small>
                 </a>
             </div>
         </div>
@@ -940,6 +948,47 @@
                 </div>
             }
         </aside>
+    </section>
+
+    <!-- ═══ AMBULANCE TRACKING QUICK-WIDGET ═════════════════ -->
+    <section class="animate__animated animate__fadeInUp" style="animation-delay:0.3s;">
+        <div class="dashboard-panel" style="border: 1.5px solid rgba(239,68,68,0.18); background: linear-gradient(135deg,#fff,#fff5f5);">
+            <div class="panel-head">
+                <h2 class="panel-title" style="color:#b91c1c;"><i class="fas fa-truck-medical text-danger me-1"></i> متابعة طلب إسعاف</h2>
+                @if (Model.HasActiveEmergency)
+                {
+                    <a href="/Emergency/Track/@Model.ActiveEmergencyId" class="btn btn-danger btn-sm fw-bold px-3" style="border-radius:8px;">
+                        <i class="fas fa-satellite-dish"></i> تتبع نشط #@Model.ActiveEmergencyId
+                    </a>
+                }
+            </div>
+            <div class="row g-3 align-items-center">
+                <div class="col-md-6">
+                    @if (Model.HasActiveEmergency)
+                    {
+                        <div class="d-flex align-items-center gap-3 p-3 rounded-4" style="background: rgba(239,68,68,0.06); border: 1px solid rgba(239,68,68,0.15);">
+                            <span class="spinner-grow spinner-grow-sm text-danger" role="status"></span>
+                            <div>
+                                <div class="fw-bold text-danger" style="font-size:0.92rem;">طلب إسعاف نشط حالياً</div>
+                                <div class="text-muted small">رقم الطلب: <strong>#@Model.ActiveEmergencyId</strong> • @(string.IsNullOrEmpty(Model.ActiveEmergencyHospitalName) ? "جاري تعيين مستشفى..." : Model.ActiveEmergencyHospitalName)</div>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted small mb-2">هل طلبت إسعافاً مسبقاً؟ أدخل رقم الطلب لتتبع موقعه وحالته فورًا.</p>
+                    }
+                </div>
+                <div class="col-md-6">
+                    <form action="/Emergency/Track" method="get" class="d-flex gap-2">
+                        <input type="number" name="id" class="form-control fw-bold text-center" style="border-radius:10px; border:2px solid rgba(239,68,68,0.3);" placeholder="رقم طلب الإسعاف" @(Model.HasActiveEmergency ? $"value='{Model.ActiveEmergencyId}'" : "") required />
+                        <button type="submit" class="btn btn-danger fw-bold px-4" style="border-radius:10px; white-space:nowrap;">
+                            <i class="fas fa-search-location"></i> تتبع
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
     </section>
 </div>
 

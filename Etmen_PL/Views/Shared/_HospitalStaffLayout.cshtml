@@ -1,7 +1,15 @@
+@inject Etmen_DAL.Repositories.Interfaces.IUnitOfWork Uow
+@using Microsoft.EntityFrameworkCore
+@using System.Security.Claims
 @{
     Layout = null;
 
     string dashboardUrl = "/";
+    int? providerId = null;
+    string providerName = "";
+    string providerAddress = "";
+    int availableBeds = 0;
+
     if (User?.Identity?.IsAuthenticated == true)
     {
         if (User.IsInRole("Doctor"))
@@ -15,6 +23,21 @@
         else if (User.IsInRole("HospitalStaff"))
         {
             dashboardUrl = "/HospitalQueue";
+
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!string.IsNullOrEmpty(userId))
+            {
+                var staffProfile = Uow.StaffProfiles.Table
+                    .Include(s => s.HealthcareProvider)
+                    .FirstOrDefault(sp => sp.ApplicationUserId == userId);
+                if (staffProfile != null && staffProfile.HealthcareProvider != null)
+                {
+                    providerId = staffProfile.HealthcareProviderId;
+                    providerName = staffProfile.HealthcareProvider.Name;
+                    providerAddress = staffProfile.HealthcareProvider.Address ?? "";
+                    availableBeds = staffProfile.HealthcareProvider.AvailableBeds ?? 0;
+                }
+            }
         }
         else
         {
@@ -184,13 +207,54 @@
             font-size: 0.8rem;
             font-weight: 500;
         }
+
+        /* ═══ RESPONSIVE — MOBILE FIXES ═══════════════════════════ */
+        @@media (max-width: 991.98px) {
+            .hospital-navbar {
+                padding: 0.6rem 1rem;
+            }
+            .hospital-nav-menu {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 4px;
+                width: 100%;
+                margin-top: 0.75rem;
+            }
+            .hospital-nav-link {
+                justify-content: flex-start;
+                padding: 10px 14px;
+                width: 100%;
+            }
+        }
+        @@media (max-width: 767.98px) {
+            .alert-container {
+                top: 80px !important;
+                left: 12px !important;
+                right: 12px !important;
+                width: auto !important;
+            }
+            .hospital-navbar {
+                padding: 0.5rem 0.75rem;
+            }
+            .logo-text {
+                font-size: 1.2rem;
+            }
+        }
+        @@media (max-width: 575.98px) {
+            .logo-subtitle {
+                display: none;
+            }
+            .main-wrapper {
+                padding: 1.5rem 0;
+            }
+        }
     </style>
 </head>
 <body>
 
     <!-- Top Navbar -->
     <nav class="hospital-navbar">
-        <div class="container-fluid d-flex align-items-center justify-content-between">
+        <div class="container-fluid d-flex align-items-center justify-content-between flex-wrap gap-2">
             <a href="@dashboardUrl" class="brand-logo">
                 <div class="logo-box">
                     <i class="fas fa-hospital-user"></i>
@@ -201,33 +265,63 @@
                 </div>
             </a>
 
-            <ul class="hospital-nav-menu d-none d-md-flex">
-                <li>
-                    <a href="/HospitalQueue" class="hospital-nav-link @(Context.Request.Path.Value?.Contains("HospitalQueue") == true && Context.Request.Path.Value?.Contains("Details") != true ? "active" : "")">
-                        <i class="fas fa-list-ol"></i> قائمة الانتظار والفرز
-                    </a>
-                </li>
-                <li>
-                    <a href="/AdminCrisis/Heatmap" class="hospital-nav-link" target="_blank">
-                        <i class="fas fa-biohazard text-danger"></i> خريطة تفشي الأوبئة
-                    </a>
-                </li>
-                <li>
-                    <a href="/AdminDashboard/NormalMap" class="hospital-nav-link" target="_blank">
-                        <i class="fas fa-map-location-dot text-primary"></i> خريطة الموارد والمراكز
-                    </a>
-                </li>
-            </ul>
+            <!-- Hamburger toggle for mobile -->
+            <button class="btn btn-sm d-lg-none" type="button" data-bs-toggle="collapse" data-bs-target="#hospitalNavbarContent"
+                    aria-controls="hospitalNavbarContent" aria-expanded="false" aria-label="Toggle navigation"
+                    style="background: var(--primary-light); color: var(--primary); border-radius: 8px; padding: 6px 10px;">
+                <i class="fas fa-bars"></i>
+            </button>
 
-            <div class="d-flex align-items-center gap-3">
-                <div class="user-badge">
-                    <i class="fas fa-clinic-medical"></i> طاقم طبي
+            <!-- Nav content -->
+            <div class="collapse navbar-collapse w-100" id="hospitalNavbarContent">
+                <div class="d-flex flex-column flex-lg-row align-items-start align-items-lg-center justify-content-between w-100 gap-3 mt-2 mt-lg-0">
+                    <ul class="hospital-nav-menu">
+                        <li>
+                            <a href="/HospitalQueue" class="hospital-nav-link @(Context.Request.Path.Value?.Equals("/HospitalQueue", StringComparison.OrdinalIgnoreCase) == true ? "active" : "")">
+                                <i class="fas fa-list-ol"></i> قائمة الانتظار والفرز
+                            </a>
+                        </li>
+                        @if (providerId.HasValue)
+                        {
+                            <li>
+                                <a href="#" class="hospital-nav-link text-warning fw-bold" data-bs-toggle="modal" data-bs-target="#updateCapacityNavbarModal">
+                                    <i class="fas fa-bed"></i> القدرة الاستيعابية (@availableBeds)
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#" class="hospital-nav-link text-danger fw-bold" data-bs-toggle="modal" data-bs-target="#requestSupportNavbarModal">
+                                    <i class="fas fa-triangle-exclamation animate__animated animate__pulse animate__infinite"></i> طلب دعم طبي عاجل
+                                </a>
+                            </li>
+                        }
+                        <li>
+                            <a href="/HospitalQueue/Profile" class="hospital-nav-link @(Context.Request.Path.Value?.Contains("Profile") == true ? "active" : "")">
+                                <i class="fas fa-user-gear text-primary"></i> الملف الشخصي
+                            </a>
+                        </li>
+                        <li>
+                            <a href="/AdminCrisis/Heatmap" class="hospital-nav-link" target="_blank">
+                                <i class="fas fa-biohazard text-danger"></i> خريطة تفشي الأوبئة
+                            </a>
+                        </li>
+                        <li>
+                            <a href="/AdminDashboard/NormalMap" class="hospital-nav-link" target="_blank">
+                                <i class="fas fa-map-location-dot text-primary"></i> خريطة الموارد والمراكز
+                            </a>
+                        </li>
+                    </ul>
+
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="user-badge">
+                            <i class="fas fa-clinic-medical"></i> طاقم طبي
+                        </div>
+                        <form asp-controller="Account" asp-action="Logout" method="post" class="m-0">
+                            <button type="submit" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+                                <i class="fas fa-sign-out-alt"></i> خروج
+                            </button>
+                        </form>
+                    </div>
                 </div>
-                <form asp-controller="Account" asp-action="Logout" method="post" class="m-0">
-                    <button type="submit" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
-                        <i class="fas fa-sign-out-alt"></i> خروج
-                    </button>
-                </form>
             </div>
         </div>
     </nav>
@@ -261,6 +355,82 @@
     <footer class="hospital-footer">
         <span>© @DateTime.Now.Year — منصة إطمن للخدمات الطبية | بوابة الطاقم الطبي للمستشفيات</span>
     </footer>
+
+    @if (User?.IsInRole("HospitalStaff") == true && providerId.HasValue)
+    {
+        <!-- ═══════════════════════════════════════
+             Modal: Update Beds Capacity
+        ═══════════════════════════════════════ -->
+        <div class="modal fade" id="updateCapacityNavbarModal" tabindex="-1" aria-labelledby="updateCapacityNavbarLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content" style="border-radius:20px;">
+                    <div class="modal-header border-0 pb-0">
+                        <h5 class="modal-title fw-bold" id="updateCapacityNavbarLabel">
+                            <i class="fas fa-bed text-warning me-2"></i> تحديث القدرة الاستيعابية
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form asp-controller="HospitalQueue" asp-action="UpdateProfile" method="post">
+                        <div class="modal-body px-4 py-3">
+                            <input type="hidden" name="ProviderId" value="@providerId" />
+                            <input type="hidden" name="ProviderName" value="@providerName" />
+                            <input type="hidden" name="ProviderAddress" value="@providerAddress" />
+                            <p class="text-muted small mb-3">المستشفى: <strong>@providerName</strong></p>
+                            <label class="form-label fw-bold small">عدد الأسرة الشاغرة الحالية</label>
+                            <div class="d-flex align-items-center gap-3 mb-3">
+                                <input type="range" class="form-range flex-grow-1" id="navBedRange"
+                                       name="AvailableBeds" min="0" max="150" value="@availableBeds"
+                                       oninput="document.getElementById('navBedVal').textContent = this.value" />
+                                <span class="badge bg-primary fs-6 px-3 py-2" id="navBedVal">@availableBeds</span>
+                            </div>
+                            <div class="text-muted small">
+                                <i class="fas fa-info-circle me-1"></i>
+                                هذا التحديث سيعكس فوراً على خريطة الموارد الطبية.
+                            </div>
+                        </div>
+                        <div class="modal-footer border-0 pt-0">
+                            <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">إلغاء</button>
+                            <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold">
+                                <i class="fas fa-save me-1"></i> حفظ التحديث
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════
+             Modal: Request Admin Medical Support
+        ═══════════════════════════════════════ -->
+        <div class="modal fade" id="requestSupportNavbarModal" tabindex="-1" aria-labelledby="requestSupportNavbarLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content" style="border-radius:20px;">
+                    <div class="modal-header border-0 pb-0" style="background:linear-gradient(135deg,#fff1f1,#fff);">
+                        <h5 class="modal-title fw-bold text-danger" id="requestSupportNavbarLabel">
+                            <i class="fas fa-triangle-exclamation me-2"></i> طلب دعم طبي عاجل
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body px-4 py-3">
+                        <div class="alert alert-warning rounded-3 mb-3" style="font-size:.9rem;">
+                            <i class="fas fa-siren me-1"></i>
+                            سيتم إرسال تنبيه عاجل فوري إلى الإدارة المركزية لطلب تعزيزات وإمدادات طبية لـ <strong>@providerName</strong>.
+                        </div>
+                        <p class="text-muted small">استخدم هذا الخيار فقط في حالات النقص الحاد في الأسرة أو الكوادر أو الإمدادات.</p>
+                    </div>
+                    <div class="modal-footer border-0 pt-0">
+                        <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">إلغاء</button>
+                        <form asp-controller="HospitalQueue" asp-action="RequestSupport" method="post" class="m-0">
+                            <input type="hidden" name="ProviderId" value="@providerId" />
+                            <button type="submit" class="btn btn-danger rounded-pill px-4 fw-bold">
+                                <i class="fas fa-paper-plane me-1"></i> إرسال طلب الدعم الآن
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
 
     <!-- Scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>

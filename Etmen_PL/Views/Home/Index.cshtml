@@ -1762,13 +1762,51 @@ NIMATIONS & RESPONSIVE
 
         
 @@media (max-width: 991px) {
-            .etmen-nav { padding: 0 1.5rem; }
-            .nav-links { display: none; }
+            .etmen-nav { padding: 0 1.5rem; position: relative; flex-wrap: wrap; }
+            .nav-links { 
+                display: none; 
+                flex-direction: column;
+                width: 100%;
+                background: var(--white);
+                border-top: 1px solid var(--border);
+                padding: 1rem 0;
+                gap: 0;
+                list-style: none;
+                margin: 0;
+            }
+            .nav-links.mobile-open { display: flex; }
+            .nav-links li a {
+                display: block;
+                padding: 0.75rem 1.5rem;
+                color: var(--text);
+                text-decoration: none;
+                font-weight: 600;
+                border-bottom: 1px solid var(--border);
+            }
+            .nav-links li:last-child a { border-bottom: none; }
+            .nav-hamburger {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: none;
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                width: 40px; height: 40px;
+                cursor: pointer;
+                color: var(--text);
+                font-size: 1.1rem;
+                transition: all 0.2s;
+            }
+            .nav-hamburger:hover { background: var(--primary-light); color: var(--primary); }
+            .nav-actions { order: 3; }
             .hero-cards-row { flex-direction: column; }
             .showcase-content { flex-direction: column; text-align: center; }
             .showcase-visual { margin-top: 2rem; }
             .steps-container::before { display: none; }
             .steps-container { flex-direction: column; gap: 3rem; }
+        }
+        @@media (min-width: 992px) {
+            .nav-hamburger { display: none; }
         }
         
 @@media (max-width: 576px) {
@@ -1797,15 +1835,18 @@ NIMATIONS & RESPONSIVE
             <span class="nav-logo-text">إط<span>من</span></span>
         </a>
 
-        <ul class="nav-links">
-            <li><a href="#services">خدماتنا</a></li>
-            <li><a href="#how">كيف تعمل المنصة؟</a></li>
-            <li><a href="#pricing">الباقات والاشتراكات</a></li>
-            <li><a href="#articles">النصائح والمقالات</a></li>
-            <li><a href="#faqs">الأسئلة الشائعة</a></li>
+        <ul class="nav-links" id="mobileNavLinks">
+            <li><a href="#services" onclick="closeMobileNav()">خدماتنا</a></li>
+            <li><a href="#how" onclick="closeMobileNav()">كيف تعمل المنصة؟</a></li>
+            <li><a href="#pricing" onclick="closeMobileNav()">الباقات والاشتراكات</a></li>
+            <li><a href="#articles" onclick="closeMobileNav()">النصائح والمقالات</a></li>
+            <li><a href="#faqs" onclick="closeMobileNav()">الأسئلة الشائعة</a></li>
         </ul>
 
         <div class="nav-actions">
+            <button class="nav-hamburger" id="navHamburger" onclick="toggleMobileNav()" aria-label="فتح القائمة">
+                <i class="fas fa-bars" id="hamburgerIcon"></i>
+            </button>
             <a href="/Account/Login" class="btn-nav-login">تسجيل الدخول</a>
             <a href="/Account/Register" class="btn-nav-register">
                 <i class="fas fa-user-plus me-1"></i> انضم الآن
@@ -2897,6 +2938,18 @@ is Mode) -->
         });
     </script>
 
+    <script>
+        function toggleMobileNav() {
+            var links = document.getElementById('mobileNavLinks');
+            var icon = document.getElementById('hamburgerIcon');
+            links.classList.toggle('mobile-open');
+            icon.className = links.classList.contains('mobile-open') ? 'fas fa-times' : 'fas fa-bars';
+        }
+        function closeMobileNav() {
+            document.getElementById('mobileNavLinks').classList.remove('mobile-open');
+            document.getElementById('hamburgerIcon').className = 'fas fa-bars';
+        }
+    </script>
 
 </body>
 </html>

@@ -1,7 +1,26 @@
 @inject Etmen_BLL.Repositories.IServices.ICrisisService CrisisService
+@inject Etmen_DAL.Repositories.Interfaces.IUnitOfWork Uow
+@using Microsoft.EntityFrameworkCore
 @{
     var activeCrisisResult = await CrisisService.GetActiveCrisisAsync();
     var isCrisisActive = activeCrisisResult.IsSuccess && activeCrisisResult.Data != null && activeCrisisResult.Data.IsActive && activeCrisisResult.Data.SystemMode == Etmen_Domain.Enums.SystemMode.Crisis;
+
+    Etmen_Domain.Entities.EmergencyRequest? activeEmergency = null;
+    if (User?.Identity?.IsAuthenticated == true && User.IsInRole("Patient"))
+    {
+        var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        var patientProfile = await Uow.PatientProfiles.Table.FirstOrDefaultAsync(p => p.ApplicationUserId == userId);
+        if (patientProfile != null)
+        {
+            activeEmergency = await Uow.EmergencyRequests.Table
+                .Where(r => r.PatientProfileId == patientProfile.Id && 
+                            (r.Status == Etmen_Domain.Enums.EmergencyRequestStatus.Pending || 
+                             r.Status == Etmen_Domain.Enums.EmergencyRequestStatus.Accepted || 
+                             r.Status == Etmen_Domain.Enums.EmergencyRequestStatus.Escalated))
+                .OrderByDescending(r => r.RequestedAt)
+                .FirstOrDefaultAsync();
+        }
+    }
 
     string dashboardUrl = "/";
     if (User?.Identity?.IsAuthenticated == true)
@@ -218,17 +237,80 @@
             text-decoration: underline;
         }
 
+        /* ═══ RESPONSIVE — MOBILE FIXES ════════════════════════ */
+        @@media (max-width: 991.98px) {
+            .patient-navbar {
+                padding: 0.6rem 1rem;
+            }
+            .nav-menu {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 4px;
+                margin-top: 0.75rem;
+                background: rgba(0,0,0,0.25);
+                padding: 10px;
+                border-radius: 12px;
+            }
+            .nav-menu-link {
+                justify-content: flex-start;
+                padding: 10px 14px;
+                font-size: 0.9rem;
+            }
+            #patientNavbarContent .d-flex.align-items-center.gap-3 {
+                flex-wrap: wrap;
+                gap: 8px !important;
+                margin-top: 0.75rem;
+                padding: 10px;
+                background: rgba(0,0,0,0.15);
+                border-radius: 12px;
+            }
+            .nav-logo-text {
+                font-size: 1.3rem;
+            }
+            .main-wrapper {
+                padding: 1.5rem 0;
+            }
+        }
+
+        @@media (max-width: 575.98px) {
+            .patient-navbar {
+                padding: 0.5rem 0.75rem;
+            }
+            .nav-logo-text {
+                font-size: 1.15rem;
+            }
+            .nav-logo-icon {
+                width: 36px; height: 36px;
+                font-size: 1rem;
+            }
+            .main-wrapper {
+                padding: 1rem 0;
+            }
+            .med-card {
+                padding: 1.2rem;
+                border-radius: 14px;
+            }
+            .patient-footer {
+                padding: 1.2rem 0;
+                font-size: 0.78rem;
+            }
+            .btn-nav-emergency {
+                font-size: 0.82rem;
+                padding: 8px 12px;
+            }
+        }
+
         /* ═══ FLOATING CHATBOT ═════════════════════════════════ */
         .floating-bot {
             position: fixed;
-            bottom: 30px;
-            left: 30px;
-            width: 60px; height: 60px;
+            bottom: 24px;
+            left: 24px;
+            width: 56px; height: 56px;
             background: linear-gradient(135deg, var(--primary), var(--accent));
             border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
             color: white;
-            font-size: 1.5rem;
+            font-size: 1.4rem;
             box-shadow: 0 8px 30px rgba(26,111,191,0.4);
             cursor: pointer;
             transition: all 0.3s;
@@ -244,6 +326,14 @@
         @@keyframes botPulse {
             0%, 100% { box-shadow: 0 8px 25px rgba(26,111,191,0.4); }
             50% { box-shadow: 0 8px 35px rgba(0,201,167,0.7); }
+        }
+        @@media (max-width: 575.98px) {
+            .floating-bot {
+                bottom: 16px;
+                left: 16px;
+                width: 48px; height: 48px;
+                font-size: 1.15rem;
+            }
         }
 
         /* ECG Decorative background or elements */
@@ -468,6 +558,22 @@
                             <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-light" id="patientChatBadge" style="font-size:0.6rem;display:none;transform:translate(-50%,-10%)!important;">0</span>
                         </a>
                     </li>
+                    @if (activeEmergency != null)
+                    {
+                        <li>
+                            <a href="/Emergency/Track/@activeEmergency.Id" class="nav-menu-link text-white animate__animated animate__flash animate__infinite animate__slower" style="background: linear-gradient(135deg, #ef4444, #b91c1c); box-shadow: 0 4px 15px rgba(239, 76, 60, 0.4);">
+                                <i class="fas fa-truck-medical text-warning animate__animated animate__bounce animate__infinite"></i> تتبع الإسعاف النشط (#@activeEmergency.Id)
+                            </a>
+                        </li>
+                    }
+                    else
+                    {
+                        <li>
+                            <a href="#" class="nav-menu-link @(Context.Request.Path.StartsWithSegments("/Emergency/Track") ? "active" : "")" data-bs-toggle="modal" data-bs-target="#trackAmbulanceModal">
+                                <i class="fas fa-satellite-dish"></i> تتبع طلب إسعاف
+                            </a>
+                        </li>
+                    }
                 </ul>
 
                 <!-- Left side: Emergency + Profile & Logout -->
@@ -528,6 +634,7 @@
                         <input type="hidden" name="Latitude" id="navGpsLat" value="30.0444" />
                         <input type="hidden" name="Longitude" id="navGpsLng" value="31.2357" />
                         <input type="hidden" name="EmergencyType" value="طوارئ إسعاف عاجل" />
+                        <input type="hidden" name="RiskAssessmentId" id="navRiskAssessmentId" value="" />
                         
                         <div class="mb-3 text-start">
                             <label class="form-label fw-bold small">وصف الحالة باختصار (اختياري)</label>
@@ -541,6 +648,37 @@
                         <div class="d-flex gap-2">
                             <button type="submit" class="btn btn-danger w-100 py-3 fw-bold" style="border-radius:12px; font-size:1.1rem;">
                                 <i class="fas fa-paper-plane"></i> نعم، أرسل الإسعاف الآن
+                            </button>
+                            <button type="button" class="btn btn-light w-50 py-3 fw-bold" data-bs-dismiss="modal" style="border-radius:12px;">إلغاء</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ TRACK AMBULANCE MODAL ════════════════════════ -->
+    <div class="modal fade" id="trackAmbulanceModal" tabindex="-1" aria-labelledby="trackAmbulanceModalLabel" aria-hidden="true" dir="rtl">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: 20px; overflow: hidden;">
+                <div class="modal-header bg-primary text-white border-0 py-3">
+                    <h5 class="modal-title fw-bold" id="trackAmbulanceModalLabel"><i class="fas fa-satellite-dish"></i> تتبع طلب الإسعاف</h5>
+                    <button type="button" class="btn-close btn-close-white ms-0 me-auto" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4 text-center">
+                    <div class="mx-auto mb-3 text-primary" style="font-size: 4rem;">
+                        <i class="fas fa-satellite-dish animate__animated animate__pulse animate__infinite"></i>
+                    </div>
+                    <h5 class="fw-bold mb-2">أدخل رقم طلب الإسعاف للمتابعة</h5>
+                    <p class="text-muted small">إذا كان لديك رقم طلب إسعاف حالي أو سابق، يرجى كتابته لتتبع موقعه وحالته مباشرة.</p>
+                    
+                    <form action="/Emergency/Track" method="get" id="trackAmbulanceModalForm">
+                        <div class="mb-3">
+                            <input type="number" name="id" class="form-control text-center fs-4 fw-bold" style="border-radius:12px; border: 2px solid var(--border);" placeholder="رقم الطلب (مثال: 5)" required />
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary w-100 py-3 fw-bold" style="border-radius:12px;">
+                                <i class="fas fa-search-location"></i> ابدأ التتبع الآن
                             </button>
                             <button type="button" class="btn btn-light w-50 py-3 fw-bold" data-bs-dismiss="modal" style="border-radius:12px;">إلغاء</button>
                         </div>
