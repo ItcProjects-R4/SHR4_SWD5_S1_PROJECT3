@@ -1,6 +1,9 @@
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
+using System;
+using System.Linq;
+using System.Collections.Generic;
 
 namespace Etmen_BLL.Repositories.Services
 {
@@ -67,9 +70,14 @@ namespace Etmen_BLL.Repositories.Services
                         {
                             inner.Item().Text("نتيجة التحليل").Bold().FontSize(13).FontColor(Green);
                             inner.Item().Height(8);
-                            inner.Item().Text(string.IsNullOrWhiteSpace(results)
-                                ? "لم يتم إدخال النتيجة بعد."
-                                : results).FontSize(11).FontColor("#374151");
+                            if (string.IsNullOrWhiteSpace(results))
+                            {
+                                inner.Item().Text("لم يتم إدخال النتيجة بعد.").FontSize(11).FontColor("#374151");
+                            }
+                            else
+                            {
+                                RenderMarkdownContent(inner, results);
+                            }
                         });
 
                         if (!string.IsNullOrWhiteSpace(ocrData))
@@ -79,7 +87,7 @@ namespace Etmen_BLL.Repositories.Services
                             {
                                 inner.Item().Text("البيانات المستخرجة (OCR)").Bold().FontSize(13).FontColor(BlueText);
                                 inner.Item().Height(8);
-                                inner.Item().Text(ocrData).FontSize(10).FontColor("#374151").Italic();
+                                RenderMarkdownContent(inner, ocrData);
                             });
                         }
 
@@ -310,6 +318,171 @@ namespace Etmen_BLL.Repositories.Services
                 col.Item().Text(label).FontSize(9).FontColor(TextGray);
                 col.Item().Text(value).FontSize(12).Bold().FontColor("#1f2937");
             });
+        }
+
+        private void RenderMarkdownContent(ColumnDescriptor col, string? markdown)
+        {
+            if (string.IsNullOrWhiteSpace(markdown))
+                return;
+
+            var lines = markdown.Split('\n', StringSplitOptions.TrimEntries);
+            
+            var tableRows = new List<List<string>>();
+            bool inTable = false;
+
+            foreach (var rawLine in lines)
+            {
+                var line = rawLine.Trim();
+
+                if (line.StartsWith("|") && line.EndsWith("|"))
+                {
+                    if (line.Replace(" ", "").Replace("-", "").Replace("|", "").Replace(":", "").Length == 0)
+                    {
+                        continue;
+                    }
+
+                    var cells = line.Split('|', StringSplitOptions.TrimEntries)
+                                    .Skip(1)
+                                    .Take(line.Split('|').Length - 2)
+                                    .ToList();
+
+                    if (cells.Count > 0)
+                    {
+                        tableRows.Add(cells);
+                    }
+                    inTable = true;
+                    continue;
+                }
+                else
+                {
+                    if (inTable && tableRows.Count > 0)
+                    {
+                        RenderQuestTable(col, tableRows);
+                        tableRows.Clear();
+                        inTable = false;
+                    }
+                }
+
+                if (string.IsNullOrEmpty(line))
+                {
+                    col.Item().Height(4);
+                    continue;
+                }
+
+                if (line.StartsWith("###"))
+                {
+                    var text = line.Substring(3).Trim();
+                    col.Item().PaddingTop(8).PaddingBottom(4).Text(text).Bold().FontSize(12).FontColor(Green);
+                }
+                else if (line.StartsWith("##"))
+                {
+                    var text = line.Substring(2).Trim();
+                    col.Item().PaddingTop(10).PaddingBottom(6).Text(text).Bold().FontSize(14).FontColor(Green);
+                }
+                else if (line.StartsWith("#"))
+                {
+                    var text = line.Substring(1).Trim();
+                    col.Item().PaddingTop(12).PaddingBottom(8).Text(text).Bold().FontSize(16).FontColor(Green);
+                }
+                else if (line.StartsWith("-") || line.StartsWith("*"))
+                {
+                    var text = line.Substring(1).Trim();
+                    col.Item().PaddingBottom(2).Row(row =>
+                    {
+                        row.AutoItem().Text("• ").Bold().FontSize(11).FontColor(Green);
+                        row.RelativeItem().Text(t => ParseBoldText(t, text));
+                    });
+                }
+                else
+                {
+                    col.Item().PaddingBottom(4).Text(t => ParseBoldText(t, line));
+                }
+            }
+
+            if (inTable && tableRows.Count > 0)
+            {
+                RenderQuestTable(col, tableRows);
+            }
+        }
+
+        private void RenderQuestTable(ColumnDescriptor col, List<List<string>> rows)
+        {
+            col.Item().PaddingVertical(8).Table(table =>
+            {
+                int colCount = rows[0].Count;
+                table.ColumnsDefinition(columns =>
+                {
+                    for (int i = 0; i < colCount; i++)
+                    {
+                        columns.RelativeColumn();
+                    }
+                });
+
+                for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++)
+                {
+                    var cells = rows[rowIndex];
+                    bool isHeader = rowIndex == 0;
+
+                    for (int colIndex = 0; colIndex < cells.Count; colIndex++)
+                    {
+                        var cellText = cells[colIndex];
+                        
+                        string bgColor = "#FFFFFF";
+                        string textColor = "#374151";
+                        bool isBold = false;
+                        
+                        if (isHeader)
+                        {
+                            bgColor = "#F8FAFC";
+                            textColor = "#1E293B";
+                            isBold = true;
+                        }
+                        else if (cellText == "طبيعي" || cellText == "Normal")
+                        {
+                            bgColor = "#DCFCE7";
+                            textColor = "#15803D";
+                            isBold = true;
+                        }
+                        else if (cellText.Contains("مرتفع") || cellText.Contains("منخفض") || cellText.Contains("غير طبيعي") || cellText.Contains("Abnormal"))
+                        {
+                            bgColor = "#FEE2E2";
+                            textColor = "#B91C1C";
+                            isBold = true;
+                        }
+
+                        table.Cell().Row((uint)(rowIndex + 1)).Column((uint)(colIndex + 1))
+                             .BorderBottom(1).BorderColor("#E5E7EB")
+                             .Background(bgColor)
+                             .Padding(6)
+                             .AlignRight()
+                             .Text(t =>
+                             {
+                                 var span = t.Span(cellText).FontSize(9).FontColor(textColor);
+                                 if (isBold)
+                                 {
+                                     span.Bold();
+                                 }
+                             });
+                    }
+                }
+            });
+        }
+
+        private void ParseBoldText(TextDescriptor textDescriptor, string text)
+        {
+            var parts = text.Split("**");
+            for (int i = 0; i < parts.Length; i++)
+            {
+                var part = parts[i];
+                if (i % 2 == 1)
+                {
+                    textDescriptor.Span(part).Bold().FontColor("#1E293B");
+                }
+                else
+                {
+                    textDescriptor.Span(part).FontColor("#374151");
+                }
+            }
         }
     }
 }

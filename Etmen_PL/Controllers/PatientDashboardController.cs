@@ -13,13 +13,16 @@ namespace Etmen_PL.Controllers
     public class PatientDashboardController : Controller
     {
         private readonly IPatientService _patientService;
+        private readonly IRiskService _riskService;
         private readonly ILogger<PatientDashboardController> _logger;
 
         public PatientDashboardController(
             IPatientService patientService,
+            IRiskService riskService,
             ILogger<PatientDashboardController> logger)
         {
             _patientService = patientService;
+            _riskService = riskService;
             _logger = logger;
         }
 
@@ -47,6 +50,17 @@ namespace Etmen_PL.Controllers
                     return RedirectToAction("AccessDenied", "Account");
                 }
 
+                List<Etmen_BLL.DTOs.Risk.RiskResultDto> riskHistory = new();
+                var profileResult = await _patientService.GetProfileAsync(userId);
+                if (profileResult.IsSuccess && profileResult.Data != null)
+                {
+                    var historyResult = await _riskService.GetPatientRiskHistoryAsync(profileResult.Data.Id);
+                    if (historyResult.IsSuccess && historyResult.Data != null)
+                    {
+                        riskHistory = historyResult.Data;
+                    }
+                }
+
                 _logger.LogInformation("PatientDashboard Index accessed for user {UserId}", userId);
                 
                 var viewModel = new PatientDashboardViewModel
@@ -68,7 +82,8 @@ namespace Etmen_PL.Controllers
                     ActiveEmergencyHospitalName = result.Data.ActiveEmergencyHospitalName,
                     ActiveEmergencyPatientRecommendations = result.Data.ActiveEmergencyPatientRecommendations,
                     ActiveEmergencyFamilyRecommendations = result.Data.ActiveEmergencyFamilyRecommendations,
-                    ActiveEmergencyPrescribedMedications = result.Data.ActiveEmergencyPrescribedMedications
+                    ActiveEmergencyPrescribedMedications = result.Data.ActiveEmergencyPrescribedMedications,
+                    RiskHistory = riskHistory
                 };
 
                 return View(viewModel);

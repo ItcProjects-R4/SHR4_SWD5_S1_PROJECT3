@@ -207,6 +207,75 @@
                                 </div>
                             }
                         </div>
+
+                        <!-- Optional Vitals section inside Step 1 in Crisis Mode -->
+                        <div class="mt-4 border-top pt-4">
+                            <h5 class="fw-bold mb-3 text-secondary text-start"><i class="fas fa-heartbeat text-primary"></i> المؤشرات الحيوية المفحوصة (اختياري)</h5>
+                            <p class="small text-muted text-start mb-4">يمكنك إدخال علاماتك الحيوية أدناه لمساعدتنا في حساب تقييم NEWS2 السريري لمزيد من الدقة.</p>
+                            
+                            <div class="row g-4 mb-4 text-start">
+                                <!-- HeartRate (optional) -->
+                                <div class="col-md-6">
+                                    <div class="form-group-medical">
+                                        <label asp-for="HeartRate" class="form-label fw-bold">معدل نبضات القلب</label>
+                                        <div class="input-group">
+                                            <input asp-for="HeartRate" type="number" class="form-control" placeholder="مثال: 72" />
+                                            <span class="input-unit-badge">نبضة/دقيقة</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Temperature (optional) -->
+                                <div class="col-md-6">
+                                    <div class="form-group-medical">
+                                        <label asp-for="Temperature" class="form-label fw-bold">درجة حرارة الجسم</label>
+                                        <div class="input-group">
+                                            <input asp-for="Temperature" type="number" step="0.1" class="form-control" placeholder="مثال: 37.0" />
+                                            <span class="input-unit-badge">مئوية °C</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- SystolicBP (optional) -->
+                                <div class="col-md-6">
+                                    <div class="form-group-medical">
+                                        <label asp-for="SystolicBP" class="form-label fw-bold">ضغط الدم الانقباضي (العالي)</label>
+                                        <div class="input-group">
+                                            <input asp-for="SystolicBP" type="number" class="form-control" placeholder="مثال: 120" />
+                                            <span class="input-unit-badge">mmHg</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- DiastolicBP (optional) -->
+                                <div class="col-md-6">
+                                    <div class="form-group-medical">
+                                        <label asp-for="DiastolicBP" class="form-label fw-bold">ضغط الدم الانبساطي (المنخفض)</label>
+                                        <div class="input-group">
+                                            <input asp-for="DiastolicBP" type="number" class="form-control" placeholder="مثال: 80" />
+                                            <span class="input-unit-badge">mmHg</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- OxygenSaturation (optional) -->
+                                <div class="col-md-6">
+                                    <div class="form-group-medical">
+                                        <label asp-for="OxygenSaturation" class="form-label fw-bold">تشبع الأكسجين في الدم</label>
+                                        <div class="input-group">
+                                            <input asp-for="OxygenSaturation" type="number" class="form-control" placeholder="مثال: 98" />
+                                            <span class="input-unit-badge">% SpO2</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- BloodSugar (optional) -->
+                                <div class="col-md-6">
+                                    <div class="form-group-medical">
+                                        <label asp-for="BloodSugar" class="form-label fw-bold">مستوى السكر في الدم</label>
+                                        <div class="input-group">
+                                            <input asp-for="BloodSugar" type="number" class="form-control" placeholder="مثال: 100" />
+                                            <span class="input-unit-badge">mg/dL</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     }
                     else
                     {

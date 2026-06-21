@@ -588,8 +588,8 @@ namespace Etmen_BLL.Repositories.Services
                     decimal radius = (decimal)Math.Clamp(maxDist + 2.0, 8.0, 25.0); // radius + 2km buffer
 
                     int riskLevel = 1; // Medium
-                    if (cluster.Count > 30) riskLevel = 3;      // Emergency
-                    else if (cluster.Count >= 15) riskLevel = 2; // High
+                    if (cluster.Count > OutbreakSettingsHelper.EmergencyRiskThresholdCases) riskLevel = 3;      // Emergency
+                    else if (cluster.Count >= OutbreakSettingsHelper.HighRiskThresholdCases) riskLevel = 2; // High
 
                     string regionName = GetRegionName(avgLat, avgLng);
                     string zoneName = $"بؤرة {regionName} النشطة (رقم {zoneCounter++})";

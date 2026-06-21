@@ -49,6 +49,27 @@
             --warning: #F39C12;
         }
 
+        body.theme-light .theme-input {
+            background-color: #ffffff !important;
+            border-color: var(--light-border) !important;
+            color: var(--light-text) !important;
+        }
+        body.theme-dark .theme-input {
+            background-color: #21262d !important;
+            border-color: var(--dark-border) !important;
+            color: var(--dark-text) !important;
+        }
+        body.theme-light .theme-input-group-text {
+            background-color: #f8fafc !important;
+            border-color: var(--light-border) !important;
+            color: var(--light-text-muted) !important;
+        }
+        body.theme-dark .theme-input-group-text {
+            background-color: #161b22 !important;
+            border-color: var(--dark-border) !important;
+            color: var(--dark-text-muted) !important;
+        }
+
         body {
             font-family: 'Tajawal', sans-serif;
             margin: 0;
@@ -552,6 +573,19 @@
 </head>
 <body class="@(Model.IsCrisisModeActive ? "theme-dark" : "theme-light")">
 
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success text-center py-2 px-3 fw-bold m-0 border-0 rounded-0" style="z-index: 9999; font-size: 0.95rem; background-color: #2ec4b6; color: white;">
+            <i class="fas fa-check-circle me-1"></i> @TempData["Success"]
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger text-center py-2 px-3 fw-bold m-0 border-0 rounded-0" style="z-index: 9999; font-size: 0.95rem; background-color: #e74c3c; color: white;">
+            <i class="fas fa-exclamation-triangle me-1"></i> @TempData["Error"]
+        </div>
+    }
+
     <!-- Top Live Alert Banner -->
     <div id="liveAlertBanner" class="bg-danger text-white text-center py-2 px-3 fw-bold" style="display: none; z-index: 9999; font-size: 0.95rem; border-bottom: 2px solid white; animation: pulse 2s infinite;">
         <span class="d-flex align-items-center justify-content-center gap-2">
@@ -803,6 +837,17 @@
                                     <p class="launch-desc">تعديل أوزان الأعراض (Symptom Weights)، تعيين عتبات المخاطر والتحكم بتفعيل الأزمات.</p>
                                 </div>
                             </a>
+
+                            <!-- Maintenance Settings -->
+                            <a href="#" class="launchpad-card" data-bs-toggle="modal" data-bs-target="#maintenanceSettingsModal">
+                                <div class="launch-icon" style="background:#f39c12;color:white;">
+                                    <i class="fas fa-toolbox"></i>
+                                </div>
+                                <div>
+                                    <h4 class="launch-title text-warning">التحكم في وضع الصيانة</h4>
+                                    <p class="launch-desc">تفعيل/إلغاء وضع الصيانة للمرضى وموظفي المستشفيات، وكتابة رسائل التنبيه والتحكم بالقفل.</p>
+                                </div>
+                            </a>
                         }
                         else
                         {
@@ -847,6 +892,17 @@
                                 <div>
                                     <h4 class="launch-title text-primary">سجلات النظام والتقارير الذكية</h4>
                                     <p class="launch-desc">توليد تقارير أداء الكادر الطبي، إحصائيات العدوى وسجلات الاستجابة للحالات الحرجة.</p>
+                                </div>
+                            </a>
+
+                            <!-- Maintenance Settings -->
+                            <a href="#" class="launchpad-card" data-bs-toggle="modal" data-bs-target="#maintenanceSettingsModal">
+                                <div class="launch-icon" style="background:#1A6FBF;color:white;">
+                                    <i class="fas fa-toolbox"></i>
+                                </div>
+                                <div>
+                                    <h4 class="launch-title text-primary">التحكم في وضع الصيانة</h4>
+                                    <p class="launch-desc">تفعيل/إلغاء وضع الصيانة للمرضى وموظفي المستشفيات، وكتابة رسائل التنبيه والتحكم بالقفل.</p>
                                 </div>
                             </a>
                         }
@@ -913,8 +969,6 @@
                     </div>
                 </div>
 
-                @if (Model.IsCrisisModeActive)
-                {
                     <!-- Outbreak Settings Panel -->
                     <div class="dashboard-card animate__animated animate__fadeInRight mt-3">
                         <h4 class="card-header-sm mb-3 text-danger" style="font-size: 0.95rem;">
@@ -925,15 +979,29 @@
                             <div class="mb-3">
                                 <label class="form-label small text-muted">نصف قطر التجميع الجغرافي (كم):</label>
                                 <div class="input-group">
-                                    <span class="input-group-text bg-dark border-secondary text-light" style="border-radius: 0 8px 8px 0;"><i class="fas fa-expand-arrows-alt"></i></span>
-                                    <input type="number" step="0.5" name="radius" class="form-control bg-dark border-secondary text-light" style="border-radius: 8px 0 0 8px;" value="@(Etmen_BLL.Helpers.OutbreakSettingsHelper.ClusteringRadiusKm)" required />
+                                    <span class="input-group-text theme-input-group-text" style="border-radius: 0 8px 8px 0;"><i class="fas fa-expand-arrows-alt"></i></span>
+                                    <input type="number" step="0.5" name="radius" class="form-control theme-input" style="border-radius: 8px 0 0 8px;" value="@(Etmen_BLL.Helpers.OutbreakSettingsHelper.ClusteringRadiusKm)" required />
                                 </div>
                             </div>
                             <div class="mb-3">
-                                <label class="form-label small text-muted">الحد الأدنى من الحالات لتكوين بؤرة:</label>
+                                <label class="form-label small text-muted">الحد الأدنى من الحالات لتكوين بؤرة صفراء (خطورة متوسطة):</label>
                                 <div class="input-group">
-                                    <span class="input-group-text bg-dark border-secondary text-light" style="border-radius: 0 8px 8px 0;"><i class="fas fa-head-side-cough"></i></span>
-                                    <input type="number" name="minCases" class="form-control bg-dark border-secondary text-light" style="border-radius: 8px 0 0 8px;" value="@(Etmen_BLL.Helpers.OutbreakSettingsHelper.MinCasesPerZone)" required />
+                                    <span class="input-group-text theme-input-group-text" style="border-radius: 0 8px 8px 0;"><i class="fas fa-head-side-cough"></i></span>
+                                    <input type="number" name="minCases" class="form-control theme-input" style="border-radius: 8px 0 0 8px;" value="@(Etmen_BLL.Helpers.OutbreakSettingsHelper.MinCasesPerZone)" required />
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small text-muted">الحد الأدنى من الحالات لتكوين بؤرة برتقالية (خطورة عالية):</label>
+                                <div class="input-group">
+                                    <span class="input-group-text theme-input-group-text" style="border-radius: 0 8px 8px 0;"><i class="fas fa-exclamation-triangle"></i></span>
+                                    <input type="number" name="highRiskCases" class="form-control theme-input" style="border-radius: 8px 0 0 8px;" value="@(Etmen_BLL.Helpers.OutbreakSettingsHelper.HighRiskThresholdCases)" required />
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small text-muted">الحد الأدنى من الحالات لتكوين بؤرة حمراء (خطورة طارئة):</label>
+                                <div class="input-group">
+                                    <span class="input-group-text theme-input-group-text" style="border-radius: 0 8px 8px 0;"><i class="fas fa-biohazard"></i></span>
+                                    <input type="number" name="emergencyCases" class="form-control theme-input" style="border-radius: 8px 0 0 8px;" value="@(Etmen_BLL.Helpers.OutbreakSettingsHelper.EmergencyRiskThresholdCases)" required />
                                 </div>
                             </div>
                             <button type="submit" class="btn btn-sm btn-danger w-100 rounded-pill py-2 fw-bold">
@@ -941,7 +1009,6 @@
                             </button>
                         </form>
                     </div>
-                }
 
                 <!-- Recent Activity Feed (Real Data via AJAX) -->
                 <div class="dashboard-card animate__animated animate__fadeInRight" style="animation-delay: 0.1s;">
@@ -2514,5 +2581,56 @@
 
     })();
     </script>
+    <!-- Modal: Control Maintenance Mode -->
+    <div class="modal fade" id="maintenanceSettingsModal" tabindex="-1" aria-labelledby="maintenanceSettingsModalLabel" aria-hidden="true" style="direction: rtl;">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg text-dark" style="border-radius: 20px; overflow: hidden; background: #ffffff;">
+                <div class="modal-header text-white" style="background: linear-gradient(135deg, #1A6FBF 0%, #3cd5cb 100%); border-bottom: none; padding: 20px;">
+                    <h5 class="modal-title fw-bold" id="maintenanceSettingsModalLabel">
+                        <i class="fas fa-toolbox me-2"></i> التحكم في وضع الصيانة والتنبيهات
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white ms-0 me-auto" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form action="/AdminDashboard/UpdateMaintenanceSettings" method="post" id="maintenanceForm">
+                    @Html.AntiForgeryToken()
+                    <div class="modal-body p-4" style="background-color: #F4F7F9;">
+                        
+                        <!-- Patient Maintenance -->
+                        <div class="card border-0 shadow-sm mb-4 p-3" style="border-radius: 12px; background-color: #ffffff;">
+                            <div class="d-flex align-items-center justify-content-between mb-3">
+                                <h6 class="fw-bold text-primary mb-0"><i class="fas fa-user-injured me-1"></i> صيانة بوابة المرضى</h6>
+                                <div class="form-check form-switch p-0 m-0">
+                                    <input class="form-check-input ms-0" type="checkbox" name="IsPatientMaintenanceActive" id="IsPatientMaintenanceActive" value="true" @(Etmen_BLL.Helpers.MaintenanceSettingsHelper.IsPatientMaintenanceActive ? "checked" : "") style="width: 45px; height: 22px; cursor: pointer;">
+                                </div>
+                            </div>
+                            <div class="mb-2">
+                                <label for="PatientMaintenanceMessage" class="form-label small fw-bold text-muted">رسالة التنبيه للمرضى:</label>
+                                <textarea class="form-control" name="PatientMaintenanceMessage" id="PatientMaintenanceMessage" rows="3" style="border-radius: 8px; font-size: 0.9rem;" required>@Etmen_BLL.Helpers.MaintenanceSettingsHelper.PatientMaintenanceMessage</textarea>
+                            </div>
+                        </div>
+
+                        <!-- Staff Maintenance -->
+                        <div class="card border-0 shadow-sm p-3" style="border-radius: 12px; background-color: #ffffff;">
+                            <div class="d-flex align-items-center justify-content-between mb-3">
+                                <h6 class="fw-bold text-primary mb-0"><i class="fas fa-user-tie me-1"></i> صيانة بوابة الموظفين</h6>
+                                <div class="form-check form-switch p-0 m-0">
+                                    <input class="form-check-input ms-0" type="checkbox" name="IsStaffMaintenanceActive" id="IsStaffMaintenanceActive" value="true" @(Etmen_BLL.Helpers.MaintenanceSettingsHelper.IsStaffMaintenanceActive ? "checked" : "") style="width: 45px; height: 22px; cursor: pointer;">
+                                </div>
+                            </div>
+                            <div class="mb-2">
+                                <label for="StaffMaintenanceMessage" class="form-label small fw-bold text-muted">رسالة التنبيه للموظفين:</label>
+                                <textarea class="form-control" name="StaffMaintenanceMessage" id="StaffMaintenanceMessage" rows="3" style="border-radius: 8px; font-size: 0.9rem;" required>@Etmen_BLL.Helpers.MaintenanceSettingsHelper.StaffMaintenanceMessage</textarea>
+                            </div>
+                        </div>
+
+                    </div>
+                    <div class="modal-footer border-0 p-3" style="background-color: #F4F7F9;">
+                        <button type="button" class="btn btn-secondary fw-bold px-4" data-bs-dismiss="modal" style="border-radius: 10px;">إلغاء</button>
+                        <button type="submit" class="btn btn-primary fw-bold px-4" style="background: linear-gradient(135deg, #1A6FBF 0%, #3cd5cb 100%); border: none; border-radius: 10px; color: white;">حفظ التغييرات</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

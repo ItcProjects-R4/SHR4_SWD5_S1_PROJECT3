@@ -623,12 +623,12 @@ namespace Etmen_PL.Controllers
         [HttpPost]
         [Authorize(Roles = "Admin,CrisisAdmin")]
         [ValidateAntiForgeryToken]
-        public IActionResult SaveOutbreakSettings(double radius, int minCases)
+        public IActionResult SaveOutbreakSettings(double radius, int minCases, int highRiskCases, int emergencyCases)
         {
             try
             {
-                OutbreakSettingsHelper.Save(radius, minCases);
-                TempData["Success"] = "تم حفظ إعدادات معايير تجميع البؤر بنجاح!";
+                OutbreakSettingsHelper.Save(radius, minCases, highRiskCases, emergencyCases);
+                TempData["Success"] = "تم حفظ إعدادات معايير تجميع البؤر وتصنيفات الخطورة بنجاح!";
             }
             catch (Exception ex)
             {

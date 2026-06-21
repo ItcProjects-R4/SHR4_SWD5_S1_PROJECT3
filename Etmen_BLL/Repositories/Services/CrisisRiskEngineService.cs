@@ -93,7 +93,7 @@ namespace Etmen_BLL.Repositories.Services
                 // If patient has no location data → assume not in zone (safe default)
 
                 // Generate recommendations based on risk level and triggered vitals/symptoms
-                var recommendations = RiskCalculatorHelper.GenerateRecommendations(riskLevel, triggeredFactors);
+                var recommendations = RiskCalculatorHelper.GenerateRecommendations(riskLevel, triggeredFactors, isCrisisMode: true);
 
                 var result = new CrisisRiskResultDto
                 {

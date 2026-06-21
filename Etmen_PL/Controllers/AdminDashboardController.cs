@@ -713,5 +713,28 @@ namespace Etmen_PL.Controllers
                 return Json(new { success = false, message = ex.Message });
             }
         }
+
+        [HttpPost]
+        [Authorize(Roles = "Admin")]
+        [ValidateAntiForgeryToken]
+        public IActionResult UpdateMaintenanceSettings(bool IsPatientMaintenanceActive, string PatientMaintenanceMessage, bool IsStaffMaintenanceActive, string StaffMaintenanceMessage)
+        {
+            try
+            {
+                Etmen_BLL.Helpers.MaintenanceSettingsHelper.Save(
+                    IsPatientMaintenanceActive,
+                    PatientMaintenanceMessage ?? "",
+                    IsStaffMaintenanceActive,
+                    StaffMaintenanceMessage ?? ""
+                );
+                TempData["Success"] = "تم تحديث إعدادات وضع الصيانة بنجاح";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating maintenance settings");
+                TempData["Error"] = "حدث خطأ أثناء حفظ إعدادات الصيانة";
+            }
+            return RedirectToAction(nameof(Index));
+        }
     }
 }

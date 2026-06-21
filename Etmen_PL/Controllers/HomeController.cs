@@ -64,7 +64,23 @@ namespace Etmen_PL.Controllers
             return View(vm);
         }
 
-       
+        [HttpGet]
+        public IActionResult Maintenance()
+        {
+            string message = "النظام تحت الصيانة حالياً. نعتذر عن الإزعاج وسنعود قريباً.";
+            if (User.IsInRole("Patient"))
+            {
+                message = Etmen_BLL.Helpers.MaintenanceSettingsHelper.PatientMaintenanceMessage;
+            }
+            else if (User.IsInRole("HospitalStaff"))
+            {
+                message = Etmen_BLL.Helpers.MaintenanceSettingsHelper.StaffMaintenanceMessage;
+            }
+            
+            ViewBag.MaintenanceMessage = message;
+            return View();
+        }
+
         private IActionResult RedirectToRoleDashboard()
         {
             if (User.IsInRole("Admin") || User.IsInRole("CrisisAdmin"))

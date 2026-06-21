@@ -1,0 +1,6 @@
+{
+  "IsPatientMaintenanceActive": false,
+  "PatientMaintenanceMessage": "النظام تحت الصيانة حالياً. نعتذر عن الإزعاج وسنعود قريباً.",
+  "IsStaffMaintenanceActive": false,
+  "StaffMaintenanceMessage": "نظام موظفي المستشفى تحت الصيانة حالياً. يرجى مراجعة الإدارة."
+}

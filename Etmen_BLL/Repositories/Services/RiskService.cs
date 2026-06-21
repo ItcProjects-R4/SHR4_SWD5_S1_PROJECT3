@@ -91,16 +91,26 @@ namespace Etmen_BLL.Repositories.Services
                     dto.OxygenSaturation);
 
                 // Add the clinical score and details to triggeredFactors list so they get saved in database
-                triggeredFactors.Add($"مؤشر NEWS2 السريري: {news2.Score} من 12 ({news2.RatingArabic})");
-                triggeredFactors.Add($"تفاصيل NEWS2: {string.Join(" | ", news2.Breakdown)}");
+                if (news2.Score == -1)
+                {
+                    triggeredFactors.Add($"مؤشر NEWS2 السريري: غير متوفر ({news2.RatingArabic})");
+                }
+                else
+                {
+                    triggeredFactors.Add($"مؤشر NEWS2 السريري: {news2.Score} من 12 ({news2.RatingArabic})");
+                    triggeredFactors.Add($"تفاصيل NEWS2: {string.Join(" | ", news2.Breakdown)}");
+                }
 
                 if (news2.Score >= 7 && riskLevel < RiskLevel.High)
                 {
                     riskLevel = RiskLevel.High;
                 }
 
-                var recs = RiskCalculatorHelper.GenerateRecommendations(riskLevel, triggeredFactors);
-                recs.AddRange(news2.Recommendations);
+                var recs = RiskCalculatorHelper.GenerateRecommendations(riskLevel, triggeredFactors, isCrisisMode: true);
+                if (news2.Score != -1)
+                {
+                    recs.AddRange(news2.Recommendations);
+                }
 
                 return ServiceResult<RiskResultDto>.Success(new RiskResultDto
                 {
@@ -366,24 +376,33 @@ namespace Etmen_BLL.Repositories.Services
             var news2MainFactor = triggeredList.FirstOrDefault(f => f.Contains("مؤشر NEWS2 السريري:"));
             if (news2MainFactor != null)
             {
-                var match = System.Text.RegularExpressions.Regex.Match(news2MainFactor, @"مؤشر NEWS2 السريري:\s*(\d+)");
-                if (match.Success)
+                if (news2MainFactor.Contains("غير متوفر"))
                 {
-                    int.TryParse(match.Groups[1].Value, out news2Score);
-                    if (news2MainFactor.Contains("مرتفع"))
+                    news2Score = -1;
+                    news2Rating = "NotAvailable";
+                    news2RatingArabic = "غير متوفر لعدم إدخال مؤشرات حيوية";
+                }
+                else
+                {
+                    var match = System.Text.RegularExpressions.Regex.Match(news2MainFactor, @"مؤشر NEWS2 السريري:\s*(\d+)");
+                    if (match.Success)
                     {
-                        news2Rating = "High";
-                        news2RatingArabic = "مرتفع جداً";
-                    }
-                    else if (news2MainFactor.Contains("متوسط"))
-                    {
-                        news2Rating = "Medium";
-                        news2RatingArabic = "متوسط";
-                    }
-                    else
-                    {
-                        news2Rating = "Low";
-                        news2RatingArabic = "منخفض";
+                        int.TryParse(match.Groups[1].Value, out news2Score);
+                        if (news2MainFactor.Contains("مرتفع"))
+                        {
+                            news2Rating = "High";
+                            news2RatingArabic = "مرتفع جداً";
+                        }
+                        else if (news2MainFactor.Contains("متوسط"))
+                        {
+                            news2Rating = "Medium";
+                            news2RatingArabic = "متوسط";
+                        }
+                        else
+                        {
+                            news2Rating = "Low";
+                            news2RatingArabic = "منخفض";
+                        }
                     }
                 }
             }

@@ -10,6 +10,8 @@ namespace Etmen_BLL.Helpers
 
         public static double ClusteringRadiusKm { get; set; } = 15.0;
         public static int MinCasesPerZone { get; set; } = 5;
+        public static int HighRiskThresholdCases { get; set; } = 15;
+        public static int EmergencyRiskThresholdCases { get; set; } = 30;
 
         static OutbreakSettingsHelper()
         {
@@ -49,18 +51,31 @@ namespace Etmen_BLL.Helpers
                         ClusteringRadiusKm = rProp.GetDouble();
                     if (doc.RootElement.TryGetProperty("MinCasesPerZone", out var mProp))
                         MinCasesPerZone = mProp.GetInt32();
+                    if (doc.RootElement.TryGetProperty("HighRiskThresholdCases", out var hProp))
+                        HighRiskThresholdCases = hProp.GetInt32();
+                    if (doc.RootElement.TryGetProperty("EmergencyRiskThresholdCases", out var eProp))
+                        EmergencyRiskThresholdCases = eProp.GetInt32();
                 }
             }
             catch { }
         }
 
-        public static void Save(double radius, int minCases)
+        public static void Save(double radius, int minCases, int highRiskCases, int emergencyCases)
         {
             try
             {
                 ClusteringRadiusKm = radius;
                 MinCasesPerZone = minCases;
-                var json = JsonSerializer.Serialize(new { ClusteringRadiusKm, MinCasesPerZone }, new JsonSerializerOptions { WriteIndented = true });
+                HighRiskThresholdCases = highRiskCases;
+                EmergencyRiskThresholdCases = emergencyCases;
+
+                var json = JsonSerializer.Serialize(new
+                {
+                    ClusteringRadiusKm,
+                    MinCasesPerZone,
+                    HighRiskThresholdCases,
+                    EmergencyRiskThresholdCases
+                }, new JsonSerializerOptions { WriteIndented = true });
                 
                 // Try saving in multiple places to ensure persistence
                 File.WriteAllText(FilePath, json);

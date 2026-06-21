@@ -201,122 +201,100 @@ namespace Etmen_BLL.Helpers
         /// <summary>
         /// Returns a localized label for the risk level.
         /// </summary>
-        public static string GetRiskLabel(RiskLevel level) => level switch
-        {
-            RiskLevel.Emergency => "طارئ",
-            RiskLevel.High      => "مرتفع",
-            RiskLevel.Medium    => "متوسط",
-            RiskLevel.Low       => "منخفض",
-            _                   => "غير محدد"
-        };
+    /// <summary>
+    /// Returns a localized label for the risk level.
+    /// </summary>
+    public static string GetRiskLabel(RiskLevel level) => level switch
+    {
+        RiskLevel.Emergency => "طارئ",
+        RiskLevel.High      => "مرتفع",
+        RiskLevel.Medium    => "متوسط",
+        RiskLevel.Low       => "منخفض",
+        _                   => "غير محدد"
+    };
 
-        /// <summary>
-        /// Returns a CSS color class associated with the risk level.
-        /// </summary>
-        public static string GetRiskColor(RiskLevel level) => level switch
-        {
-            RiskLevel.Emergency => "danger",
-            RiskLevel.High      => "orange",
-            RiskLevel.Medium    => "warning",
-            RiskLevel.Low       => "success",
-            _                   => "secondary"
-        };
+    /// <summary>
+    /// Returns a CSS color class associated with the risk level.
+    /// </summary>
+    public static string GetRiskColor(RiskLevel level) => level switch
+    {
+        RiskLevel.Emergency => "danger",
+        RiskLevel.High      => "orange",
+        RiskLevel.Medium    => "warning",
+        RiskLevel.Low       => "success",
+        _                   => "secondary"
+    };
 
-        /// <summary>
-        /// Generates clinical recommendations based on triggered factors and risk level.
-        /// </summary>
-        public static List<string> GenerateRecommendations(RiskLevel level, List<string> triggeredFactors)
-        {
-            var recs = new List<string>();
+    /// <summary>
+    /// Generates clinical recommendations based on triggered factors and risk level.
+    /// </summary>
+    public static List<string> GenerateRecommendations(RiskLevel level, List<string> triggeredFactors, bool isCrisisMode = false)
+    {
+        var recs = new List<string>();
+        bool isCrisis = isCrisisMode || triggeredFactors.Any(f => f.Contains("عرض الأزمة") || f.Contains("الأزمة"));
 
-            switch (level)
-            {
-                case RiskLevel.Emergency:
-                    recs.Add("🚨 اتصل بالإسعاف فوراً أو توجه لأقرب طوارئ");
+        switch (level)
+        {
+            case RiskLevel.Emergency:
+                recs.Add("🚨 اتصل بالإسعاف فوراً أو توجه لأقرب طوارئ");
+                if (isCrisis)
+                {
+                    recs.Add("😷 يرجى عزل المريض فوراً في غرفة منفصلة جيدة التهوية لمنع انتشار العدوى");
+                    recs.Add("🛡️ يجب على المريض والمخالطين ارتداء كمامات عالية الكفاءة (N95) والقفازات الواقية");
+                    recs.Add("📏 حافظ على مسافة أمان لا تقل عن مترين وتجنب الملامسة المباشرة لمتعلقات المريض");
+                    recs.Add("🧼 تطهير الأسطح المشتركة باستمرار بالكلور أو الكحول وتعقيم الأيدي");
+                }
+                else
+                {
                     recs.Add("لا تترك المريض وحده");
                     recs.Add("إذا كان واعياً، ساعده على الجلوس بوضع مريح");
-                    break;
+                }
+                break;
 
-                case RiskLevel.High:
-                    recs.Add("📞 تواصل مع طبيبك المعالج في أقرب وقت");
+            case RiskLevel.High:
+                recs.Add("📞 تواصل مع طبيبك المعالج في أقرب وقت");
+                if (isCrisis)
+                {
+                    recs.Add("😷 التزم بالعزل المنزلي الوقائي وارتداء الكمامة باستمرار لمنع نقل العدوى للمحيطين");
+                    recs.Add("🧼 واظب على غسل اليدين وتطهير أدواتك الشخصية بشكل منفصل");
+                }
+                else
+                {
                     recs.Add("راقب الأعراض عن كثب وسجّلها");
                     recs.Add("تجنب المجهود الجسدي حتى المراجعة الطبية");
-                    break;
+                }
+                break;
 
-                case RiskLevel.Medium:
-                    recs.Add("📅 احجز موعداً مع الطبيب خلال يومين");
+            case RiskLevel.Medium:
+                recs.Add("📅 احجز موعداً مع الطبيب خلال يومين");
+                if (isCrisis)
+                {
+                    recs.Add("😷 التزم بارتداء الكمامة في المنزل وعقم يديك بانتظام");
+                    recs.Add("🏠 تجنب الخروج أو زيارة التجمعات لحين التأكد من استقرار حالتك");
+                }
+                else
+                {
                     recs.Add("خذ قسطاً من الراحة وشرب كميات كافية من الماء");
                     recs.Add("راقب تطور الحالة وعُد للتقييم إذا ساءت");
-                    break;
+                }
+                break;
 
-                case RiskLevel.Low:
-                    recs.Add("✅ حالتك مستقرة في الوقت الحالي");
+            case RiskLevel.Low:
+                recs.Add("✅ حالتك مستقرة في الوقت الحالي");
+                if (isCrisis)
+                {
+                    recs.Add("🧼 استمر باتباع التدابير الوقائية والنظافة الشخصية العامة");
+                    recs.Add("😷 تجنب المخالطة اللصيقة بحالات مشتبه بإصابتها بالوباء");
+                }
+                else
+                {
                     recs.Add("حافظ على نمط الحياة الصحي والرياضة المنتظمة");
                     recs.Add("قم بالفحوصات الدورية لمتابعة صحتك");
-                    break;
-            }
-
-            foreach (var factor in triggeredFactors)
-            {
-                var isAbnormal = factor.Contains("(غير طبيعي)") || factor.Contains("(منخفض)")
-                    || factor.Contains("(شديد)") || factor.Contains("(مرتفع قليلاً)")
-                    || factor.Contains("(نقص أكسجة)") || factor.Contains("(منخفض قليلاً)");
-
-                if (isAbnormal)
-                {
-                    if (factor.Contains("ضغط الدم الانقباضي") || factor.Contains("ضغط الدم الانبساطي"))
-                    {
-                        if (factor.Contains("(شديد)"))
-                            recs.Add("ارتفاع ضغط الدم شديد الخطورة. يجب مراجعة الطوارئ فوراً لخفض الضغط");
-                        else
-                            recs.Add("ينصح بقياس ضغط الدم بانتظام وتجنب الأطعمة المالحة والدهون المشبعة");
-                    }
-
-                    if (factor.Contains("معدل ضربات القلب"))
-                    {
-                        if (factor.Contains("(شديد)"))
-                            recs.Add("اضطراب شديد في معدل ضربات القلب. يجب التوجه للطوارئ فوراً");
-                        else
-                            recs.Add("تجنب الكافيين والمنبهات، واحصل على قسط كاف من الراحة والاسترخاء");
-                    }
-
-                    if (factor.Contains("درجة الحرارة"))
-                    {
-                        if (factor.Contains("(شديد)"))
-                            recs.Add("حمى شديدة. توجه للطوارئ أو استشر طبيبك فوراً");
-                        else
-                            recs.Add("شرب السوائل الدافئة بكثرة وقياس درجة الحرارة كل 4 ساعات، مع إمكانية استخدام خافضات الحرارة");
-                    }
-
-                    if (factor.Contains("تشبع الأكسجين"))
-                    {
-                        if (factor.Contains("(نقص أكسجة حاد)"))
-                            recs.Add("نقص أكسجة حاد! يجب التوجه للطوارئ فوراً للحصول على الأكسجين");
-                        else
-                            recs.Add("الجلوس في وضعية مريحة نصف جالسة مع تهوية جيدة للغرفة، واستشارة الطبيب فوراً");
-                    }
-
-                    if (factor.Contains("السكر"))
-                    {
-                        if (factor.Contains("(شديد)"))
-                            recs.Add("ارتفاع/انخفاض السكر شديد الخطورة. توجه للطوارئ فوراً");
-                        else
-                            recs.Add("مراقبة مستوى السكر في الدم بانتظام وتجنب الحلويات والمشروبات السكرية");
-                    }
                 }
-
-                if (factor.Contains("عرض خطير"))
-                {
-                    recs.Add("انتبه جيداً للأعراض الخطيرة المدخلة واستشر الطبيب فور ظهور أي منها");
-                }
-            }
-
-            return recs;
+                break;
         }
-
-        // ── Private helpers ───────────────────────────────────────────────────────
-
-        /// <summary>Returns a severity label suffix for a given score.</summary>
+        return recs;
+    }
         private static string GetStatus(decimal score) => score switch
         {
             >= 0.7m => " (شديد)",
@@ -425,6 +403,11 @@ namespace Etmen_BLL.Helpers
             decimal? temperature,
             decimal? oxygenSaturation)
         {
+            if (!systolicBP.HasValue && !heartRate.HasValue && !temperature.HasValue && !oxygenSaturation.HasValue)
+            {
+                return (-1, "NotAvailable", "غير متوفر لعدم إدخال مؤشرات حيوية", new List<string>(), new List<string>());
+            }
+
             var breakdown = new List<string>();
             var recs = new List<string>();
             int totalScore = 0;

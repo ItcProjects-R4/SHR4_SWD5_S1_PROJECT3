@@ -20,6 +20,7 @@ namespace Etmen_PL.Models.ViewModels.Patient
         public MedicalRecordDto? LatestMedicalRecord { get; set; }
         public List<RecentAppointmentDto> UpcomingAppointments { get; set; } = new();
         public List<RecentAlertDto> RecentAlerts { get; set; } = new();
+        public List<RiskResultDto> RiskHistory { get; set; } = new();
 
         // Active Emergency Case Details & Recommendations
         public bool HasActiveEmergency { get; set; }

@@ -32,7 +32,44 @@
     .amb-map-card{display:none;margin-top:20px;background:#0d1527;border-radius:20px;
         border:2.5px solid #ef4444;box-shadow:0 0 30px rgba(239,68,68,.25);padding:18px;}
     .amb-map-card.show{display:block;animation:fadeInUp .4s ease;}
-    #ambulanceTrackMap{height:380px;border-radius:14px;overflow:hidden;}
+    #ambulanceTrackMap{height:520px;border-radius:14px;overflow:hidden;transition: height 0.3s ease;}
+
+    /* Fullscreen Button */
+    .btn-fullscreen-map {
+        position: absolute;
+        bottom: 15px;
+        right: 15px;
+        z-index: 1000;
+        width: 40px;
+        height: 40px;
+        background: rgba(10, 25, 41, 0.85);
+        border: 1.5px solid rgba(0, 240, 255, 0.45);
+        border-radius: 8px;
+        color: #ffffff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        transition: all 0.2s ease;
+    }
+    .btn-fullscreen-map:hover {
+        background: rgba(0, 240, 255, 0.2);
+        border-color: #00f0ff;
+        color: #00f0ff;
+        transform: scale(1.08);
+    }
+    /* Fullscreen specific stylesheet */
+    #ambulanceTrackMap:fullscreen {
+        width: 100% !important;
+        height: 100% !important;
+        border-radius: 0 !important;
+    }
+    #ambulanceTrackMap:-webkit-full-screen {
+        width: 100% !important;
+        height: 100% !important;
+        border-radius: 0 !important;
+    }
 
     /* ── Map Overlay Header ── */
     .map-overlay-header {
@@ -280,205 +317,211 @@
     </div>
 
     <div class="row g-4 justify-content-center">
-
-        <!-- ═══ LEFT: Status + Ambulance GPS ═══ -->
-        <div class="col-lg-6 col-12">
-            <div class="tracking-card p-4">
-
-                <!-- Header -->
-                <div class="d-flex align-items-center gap-3 mb-4">
-                    <div class="p-3 bg-danger text-white rounded-4"
-                         style="font-size:1.8rem;animation:pulseMini 1.5s infinite;">
-                        <i class="fas fa-ambulance"></i>
-                    </div>
-                    <div>
-                        <h4 class="fw-bold mb-1">طلب الإسعاف العاجل #@Model.Id</h4>
-                        <p class="text-muted small mb-0">نوع الطوارئ: @Model.EmergencyType</p>
-                    </div>
-                </div>
-
-                <!-- Timeline -->
-                <div class="status-timeline mt-4 ms-3">
-                    <div class="status-step @(currentStatus != "Pending" ? "completed" : "active")" id="step-pending">
-                        <h6 class="fw-bold mb-1">تلقّي البلاغ في النظام</h6>
-                        <p class="text-muted small">جاري إشعار مستشفيات الطوارئ المحيطة.</p>
-                    </div>
-                    <div class="status-step @(currentStatus == "Accepted" ? "active" : currentStatus == "Completed" ? "completed" : "")" id="step-accepted">
-                        <h6 class="fw-bold mb-1">قبول الطلب وتوجيه الإسعاف</h6>
-                        <p class="text-muted small">تم قبول حالتك وجاري تحرك الإسعاف.</p>
-                    </div>
-                    <div class="status-step @(currentStatus == "Completed" ? "completed" : "")" id="step-completed">
-                        <h6 class="fw-bold mb-1">الوصول للمستشفى</h6>
-                        <p class="text-muted small">تم وصول الحالة والبدء في الرعاية الطبية.</p>
-                    </div>
-                </div>
-
-                <!-- Accepted Banner -->
-                <div id="acceptedBanner" style="display:none;background:linear-gradient(135deg,#22c55e,#16a34a);
-                     color:#fff;border-radius:16px;padding:14px 18px;margin-top:14px;font-weight:700;
-                     animation:fadeInDown .4s ease;">
-                    <i class="fas fa-satellite-dish me-2"></i>
-                    <span id="acceptedHospName">المستشفى</span> قبلت طلبك — الإسعاف في الطريق!
-                </div>
-
-                <!-- ETA panel (visible when accepted) -->
-                <div id="etaPanel" style="display:none;margin-top:14px;">
-                    <div class="d-flex align-items-center gap-3 justify-content-between flex-wrap">
-                        <div>
-                            <div class="text-muted small fw-bold mb-1"><i class="fas fa-road me-1"></i> المسافة التقديرية</div>
-                            <div class="fw-bold" id="distanceLabel">—</div>
-                        </div>
-                        <div class="text-center">
-                            <div class="text-muted small fw-bold mb-1"><i class="fas fa-clock me-1"></i> وقت الوصول المقدر</div>
-                            <div class="eta-badge" id="etaBadge">— دقيقة</div>
+ 
+        <!-- ═══ LEFT Column: Status, Timeline, ETA, & First-Aid Guide (col-lg-5) ═══ -->
+        <div class="col-lg-5 col-12">
+            <div class="tracking-card p-4 h-100 d-flex flex-column justify-content-between" style="min-height: 520px;">
+                <div>
+                    <!-- Header -->
+                    <div class="d-flex align-items-center gap-3 mb-4">
+                        <div class="p-3 bg-danger text-white rounded-4"
+                             style="font-size:1.8rem;animation:pulseMini 1.5s infinite; width: 60px; height: 60px; display: flex; align-items: center; justify-content: center;">
+                            <i class="fas fa-ambulance"></i>
                         </div>
                         <div>
-                            <div class="text-muted small fw-bold mb-1"><i class="fas fa-tachometer-alt me-1"></i> متبقى من الرحلة</div>
-                            <div class="progress-bar-container" style="width:100px;">
-                                <div class="cap-bar-wrap"><div class="cap-bar bg-danger" id="progressBar" style="width:100%;"></div></div>
-                            </div>
+                            <h4 class="fw-bold mb-1" style="font-size: 1.25rem;">طلب الإسعاف العاجل #@Model.Id</h4>
+                            <p class="text-muted small mb-0 fw-bold">نوع الطوارئ: @Model.EmergencyType</p>
                         </div>
                     </div>
-                </div>
 
-                <!-- Voice Guided First Aid Card -->
-                <div class="card border-0 mt-3 shadow-sm" style="border-radius: 16px; background: linear-gradient(135deg, #1e293b, #0f172a); color: white;">
-                    <div class="card-body p-3.5 text-start">
-                        <div class="d-flex align-items-center justify-content-between mb-3">
-                            <div class="d-flex align-items-center gap-2">
-                                <div class="bg-primary text-white rounded-3 d-flex align-items-center justify-content-center" style="width: 38px; height: 38px; font-size: 1.15rem;">
-                                    <i class="fas fa-volume-up" id="voiceIcon"></i>
+                    <!-- Timeline -->
+                    <div class="status-timeline mt-4 ms-3 text-start">
+                        <div class="status-step @(currentStatus != "Pending" ? "completed" : "active")" id="step-pending">
+                            <h6 class="fw-bold mb-1">تلقّي البلاغ في النظام</h6>
+                            <p class="text-muted small mb-0">جاري إشعار مستشفيات الطوارئ المحيطة.</p>
+                        </div>
+                        <div class="status-step @(currentStatus == "Accepted" ? "active" : currentStatus == "Completed" ? "completed" : "")" id="step-accepted">
+                            <h6 class="fw-bold mb-1">قبول الطلب وتوجيه الإسعاف</h6>
+                            <p class="text-muted small mb-0">تم قبول حالتك وجاري تحرك الإسعاف.</p>
+                        </div>
+                        <div class="status-step @(currentStatus == "Completed" ? "completed" : "")" id="step-completed">
+                            <h6 class="fw-bold mb-1">الوصول للمستشفى</h6>
+                            <p class="text-muted small mb-0">تم وصول الحالة والبدء في الرعاية الطبية.</p>
+                        </div>
+                    </div>
+
+                    <!-- Accepted Banner -->
+                    <div id="acceptedBanner" style="display:none;background:linear-gradient(135deg,#22c55e,#16a34a);
+                         color:#fff;border-radius:16px;padding:14px 18px;margin-top:14px;font-weight:700;
+                         animation:fadeInDown .4s ease;" class="text-start">
+                        <i class="fas fa-satellite-dish me-2 animate__animated animate__pulse animate__infinite"></i>
+                        <span id="acceptedHospName">المستشفى</span> قبلت طلبك — الإسعاف في الطريق!
+                    </div>
+
+                    <!-- ETA panel (visible when accepted) -->
+                    <div id="etaPanel" style="display:none;margin-top:14px;" class="text-start">
+                        <div class="d-flex align-items-center gap-3 justify-content-between flex-wrap p-3 bg-light rounded-3 border">
+                            <div>
+                                <div class="text-muted small fw-bold mb-1"><i class="fas fa-road me-1"></i> المسافة</div>
+                                <div class="fw-bold text-dark" id="distanceLabel">—</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-muted small fw-bold mb-1"><i class="fas fa-clock me-1"></i> وقت الوصول</div>
+                                <div class="eta-badge" id="etaBadge" style="font-size: 0.9rem; padding: 6px 12px;">— دقيقة</div>
+                            </div>
+                            <div>
+                                <div class="text-muted small fw-bold mb-1"><i class="fas fa-tachometer-alt me-1"></i> تقدم الرحلة</div>
+                                <div class="progress-bar-container" style="width:100px;">
+                                    <div class="cap-bar-wrap" style="height: 6px;"><div class="cap-bar bg-danger" id="progressBar" style="width:100%;"></div></div>
                                 </div>
-                                <div>
-                                    <h6 class="fw-bold mb-0" style="font-size: 0.95rem;">المرشد الصوتي للإسعافات الأولية</h6>
-                                    <small class="text-slate-400" style="font-size: 0.72rem; color: #94a3b8 !important;">إرشادات تفاعلية فورية لتهدئة المريض وأهله</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Voice Guided First Aid Card -->
+                    <div class="card border-0 mt-4 shadow-sm" style="border-radius: 18px; background: linear-gradient(135deg, #1e293b, #0f172a); color: white;">
+                        <div class="card-body p-4 text-start">
+                            <div class="d-flex align-items-center justify-content-between mb-3">
+                                <div class="d-flex align-items-center gap-2.5">
+                                    <div class="bg-primary text-white rounded-3 d-flex align-items-center justify-content-center" style="width: 38px; height: 38px; font-size: 1.15rem; background: rgba(59, 130, 246, 0.2) !important;">
+                                        <i class="fas fa-volume-up text-primary" id="voiceIcon"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="fw-bold mb-0" style="font-size: 0.95rem;">المرشد الصوتي للإسعافات الأولية</h6>
+                                        <small style="font-size: 0.72rem; color: #94a3b8 !important;">إرشادات تفاعلية فورية لتهدئة المريض وأهله</small>
+                                    </div>
+                                </div>
+                                <!-- Sound waves animation -->
+                                <div class="sound-waves" id="soundWaves" style="display: none;">
+                                    <span></span>
+                                    <span></span>
+                                    <span></span>
+                                    <span></span>
                                 </div>
                             </div>
-                            <!-- Sound waves animation -->
-                            <div class="sound-waves" id="soundWaves" style="display: none;">
-                                <span></span>
-                                <span></span>
-                                <span></span>
-                                <span></span>
-                            </div>
-                        </div>
 
-                        <div class="p-3 mb-3 text-start" style="background: rgba(255, 255, 255, 0.04); border-radius: 12px; border-right: 4px solid #3b82f6;">
-                            <h6 class="fw-bold text-primary mb-2" style="font-size: 0.88rem;"><i class="fas fa-notes-medical me-1"></i> الإرشادات الطبية العاجلة للحالة:</h6>
-                            <div id="firstAidText" style="font-size: 0.85rem; line-height: 1.6; color: #e2e8f0;">
-                                <!-- Will be loaded dynamically -->
+                            <div class="p-3 mb-3 text-start" style="background: rgba(255, 255, 255, 0.04); border-radius: 12px; border-right: 4px solid #3b82f6;">
+                                <h6 class="fw-bold text-primary mb-2" style="font-size: 0.88rem;"><i class="fas fa-notes-medical me-1"></i> الإرشادات الطبية العاجلة للحالة:</h6>
+                                <div id="firstAidText" style="font-size: 0.85rem; line-height: 1.6; color: #e2e8f0;">
+                                    <!-- Will be loaded dynamically -->
+                                </div>
                             </div>
-                        </div>
 
-                        <div class="d-flex gap-2">
-                            <button class="btn btn-primary btn-sm fw-bold px-3 py-2" id="btnPlayVoice" onclick="playFirstAidSpeech()" style="border-radius: 8px;">
-                                <i class="fas fa-play me-1"></i> استماع للإرشادات
-                            </button>
-                            <button class="btn btn-outline-light btn-sm fw-bold px-3 py-2" id="btnStopVoice" onclick="stopFirstAidSpeech()" style="border-radius: 8px;" disabled>
-                                <i class="fas fa-stop me-1"></i> إيقاف
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Waiting Info -->
-                <div class="alert alert-warning border-0 p-3 mt-3" style="border-radius:16px;" id="waitingAlert">
-                    <h6 class="fw-bold"><i class="fas fa-clock"></i> زمن الانتظار المقدر: 10-15 دقيقة</h6>
-                    <p class="small mb-0 opacity-75">يرجى البقاء في موقعك، وسيصلك اتصال من طاقم الإسعاف.</p>
-                </div>
-
-                <!-- Handover Confirmation Card -->
-                <div id="handoverCard" class="card mt-3 p-4 animate__animated animate__fadeInUp" style="display:none; border-right: 5px solid #10B981; background: #F0FDF4; border-radius: 16px;">
-                    <h5 class="fw-bold text-success mb-3"><i class="fas fa-file-alt me-1"></i> تقرير تسليم وتأكيد الحالة الطبية</h5>
-                    <p class="text-muted small mb-3">تم اكتمال النقل الطبي بنجاح ووصول الحالة للمستشفى. تفاصيل التسليم:</p>
-                    
-                    <div class="row g-3">
-                        <div class="col-6">
-                            <div class="p-2.5 bg-white rounded-3 border" style="box-shadow: 0 2px 4px rgba(0,0,0,0.01);">
-                                <div class="text-muted small" style="font-size: 0.75rem;"><i class="far fa-clock text-primary"></i> زمن الاستجابة (قبول الطلب)</div>
-                                <div class="fw-bold mt-1" style="font-size: 0.85rem;" id="responseTimeVal">—</div>
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <div class="p-2.5 bg-white rounded-3 border" style="box-shadow: 0 2px 4px rgba(0,0,0,0.01);">
-                                <div class="text-muted small" style="font-size: 0.75rem;"><i class="fas fa-shipping-fast text-success"></i> زمن النقل (الوصول للمستشفى)</div>
-                                <div class="fw-bold mt-1" style="font-size: 0.85rem;" id="transportTimeVal">—</div>
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <div class="p-2.5 bg-white rounded-3 border" style="box-shadow: 0 2px 4px rgba(0,0,0,0.01);">
-                                <div class="text-muted small" style="font-size: 0.75rem;"><i class="fas fa-road text-warning"></i> إجمالي مسافة الرحلة</div>
-                                <div class="fw-bold mt-1" style="font-size: 0.85rem;" id="totalDistanceVal">—</div>
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <div class="p-2.5 bg-white rounded-3 border" style="box-shadow: 0 2px 4px rgba(0,0,0,0.01);">
-                                <div class="text-muted small" style="font-size: 0.75rem;"><i class="fas fa-user-md text-info"></i> الطبيب المستقبل بالمستشفى</div>
-                                <div class="fw-bold mt-1 text-truncate" style="font-size: 0.85rem;" id="supervisingDoctorVal">—</div>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-primary btn-sm fw-bold px-3 py-2" id="btnPlayVoice" onclick="playFirstAidSpeech()" style="border-radius: 8px;">
+                                    <i class="fas fa-play me-1"></i> استماع للإرشادات
+                                </button>
+                                <button class="btn btn-outline-light btn-sm fw-bold px-3 py-2" id="btnStopVoice" onclick="stopFirstAidSpeech()" style="border-radius: 8px;" disabled>
+                                    <i class="fas fa-stop me-1"></i> إيقاف
+                                </button>
                             </div>
                         </div>
                     </div>
-                    
-                    <div class="mt-3 alert alert-success border-0 small d-flex gap-2 align-items-center mb-0" style="border-radius: 8px;">
-                        <i class="fas fa-check-circle text-success fs-5"></i>
-                        <div>تم توثيق الحالة الطبية في سجل الطوارئ بنجاح وإغلاق طلب التتبع.</div>
-                    </div>
-                </div>
 
-                <!-- Ambulance GPS Map -->
-                <div class="amb-map-card" id="ambulanceMapCard">
-                    <h6 class="fw-bold text-danger mb-3">
-                        <i class="fas fa-map-marked-alt me-2"></i> تتبع مباشر لسيارة الإسعاف
-                    </h6>
-                    <div class="position-relative">
-                        <div class="map-overlay-header">
-                            <div class="overlay-icon"><i class="fas fa-star-of-life"></i></div>
-                            <div class="overlay-details">
-                                <div class="overlay-title">EMERGENCY MEDICAL DASHBOARD</div>
-                                <div class="overlay-status"><span class="utc-clock">--:--:-- UTC</span> | <span class="live-indicator">LIVE</span></div>
+                    <!-- Waiting Info -->
+                    <div class="alert alert-warning border-0 p-3 mt-3 text-start animate__animated animate__pulse animate__infinite" style="border-radius:16px; animation-duration: 3s;" id="waitingAlert">
+                        <h6 class="fw-bold mb-1" style="font-size: 0.92rem;"><i class="fas fa-clock"></i> زمن الانتظار المقدر: 10-15 دقيقة</h6>
+                        <p class="small mb-0 opacity-75">يرجى البقاء في موقعك، وسيصلك اتصال من طاقم الإسعاف قريباً.</p>
+                    </div>
+
+                    <!-- Handover Confirmation Card -->
+                    <div id="handoverCard" class="card mt-3 p-4 animate__animated animate__fadeInUp text-start" style="display:none; border-right: 5px solid #10B981; background: #F0FDF4; border-radius: 16px;">
+                        <h5 class="fw-bold text-success mb-3" style="font-size: 1.05rem;"><i class="fas fa-file-alt me-1"></i> تقرير تسليم وتأكيد الحالة الطبية</h5>
+                        <p class="text-muted small mb-3">تم اكتمال النقل الطبي بنجاح ووصول الحالة للمستشفى. تفاصيل التسليم:</p>
+                        
+                        <div class="row g-3">
+                            <div class="col-6">
+                                <div class="p-2.5 bg-white rounded-3 border" style="box-shadow: 0 2px 4px rgba(0,0,0,0.01);">
+                                    <div class="text-muted small" style="font-size: 0.75rem;"><i class="far fa-clock text-primary"></i> زمن الاستجابة</div>
+                                    <div class="fw-bold mt-1" style="font-size: 0.85rem;" id="responseTimeVal">—</div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="p-2.5 bg-white rounded-3 border" style="box-shadow: 0 2px 4px rgba(0,0,0,0.01);">
+                                    <div class="text-muted small" style="font-size: 0.75rem;"><i class="fas fa-shipping-fast text-success"></i> زمن النقل للمستشفى</div>
+                                    <div class="fw-bold mt-1" style="font-size: 0.85rem;" id="transportTimeVal">—</div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="p-2.5 bg-white rounded-3 border" style="box-shadow: 0 2px 4px rgba(0,0,0,0.01);">
+                                    <div class="text-muted small" style="font-size: 0.75rem;"><i class="fas fa-road text-warning"></i> إجمالي المسافة</div>
+                                    <div class="fw-bold mt-1" style="font-size: 0.85rem;" id="totalDistanceVal">—</div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="p-2.5 bg-white rounded-3 border" style="box-shadow: 0 2px 4px rgba(0,0,0,0.01);">
+                                    <div class="text-muted small" style="font-size: 0.75rem;"><i class="fas fa-user-md text-info"></i> الطبيب المستقبل</div>
+                                    <div class="fw-bold mt-1 text-truncate" style="font-size: 0.85rem;" id="supervisingDoctorVal">—</div>
+                                </div>
                             </div>
                         </div>
-                        <div id="ambulanceTrackMap" style="border: 2px solid #1e293b; box-shadow: 0 0 25px rgba(0, 240, 255, 0.12);"></div>
-                    </div>
-                    <div class="mt-2 d-flex gap-3 justify-content-center flex-wrap" style="font-size:.8rem;">
-                        <span><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#ef4444;border:2px solid #fff;box-shadow:0 0 6px #ef4444;vertical-align:middle;"></span> موقعك</span>
-                        <span><span style="font-size:16px;">🚑</span> سيارة الإسعاف</span>
-                        <span><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#3b82f6;border:2px solid #fff;vertical-align:middle;font-size:.7rem;color:#fff;text-align:center;line-height:10px;">H</span> المستشفى</span>
+                        
+                        <div class="mt-3 alert alert-success border-0 small d-flex gap-2 align-items-center mb-0" style="border-radius: 8px;">
+                            <i class="fas fa-check-circle text-success fs-5"></i>
+                            <div class="small fw-bold">تم توثيق الحالة الطبية في سجل الطوارئ بنجاح وإغلاق طلب التتبع.</div>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Delayed Button -->
-                <button class="btn btn-outline-danger w-100 py-3 mt-3 fw-bold" style="border-radius:12px;"
+                <button class="btn btn-outline-danger w-100 py-3 mt-4 fw-bold" style="border-radius:12px; font-size: 0.9rem;"
                         onclick="toggleDelaySection()">
-                    <i class="fas fa-exclamation-circle"></i> هل تأخرت سيارة الإسعاف؟ (اضغط هنا)
+                    <i class="fas fa-exclamation-circle me-1"></i> هل تأخرت سيارة الإسعاف؟ (التوجه الذاتي وبدائل المستشفيات)
                 </button>
             </div>
         </div>
+ 
+        <!-- ═══ RIGHT Column: Hero Interactive Maps (col-lg-7) ═══ -->
+        <div class="col-lg-7 col-12">
+            <!-- Live Ambulance GPS Map Card -->
+            <div class="amb-map-card" id="ambulanceMapCard" style="display: none; background:#0d1527; border-radius:24px; border:2.5px solid #ef4444; box-shadow:0 0 30px rgba(239,68,68,.25); padding:18px;">
+                <h5 class="fw-bold text-danger mb-3 d-flex align-items-center justify-content-between" style="font-size: 1rem;">
+                    <span><i class="fas fa-map-marked-alt me-2 animate__animated animate__pulse animate__infinite"></i> تتبع حي ومباشر لسيارة الإسعاف</span>
+                    <span class="badge bg-danger-subtle text-danger px-2.5 py-1 rounded-pill" style="font-size: 0.72rem; border: 1px solid rgba(239, 68, 68, 0.2);"><i class="fas fa-satellite me-1"></i> GPS نشط</span>
+                </h5>
+                <div class="position-relative">
+                    <div class="map-overlay-header">
+                        <div class="overlay-icon"><i class="fas fa-star-of-life"></i></div>
+                        <div class="overlay-details">
+                            <div class="overlay-title">EMERGENCY MEDICAL DASHBOARD</div>
+                            <div class="overlay-status"><span class="utc-clock">--:--:-- UTC</span> | <span class="live-indicator">LIVE</span></div>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-fullscreen-map" onclick="toggleMapFullscreen()" title="ملء الشاشة">
+                        <i class="fas fa-expand"></i>
+                    </button>
+                    <div id="ambulanceTrackMap" style="border: 2px solid #1e293b; box-shadow: 0 0 25px rgba(0, 240, 255, 0.12);"></div>
+                </div>
+                <div class="mt-2 d-flex gap-3 justify-content-center flex-wrap" style="font-size:.82rem; color: #94a3b8; font-weight: 700;">
+                    <span><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#ef4444;border:2px solid #fff;box-shadow:0 0 6px #ef4444;vertical-align:middle;margin-left:4px;"></span> موقعك الحالي</span>
+                    <span><span style="font-size:16px;margin-left:4px;">🚑</span> سيارة الإسعاف</span>
+                    <span><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#3b82f6;border:2px solid #fff;vertical-align:middle;font-size:.7rem;color:#fff;text-align:center;line-height:10px;margin-left:4px;">H</span> المستشفى المستقبل</span>
+                </div>
+            </div>
 
-        <!-- ═══ RIGHT: Self-Navigate + Direct Request ═══ -->
-        <div class="col-lg-6 col-12">
-            <div class="delayed-section shadow-sm w-100" id="delayedSection">
-                <h5 class="fw-bold text-danger mb-2"><i class="fas fa-route"></i> التوجه بنفسك للمستشفى</h5>
-                <p class="text-muted small mb-3">اختر أقرب مستشفى شاغر وأرسل طلب الاستقبال المباشر:</p>
+            <!-- Alternative Hospitals Selection Card -->
+            <div class="delayed-section shadow-sm w-100" id="delayedSection" style="background:#fff; border-radius:24px; border:1px solid var(--border); box-shadow:0 15px 35px rgba(0,0,0,.04); padding:24px; display:none;">
+                <h5 class="fw-bold text-danger mb-2 text-start" style="font-size: 1.15rem;"><i class="fas fa-route me-1"></i> التوجه بنفسك للمستشفى</h5>
+                <p class="text-muted small mb-3 text-start">اختر أقرب مستشفى طوارئ شاغر لعرض المسار وحجز سرير استقبال للتوجه إليه مباشرةً:</p>
 
-                <div class="hospital-map-container">
+                <div class="hospital-map-container" style="height: 400px; border-radius: 16px; border: 1.5px solid var(--border); overflow: hidden; margin-top: 14px; position: relative;">
                     <div id="hospitalMap" style="width:100%;height:100%;"></div>
                 </div>
 
-                <div class="row mt-4">
-                    <div class="col-md-7 col-12">
-                        <h6 class="fw-bold mb-3"><i class="fas fa-hospital-alt text-primary"></i> المستشفيات القريبة</h6>
+                <div class="row mt-4 text-start">
+                    <div class="col-md-7 col-12 mb-3">
+                        <h6 class="fw-bold mb-3" style="font-size: 0.92rem;"><i class="fas fa-hospital-alt text-primary me-1"></i> مستشفيات الطوارئ القريبة:</h6>
                         <div id="hospitalsList" style="max-height:240px;overflow-y:auto;padding-left:5px;"></div>
                     </div>
                     <div class="col-md-5 col-12 border-start">
-                        <h6 class="fw-bold mb-2"><i class="fas fa-file-medical-alt text-danger"></i> إرسال طلب استقبال</h6>
+                        <h6 class="fw-bold mb-2" style="font-size: 0.92rem;"><i class="fas fa-file-medical-alt text-danger me-1"></i> طلب استقبال عاجل:</h6>
 
                         @if (latestRisk != null)
                         {
-                            <div class="card bg-light border-0 p-2 mb-2" style="border-radius:8px;">
-                                <div class="text-xs text-muted">آخر تقييم مخاطر:</div>
-                                <div class="fw-bold text-dark" style="font-size:.85rem;">
-                                    @(latestRisk.RiskLevel == Etmen_Domain.Enums.RiskLevel.Emergency ? "طارئة جداً 🚨" : latestRisk.RiskLevel == Etmen_Domain.Enums.RiskLevel.High ? "عالية ⚠️" : "متوسطة")
+                            <div class="card bg-light border-0 p-2.5 mb-3" style="border-radius:10px;">
+                                <div class="text-muted" style="font-size: 0.7rem;"><i class="fas fa-heartbeat me-1"></i> آخر درجة فحص صحي:</div>
+                                <div class="fw-bold text-dark mt-1" style="font-size:.85rem;">
+                                    @(latestRisk.RiskLevel == Etmen_Domain.Enums.RiskLevel.Emergency ? "حالة حرجة جداً 🚨" : latestRisk.RiskLevel == Etmen_Domain.Enums.RiskLevel.High ? "حالة مرتفعة الخطورة ⚠️" : "حالة متوسطة")
                                 </div>
                             </div>
                         }
@@ -552,10 +595,22 @@
        ══════════════════════════════════════════ */
     function toggleDelaySection() {
         const el = document.getElementById('delayedSection');
+        const mapCard = document.getElementById('ambulanceMapCard');
         if (!el.style.display || el.style.display === 'none') {
             el.style.display = 'block';
             setTimeout(initHospitalMap, 100);
-        } else { el.style.display = 'none'; }
+            if (mapCard && currentStatus !== 'Pending') {
+                mapCard.style.display = 'none';
+            }
+        } else {
+            el.style.display = 'none';
+            if (mapCard && currentStatus !== 'Pending') {
+                mapCard.style.display = 'block';
+                if (trackMap) {
+                    setTimeout(() => { trackMap.invalidateSize(); }, 100);
+                }
+            }
+        }
     }
 
     function initHospitalMap() {
@@ -679,9 +734,44 @@
         return id ? hospitals.find(h => h.Id === id) || null : null;
     }
 
+    function toggleMapFullscreen() {
+        const mapElem = document.getElementById('ambulanceTrackMap');
+        const btn = document.querySelector('.btn-fullscreen-map i');
+        
+        if (!document.fullscreenElement) {
+            mapElem.requestFullscreen().then(() => {
+                if (btn) btn.className = "fas fa-compress";
+            }).catch(err => {
+                alert(`خطأ أثناء تفعيل ملء الشاشة: ${err.message}`);
+            });
+        } else {
+            document.exitFullscreen().then(() => {
+                if (btn) btn.className = "fas fa-expand";
+            });
+        }
+    }
+
+    document.addEventListener('fullscreenchange', () => {
+        const btn = document.querySelector('.btn-fullscreen-map i');
+        if (btn) {
+            if (document.fullscreenElement) {
+                btn.className = "fas fa-compress";
+            } else {
+                btn.className = "fas fa-expand";
+            }
+        }
+        if (trackMap) {
+            setTimeout(() => { trackMap.invalidateSize(); }, 200);
+        }
+    });
+
     function initTrackingMap(hospLat, hospLng, hospName, distKm) {
         const card = document.getElementById('ambulanceMapCard');
+        card.style.display = 'block';
         card.classList.add('show');
+
+        const delaySec = document.getElementById('delayedSection');
+        if (delaySec) delaySec.style.display = 'none';
 
         currentHospLat = hospLat;
         currentHospLng = hospLng;
@@ -1192,6 +1282,9 @@
                     calculateHandoverMetrics();
                 }
             }
+        } else {
+            // Status is Pending: automatically display alternative hospitals section on load
+            toggleDelaySection();
         }
     });
     </script>

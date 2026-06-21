@@ -171,15 +171,34 @@ namespace Etmen_PL.Controllers
 
         /// <summary>GET: /RiskAssessment/Result — Renders calculated risk category and recommendations</summary>
         [HttpGet]
-        public IActionResult Result()
+        public async Task<IActionResult> Result(int? id)
         {
             try
             {
-                var resultJson = TempData["RiskResult"]?.ToString();
-                if (string.IsNullOrWhiteSpace(resultJson))
-                    return RedirectToAction(nameof(Index));
+                RiskResultDto? result = null;
+                if (id.HasValue)
+                {
+                    var historyResult = await _riskService.GetRiskAssessmentByIdAsync(id.Value);
+                    if (historyResult.IsSuccess && historyResult.Data != null)
+                    {
+                        result = historyResult.Data;
+                    }
+                }
 
-                var result = JsonSerializer.Deserialize<RiskResultDto>(resultJson);
+                if (result == null)
+                {
+                    var resultJson = TempData["RiskResult"]?.ToString();
+                    if (string.IsNullOrWhiteSpace(resultJson))
+                        return RedirectToAction(nameof(Index));
+
+                    result = JsonSerializer.Deserialize<RiskResultDto>(resultJson);
+                }
+
+                if (result == null)
+                {
+                    return RedirectToAction(nameof(Index));
+                }
+
                 return View(result);
             }
             catch (Exception ex)

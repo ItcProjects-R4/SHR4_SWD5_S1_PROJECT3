@@ -1,4 +1,6 @@
 {
   "ClusteringRadiusKm": 15.0,
-  "MinCasesPerZone": 5
+  "MinCasesPerZone": 5,
+  "HighRiskThresholdCases": 15,
+  "EmergencyRiskThresholdCases": 30
 }

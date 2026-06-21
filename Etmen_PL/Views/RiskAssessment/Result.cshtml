@@ -530,18 +530,19 @@
 
             <!-- NEWS2 Smart Triage Card -->
             @{
-                string cardBg = Model.News2Rating switch {
+                bool isNews2Available = Model.News2Score != -1 && Model.News2Rating != "NotAvailable";
+                string cardBg = !isNews2Available ? "linear-gradient(135deg, #F8FAFC 0%, #FFFFFF 100%)" : Model.News2Rating switch {
                     "High" => "linear-gradient(135deg, #FEF2F2 0%, #FFFFFF 100%)",
                     "Medium" => "linear-gradient(135deg, #FFFBEB 0%, #FFFFFF 100%)",
                     _ => "linear-gradient(135deg, #F0FDF4 0%, #FFFFFF 100%)"
                 };
-                string cardBorder = Model.News2Rating switch {
+                string cardBorder = !isNews2Available ? "#E2E8F0" : Model.News2Rating switch {
                     "High" => "#FCA5A5",
                     "Medium" => "#FDE68A",
                     _ => "#A7F3D0"
                 };
-                string scoreColor = Model.News2Score >= 7 ? "#EF4444" : Model.News2Score >= 5 ? "#F59E0B" : "#10B981";
-                string news2BadgeStyle = Model.News2Rating switch {
+                string scoreColor = !isNews2Available ? "#64748B" : Model.News2Score >= 7 ? "#EF4444" : Model.News2Score >= 5 ? "#F59E0B" : "#10B981";
+                string news2BadgeStyle = !isNews2Available ? "background-color: #64748B; color: #FFFFFF; box-shadow: 0 4px 12px rgba(100, 116, 139, 0.2);" : Model.News2Rating switch {
                     "High" => "background-color: #EF4444; color: #FFFFFF; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);",
                     "Medium" => "background-color: #F59E0B; color: #FFFFFF; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);",
                     _ => "background-color: #10B981; color: #FFFFFF; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);"
@@ -562,14 +563,16 @@
                     <div class="row align-items-center g-4">
                         <div class="col-md-4 text-center border-md-end" style="border-color: rgba(0,0,0,0.06) !important;">
                             <div class="d-inline-flex align-items-center justify-content-center mb-2" style="width: 110px; height: 110px; border-radius: 50%; background: var(--card-bg); box-shadow: 0 8px 24px rgba(0,0,0,0.04); border: 4px solid @scoreColor;">
-                                <span class="display-4 fw-black font-monospace mb-0" style="color: @scoreColor; font-weight: 900; font-size: 3.2rem;">@Model.News2Score</span>
+                                <span class="display-4 fw-black font-monospace mb-0" style="color: @scoreColor; font-weight: 900; font-size: 3.2rem;">
+                                    @(isNews2Available ? Model.News2Score.ToString() : "--")
+                                </span>
                             </div>
                             <div class="text-muted small fw-bold mt-1">إجمالي النقاط (من 12)</div>
                         </div>
                         <div class="col-md-8">
                             <h6 class="fw-bold mb-3" style="color: var(--text-main); font-size: 1rem;"><i class="fas fa-microscope me-1 text-primary"></i> تفاصيل النقاط المكتسبة حسب العلامات الحيوية:</h6>
                             <div class="row g-2">
-                                @if (Model.News2Breakdown != null && Model.News2Breakdown.Any())
+                                @if (isNews2Available && Model.News2Breakdown != null && Model.News2Breakdown.Any())
                                 {
                                     @foreach (var detail in Model.News2Breakdown)
                                     {
@@ -604,8 +607,8 @@
                                 else
                                 {
                                     <div class="col-12">
-                                        <div class="p-3 rounded-3 text-center text-muted bg-light" style="font-size: 0.9rem;">
-                                            <i class="fas fa-info-circle me-1"></i> لا توجد تفاصيل متوفرة.
+                                        <div class="p-3.5 rounded-3 text-center text-muted bg-white border" style="font-size: 0.88rem; border-color: #E2E8F0 !important;">
+                                            <i class="fas fa-info-circle me-1 text-primary"></i> لم يتم إدخال المؤشرات الحيوية خلال الفحص في وضع الأزمات. حساب NEWS2 غير متوفر.
                                         </div>
                                     </div>
                                 }
@@ -640,51 +643,187 @@
                 </div>
             }
 
-            <!-- Triggered Symptoms List -->
-            @if (Model.TriggeredSymptoms.Any())
-            {
-                <div class="text-start mb-5">
-                    <h5 class="section-header-premium"><i class="fas fa-viruses me-2 text-secondary"></i> المؤشرات الحيوية والأعراض التي تم رصدها:</h5>
-                    <div class="d-flex flex-wrap mt-3">
-                        @{
-                            int delay = 0;
-                            foreach (var symptom in Model.TriggeredSymptoms)
-                            {
-                                if (symptom.Contains("NEWS2")) continue;
-                                
-                                string tagClass = "normal";
-                                string icon = "fa-check-circle";
-                                
-                                if (symptom.Contains("غير طبيعي") || symptom.Contains("منخفض"))
-                                {
-                                    tagClass = symptom.Contains("خطير") ? "severe" : "danger";
-                                    icon = "fa-exclamation-triangle";
-                                }
-                                else if (symptom.Contains("عرض الأزمة") || symptom.Contains("عرض"))
-                                {
-                                    tagClass = symptom.Contains("خطير") ? "severe" : "abnormal";
-                                    icon = symptom.Contains("خطير") ? "fa-exclamation-triangle" : "fa-virus";
-                                }
-                                else if (symptom.Contains("عرض خطير"))
-                                {
-                                    tagClass = "severe";
-                                    icon = "fa-exclamation-triangle";
-                                }
-                                else if (symptom.Contains("ضغط الدم") || symptom.Contains("معدل ضربات") || symptom.Contains("درجة الحرارة") || symptom.Contains("تشبع") || symptom.Contains("السكر"))
-                                {
-                                    tagClass = "normal";
-                                    icon = symptom.Contains("ضغط الدم") ? "fa-heartbeat" : 
-                                           symptom.Contains("معدل ضربات") ? "fa-heartbeat" : 
-                                           symptom.Contains("درجة الحرارة") ? "fa-thermometer-half" : 
-                                           symptom.Contains("تشبع") ? "fa-lungs" : "fa-tint";
-                                }
+            <!-- Triggered Symptoms & Vitals Section -->
+            @{
+                var vitalsList = new List<(string Label, string Value, string Status, string Icon, string Color, string BgColor, string BorderColor)>();
+                var symptomsList = new List<(string CleanedName, bool IsCritical)>();
 
-                                <span class="symptom-tag-premium @tagClass" style="animation-delay: @(delay * 80)ms;">
-                                    <i class="fas @icon"></i> @symptom
-                                </span>
-                                delay++;
+                foreach (var symptom in Model.TriggeredSymptoms)
+                {
+                    if (symptom.Contains("NEWS2")) continue;
+                    if (symptom.Contains("مؤشر NEWS2")) continue;
+                    if (symptom.Contains("تفاصيل NEWS2")) continue;
+
+                    bool isVital = symptom.Contains("ضغط الدم") || symptom.Contains("ضربات القلب") ||
+                                   symptom.Contains("درجة الحرارة") || symptom.Contains("تشبع") ||
+                                   symptom.Contains("الأكسجين") || symptom.Contains("السكر") ||
+                                   symptom.Contains("mmHg") || symptom.Contains("bpm") ||
+                                   symptom.Contains("°C") || symptom.Contains("%") ||
+                                   symptom.Contains("mg/dL");
+
+                    if (isVital)
+                    {
+                        var parts = symptom.Split(':');
+                        if (parts.Length >= 2)
+                        {
+                            string label = parts[0].Trim();
+                            string rest = string.Join(":", parts.Skip(1)).Trim();
+
+                            string status = "طبيعي ومستقر";
+                            string value = rest;
+
+                            var statusMatch = System.Text.RegularExpressions.Regex.Match(rest, @"\(([^)]+)\)");
+                            if (statusMatch.Success)
+                            {
+                                status = statusMatch.Groups[1].Value.Trim();
+                                value = rest.Replace(statusMatch.Value, "").Trim();
                             }
+
+                            // Clean labels and assign beautiful styles
+                            string icon = "fa-heartbeat";
+                            string color = "#10B981";
+                            string bgColor = "rgba(16, 185, 129, 0.04)";
+                            string borderColor = "rgba(16, 185, 129, 0.15)";
+
+                            if (label.Contains("ضربات القلب") || label.Contains("معدل ضربات"))
+                            {
+                                label = "معدل ضربات القلب";
+                                icon = "fa-heartbeat";
+                            }
+                            else if (label.Contains("درجة الحرارة"))
+                            {
+                                label = "درجة حرارة الجسم";
+                                icon = "fa-thermometer-half";
+                            }
+                            else if (label.Contains("الانقباضي"))
+                            {
+                                label = "ضغط الدم الانقباضي";
+                                icon = "fa-tint";
+                            }
+                            else if (label.Contains("الانبساطي"))
+                            {
+                                label = "ضغط الدم الانبساطي";
+                                icon = "fa-tint-slash";
+                            }
+                            else if (label.Contains("تشبع") || label.Contains("الأكسجين"))
+                            {
+                                label = "تشبع الأكسجين";
+                                icon = "fa-lungs";
+                            }
+                            else if (label.Contains("السكر"))
+                            {
+                                label = "مستوى السكر في الدم";
+                                icon = "fa-droplet";
+                            }
+
+                            // Color coding based on status
+                            if (status.Contains("شديد") || status.Contains("حاد") || status.Contains("خطير") || status.Contains("مرتفع جداً"))
+                            {
+                                color = "#EF4444";
+                                bgColor = "rgba(239, 68, 68, 0.04)";
+                                borderColor = "rgba(239, 68, 68, 0.15)";
+                            }
+                            else if (status.Contains("غير طبيعي") || status.Contains("منخفض") || status.Contains("مرتفع"))
+                            {
+                                color = "#F59E0B";
+                                bgColor = "rgba(245, 158, 11, 0.04)";
+                                borderColor = "rgba(245, 158, 11, 0.15)";
+                            }
+
+                            vitalsList.Add((label, value, status, icon, color, bgColor, borderColor));
                         }
+                    }
+                    else
+                    {
+                        string cleaned = symptom;
+                        cleaned = cleaned.Replace("عرض الأزمة:", "")
+                                         .Replace("عرض خطير:", "")
+                                         .Replace("عرض:", "")
+                                         .Trim();
+
+                        // Remove weight suffixes
+                        cleaned = System.Text.RegularExpressions.Regex.Replace(cleaned, @"\(\s*الوزن\s*:\s*\d+(\.\d+)?\s*\)", "").Trim();
+
+                        bool isCritical = symptom.Contains("خطير") || symptom.Contains("أزمة") || symptom.Contains("حرجة") || symptom.Contains("حرج");
+                        symptomsList.Add((cleaned, isCritical));
+                    }
+                }
+            }
+
+            @if (symptomsList.Any() || vitalsList.Any())
+            {
+                <div class="row g-4 mb-5 text-start" dir="rtl">
+                    <!-- Column 1: Vitals (المؤشرات الحيوية المقاسة) -->
+                    <div class="col-md-6 col-12">
+                        <div class="p-4 h-100" style="background: var(--card-bg); border-radius: 24px; border: 1.5px solid var(--card-border); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.025);">
+                            <h5 class="fw-bold mb-4" style="color: var(--text-main); font-size: 1.15rem;"><i class="fas fa-heartbeat text-danger me-2"></i> المؤشرات الحيوية المقاسة:</h5>
+                            
+                            @if (vitalsList.Any())
+                            {
+                                <div class="row g-3">
+                                    @foreach (var vital in vitalsList)
+                                    {
+                                        <div class="col-12">
+                                            <div class="d-flex align-items-center justify-content-between p-3 rounded-3 border" style="background: @vital.BgColor; border-color: @vital.BorderColor !important;">
+                                                <div class="d-flex align-items-center gap-3">
+                                                    <div class="d-flex align-items-center justify-content-center rounded-3 text-white" style="width: 42px; height: 42px; background: @vital.Color; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+                                                        <i class="fas @vital.Icon fs-5"></i>
+                                                    </div>
+                                                    <div>
+                                                        <span class="fw-bold d-block text-dark" style="font-size: 0.9rem; font-weight: 700;">@vital.Label</span>
+                                                        <span class="badge rounded-pill px-2.5 py-1 mt-1 fw-bold" style="font-size: 0.72rem; background: @vital.Color; color: white;">
+                                                            @vital.Status
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <div class="text-end">
+                                                    <span class="fs-4 fw-black font-monospace text-dark" style="font-weight: 900;">@vital.Value</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="p-4 text-center text-muted bg-light rounded-3 d-flex flex-column align-items-center justify-content-center h-75" style="border-radius: 16px;">
+                                    <i class="fas fa-heart-circle-xmark fs-2 mb-2 opacity-50 text-secondary"></i>
+                                    <p class="small fw-bold mb-0">لم يتم إدخال مؤشرات حيوية في هذا الفحص.</p>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Column 2: Symptoms (الأعراض التي تم رصدها) -->
+                    <div class="col-md-6 col-12">
+                        <div class="p-4 h-100" style="background: var(--card-bg); border-radius: 24px; border: 1.5px solid var(--card-border); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.025);">
+                            <h5 class="fw-bold mb-4" style="color: var(--text-main); font-size: 1.15rem;"><i class="fas fa-virus text-primary me-2"></i> الأعراض التي تم رصدها:</h5>
+                            
+                            @if (symptomsList.Any())
+                            {
+                                <div class="d-flex flex-wrap gap-2.5">
+                                    @foreach (var symptom in symptomsList)
+                                    {
+                                        string bg = symptom.IsCritical ? "rgba(239, 68, 68, 0.05)" : "rgba(59, 130, 246, 0.05)";
+                                        string border = symptom.IsCritical ? "rgba(239, 68, 68, 0.15)" : "rgba(59, 130, 246, 0.15)";
+                                        string color = symptom.IsCritical ? "#EF4444" : "#2563EB";
+                                        string icon = symptom.IsCritical ? "fa-exclamation-triangle" : "fa-check-circle";
+
+                                        <div class="d-flex align-items-center gap-2 px-3 py-2.5 rounded-pill border fw-bold" style="background: @bg; border-color: @border !important; color: @color; font-size: 0.88rem;">
+                                            <i class="fas @icon fs-6"></i>
+                                            <span>@symptom.CleanedName</span>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="p-4 text-center text-muted bg-light rounded-3 d-flex flex-column align-items-center justify-content-center h-75" style="border-radius: 16px;">
+                                    <i class="fas fa-hand-holding-heart fs-2 mb-2 opacity-50 text-secondary"></i>
+                                    <p class="small fw-bold mb-0">لا توجد أعراض مسجلة، مؤشراتك مستقرة تماماً.</p>
+                                </div>
+                            }
+                        </div>
                     </div>
                 </div>
             }
@@ -825,7 +964,7 @@
 
                 @* زر حجز موعد طبيب *@
                 <div class="col-md-@(Model.IsEmergency || Model.RiskLevel == Etmen_Domain.Enums.RiskLevel.High || Model.RiskLevel == Etmen_Domain.Enums.RiskLevel.Emergency ? "6" : "4") mt-1">
-                    <a href="/Appointments"
+                    <a href="/NearbyProviders"
                        class="btn btn-action-premium w-100"
                        style="background:linear-gradient(135deg,#8B5CF6,#6D28D9);color:#fff;font-size:1rem;padding:16px 20px;border:none;">
                         <i class="fas fa-calendar-check"></i> حجز موعد مع طبيب
