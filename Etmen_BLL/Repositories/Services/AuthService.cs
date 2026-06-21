@@ -89,52 +89,26 @@ namespace Etmen_BLL.Repositories.Services
 
             await _uow.CompleteAsync();
 
-            // For Patients: Auto-confirm email to allow immediate login
-            // For Doctors: Require email verification for security
-            if (role == "Patient")
+            var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+
+            // Build activation link and send email
+            var encodedToken  = Uri.EscapeDataString(token);
+            var activationLink = $"{_baseUrl}/Account/VerifyEmail?userId={user.Id}&token={encodedToken}";
+
+            await _taskQueue.QueueBackgroundWorkItemAsync(async token => 
+                await _emailService.SendAccountActivationEmailAsync(
+                    user.Email!, $"{dto.FirstName} {dto.LastName}".Trim(), activationLink, role));
+
+            _logger.LogInformation(
+                "New {Role} registered: {Email}, activation email sent.", role, user.Email);
+
+            return ServiceResult<AuthResult>.Created(new AuthResult
             {
-                user.IsEmailVerified = true;
-                user.EmailConfirmed = true; // Confirm email for ASP.NET Identity
-                await _userManager.UpdateAsync(user);
-
-                _logger.LogInformation("New Patient registered and auto-verified: {Email}", user.Email);
-
-                // Send welcome email immediately for patients (auto-verified)
-                var fullName = $"{dto.FirstName} {dto.LastName}".Trim();
-                await _taskQueue.QueueBackgroundWorkItemAsync(async token => 
-                    await _emailService.SendWelcomeEmailAsync(user.Email!, fullName, role));
-
-                return ServiceResult<AuthResult>.Created(new AuthResult
-                {
-                    Success = true,
-                    Message = "تم إنشاء الحساب بنجاح. يمكنك الآن تسجيل الدخول.",
-                    UserId  = user.Id,
-                    Role    = role,
-                });
-            }
-            else // Doctor — must verify email
-            {
-                var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-
-                // Build activation link and send email
-                var encodedToken  = Uri.EscapeDataString(token);
-                var activationLink = $"{_baseUrl}/Account/VerifyEmail?userId={user.Id}&token={encodedToken}";
-
-                await _taskQueue.QueueBackgroundWorkItemAsync(async token => 
-                    await _emailService.SendAccountActivationEmailAsync(
-                        user.Email!, $"{dto.FirstName} {dto.LastName}".Trim(), activationLink, role));
-
-                _logger.LogInformation(
-                    "New Doctor registered: {Email}, activation email sent.", user.Email);
-
-                return ServiceResult<AuthResult>.Created(new AuthResult
-                {
-                    Success = true,
-                    Message = "تم إنشاء الحساب بنجاح. يرجى التحقق من بريدك الإلكتروني.",
-                    UserId  = user.Id,
-                    Role    = role,
-                });
-            }
+                Success = true,
+                Message = "تم إنشاء الحساب بنجاح. يرجى التحقق من بريدك الإلكتروني لتفعيله.",
+                UserId  = user.Id,
+                Role    = role,
+            });
         }
 
 
@@ -152,8 +126,28 @@ namespace Etmen_BLL.Repositories.Services
             if (result.IsLockedOut)
                 return ServiceResult<AuthResult>.Failure("الحساب مقفل مؤقتاً بسبب محاولات تسجيل دخول متعددة.", 429);
 
-            if (result.IsNotAllowed)
-                return ServiceResult<AuthResult>.Failure("الرجاء تفعيل الحساب من الـ Gmail أولاً.", 403);
+            if (result.IsNotAllowed || !user.EmailConfirmed)
+            {
+                // Generate a new email confirmation token
+                var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+
+                // Build activation link and send email
+                var encodedToken  = Uri.EscapeDataString(token);
+                var activationLink = $"{_baseUrl}/Account/VerifyEmail?userId={user.Id}&token={encodedToken}";
+
+                // Find role
+                var userRoles = await _userManager.GetRolesAsync(user);
+                var role = userRoles.FirstOrDefault() ?? "Patient";
+
+                await _taskQueue.QueueBackgroundWorkItemAsync(async token => 
+                    await _emailService.SendAccountActivationEmailAsync(
+                        user.Email!, $"{user.FirstName} {user.LastName}".Trim(), activationLink, role));
+
+                _logger.LogInformation(
+                    "Resent activation email to unconfirmed user: {Email}", user.Email);
+
+                return ServiceResult<AuthResult>.Failure("الحساب غير مفعل. لقد أرسلنا رابط تفعيل جديد إلى بريدك الإلكتروني، يرجى تفعيله قبل تسجيل الدخول.", 403);
+            }
 
             if (!result.Succeeded)
                 return ServiceResult<AuthResult>.Failure("بريد إلكتروني أو كلمة مرور غير صحيحة.", 401);
@@ -270,6 +264,30 @@ namespace Etmen_BLL.Repositories.Services
                 : ServiceResult.Failure(result.Errors.Select(e => e.Description));
         }
 
+        public async Task<ServiceResult> ResendActivationEmailAsync(string email)
+        {
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+                return ServiceResult.NotFound("المستخدم غير موجود.");
+
+            if (user.EmailConfirmed)
+                return ServiceResult.Failure("البريد الإلكتروني مؤكد بالفعل.");
+
+            var roles = await _userManager.GetRolesAsync(user);
+            var role = roles.FirstOrDefault() ?? "Patient";
+
+            var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+            var encodedToken = Uri.EscapeDataString(token);
+            var activationLink = $"{_baseUrl}/Account/VerifyEmail?userId={user.Id}&token={encodedToken}";
+
+            await _taskQueue.QueueBackgroundWorkItemAsync(async token =>
+                await _emailService.SendAccountActivationEmailAsync(
+                    user.Email!, $"{user.FirstName} {user.LastName}".Trim(), activationLink, role));
+
+            _logger.LogInformation("Resent activation email to: {Email}", user.Email);
+
+            return ServiceResult.Success();
+        }
 
         public async Task<bool> IsEmailTakenAsync(string email) =>
             await _userManager.FindByEmailAsync(email) is not null;

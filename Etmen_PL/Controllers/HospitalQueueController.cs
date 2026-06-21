@@ -24,6 +24,21 @@ namespace Etmen_PL.Controllers
     [Authorize(Roles = "HospitalStaff")]
     public class HospitalQueueController : Controller
     {
+        public static readonly System.Collections.Concurrent.ConcurrentDictionary<int, bool> ProviderAiModes = new();
+
+        public static bool IsAiModeActive(int providerId)
+        {
+            return ProviderAiModes.TryGetValue(providerId, out var val) && val;
+        }
+
+        [HttpPost]
+        [IgnoreAntiforgeryToken]
+        public IActionResult ToggleAiMode(int providerId, bool enable)
+        {
+            ProviderAiModes[providerId] = enable;
+            return Json(new { success = true, isEnabled = enable });
+        }
+
         private readonly IHospitalStaffService _hospitalStaffService;
         private readonly IUnitOfWork _uow;
         private readonly ILogger<HospitalQueueController> _logger;
@@ -104,6 +119,9 @@ namespace Etmen_PL.Controllers
                     viewModel.ProviderName = provider.Name;
                     viewModel.ProviderAddress = provider.Address;
                     viewModel.AvailableBeds = provider.AvailableBeds;
+                    viewModel.BedCapacity = provider.BedCapacity ?? 150;
+                    viewModel.AmbulanceCapacity = provider.AmbulanceCapacity ?? 4;
+                    viewModel.AvailableAmbulances = provider.AvailableAmbulances ?? 4;
                     viewModel.ProviderLatitude = provider.Latitude;
                     viewModel.ProviderLongitude = provider.Longitude;
                 }
@@ -113,6 +131,8 @@ namespace Etmen_PL.Controllers
                 {
                     viewModel.AdminUserId = adminUser.Id;
                 }
+
+                ViewBag.IsAiModeActive = ProviderAiModes.TryGetValue(providerId.Value, out var val) && val;
 
                 return View(viewModel);
             }
@@ -174,6 +194,7 @@ namespace Etmen_PL.Controllers
                 {
                     ViewBag.HospitalLat = provider.Latitude;
                     ViewBag.HospitalLng = provider.Longitude;
+                    ViewBag.AvailableAmbulances = provider.AvailableAmbulances ?? 4;
                 }
 
                 var allDoctors = await _uow.DoctorProfiles.Table
@@ -242,15 +263,40 @@ namespace Etmen_PL.Controllers
                     return RedirectToAction(nameof(Details), new { id = viewModel.RequestId });
                 }
 
-                // Doctor assignment is now handled inside RespondToRequestAsync via the DTO.
+                // Fetch assigned doctor name for real-time tracking
+                string? doctorName = null;
+                if (!string.IsNullOrEmpty(viewModel.AssignedDoctorUserId))
+                {
+                    var docUser = await _userManager.FindByIdAsync(viewModel.AssignedDoctorUserId);
+                    if (docUser != null)
+                    {
+                        doctorName = $"{docUser.FirstName} {docUser.LastName}";
+                    }
+                }
 
                 // Broadcast update to SignalR clients (Patients and Admin dashboard)
                 await _queueHubContext.Clients.All.SendAsync("EmergencyRequestUpdated", new
                 {
                     requestId = viewModel.RequestId,
                     status = viewModel.Status,
-                    providerId = viewModel.ProviderId
+                    providerId = viewModel.ProviderId,
+                    doctorName = doctorName,
+                    responseNotes = viewModel.ResponseNotes
                 });
+
+                // Broadcast capacity changes to SignalR clients
+                var provider = await _uow.HealthcareProviders.GetByIdAsync(viewModel.ProviderId);
+                if (provider != null)
+                {
+                    await _queueHubContext.Clients.All.SendAsync("HospitalBedsUpdated", new
+                    {
+                        providerId = provider.Id,
+                        availableBeds = provider.AvailableBeds ?? 0,
+                        bedCapacity = provider.BedCapacity ?? 150,
+                        availableAmbulances = provider.AvailableAmbulances ?? 0,
+                        ambulanceCapacity = provider.AmbulanceCapacity ?? 4
+                    });
+                }
 
                 _logger.LogInformation("Response {Status} provided to emergency request {RequestId}", viewModel.Status, viewModel.RequestId);
                 TempData["Success"] = "تم تسجيل الرد وتعيين الطبيب بنجاح";
@@ -295,6 +341,20 @@ namespace Etmen_PL.Controllers
                 {
                     TempData["Error"] = result.ErrorMessage ?? "خطأ في تحديث عدد الأسرة.";
                     return RedirectToAction(nameof(Index));
+                }
+
+                // Broadcast capacity changes to SignalR clients
+                var provider = await _uow.HealthcareProviders.GetByIdAsync(viewModel.ProviderId);
+                if (provider != null)
+                {
+                    await _queueHubContext.Clients.All.SendAsync("HospitalBedsUpdated", new
+                    {
+                        providerId = provider.Id,
+                        availableBeds = provider.AvailableBeds ?? 0,
+                        bedCapacity = provider.BedCapacity ?? 150,
+                        availableAmbulances = provider.AvailableAmbulances ?? 0,
+                        ambulanceCapacity = provider.AmbulanceCapacity ?? 4
+                    });
                 }
 
                 // Log staff activity
@@ -382,7 +442,7 @@ namespace Etmen_PL.Controllers
         /// </summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> UpdateProfile(int providerId, string providerName, string providerAddress, int availableBeds)
+        public async Task<IActionResult> UpdateProfile(int providerId, string providerName, string providerAddress, int availableBeds, int bedCapacity, int availableAmbulances, int ambulanceCapacity)
         {
             try
             {
@@ -409,7 +469,14 @@ namespace Etmen_PL.Controllers
                 var oldName = provider.Name;
                 provider.Name = providerName.Trim();
                 provider.Address = string.IsNullOrWhiteSpace(providerAddress) ? provider.Address : providerAddress.Trim();
+                
+                provider.BedCapacity = bedCapacity >= 0 ? bedCapacity : 150;
                 provider.AvailableBeds = availableBeds >= 0 ? availableBeds : 0;
+                if (provider.AvailableBeds > provider.BedCapacity) provider.AvailableBeds = provider.BedCapacity;
+
+                provider.AmbulanceCapacity = ambulanceCapacity >= 0 ? ambulanceCapacity : 4;
+                provider.AvailableAmbulances = availableAmbulances >= 0 ? availableAmbulances : 0;
+                if (provider.AvailableAmbulances > provider.AmbulanceCapacity) provider.AvailableAmbulances = provider.AmbulanceCapacity;
 
                 _uow.HealthcareProviders.Update(provider);
                 await _uow.CompleteAsync();
@@ -418,7 +485,10 @@ namespace Etmen_PL.Controllers
                 await _queueHubContext.Clients.All.SendAsync("HospitalBedsUpdated", new
                 {
                     providerId = providerId,
-                    availableBeds = availableBeds
+                    availableBeds = provider.AvailableBeds,
+                    bedCapacity = provider.BedCapacity,
+                    availableAmbulances = provider.AvailableAmbulances,
+                    ambulanceCapacity = provider.AmbulanceCapacity
                 });
 
                 // Log staff activity
@@ -615,7 +685,8 @@ namespace Etmen_PL.Controllers
                 PriorityScore = item.PriorityScore,
                 Latitude = item.Latitude,
                 Longitude = item.Longitude,
-                AssignedProviderId = item.AssignedProviderId
+                AssignedProviderId = item.AssignedProviderId,
+                ResponseNotes = item.ResponseNotes
             }).ToList()
         };
 

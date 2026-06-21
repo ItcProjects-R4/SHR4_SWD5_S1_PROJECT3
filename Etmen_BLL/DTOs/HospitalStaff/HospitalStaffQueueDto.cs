@@ -10,6 +10,9 @@ namespace Etmen_BLL.DTOs.HospitalStaff
         public int AcceptedCount { get; set; }
         public int EscalatedCount { get; set; }
         public int? AvailableBeds { get; set; }
+        public int? BedCapacity { get; set; }
+        public int? AmbulanceCapacity { get; set; }
+        public int? AvailableAmbulances { get; set; }
         public DateTime GeneratedAt { get; set; }
         public List<HospitalStaffQueueItemDto> Items { get; set; } = new();
     }
@@ -31,5 +34,6 @@ namespace Etmen_BLL.DTOs.HospitalStaff
         public decimal? Longitude { get; set; }
         public int? AssignedProviderId { get; set; }
         public string? AssignedProviderName { get; set; }
+        public string? ResponseNotes { get; set; }
     }
 }

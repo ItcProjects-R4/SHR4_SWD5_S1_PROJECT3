@@ -418,5 +418,106 @@ namespace Etmen_BLL.Helpers
             <= BS_SEVERE_HIGH    => 0.8m,  // 301-400: severe hyperglycemia
             _                    => 1.0m   // > 400: critical hyperglycemia
         };
+
+        public static (int Score, string Rating, string RatingArabic, List<string> Breakdown, List<string> Recommendations) CalculateNews2(
+            decimal? systolicBP,
+            decimal? heartRate,
+            decimal? temperature,
+            decimal? oxygenSaturation)
+        {
+            var breakdown = new List<string>();
+            var recs = new List<string>();
+            int totalScore = 0;
+            bool hasSingleThree = false;
+
+            // 1. Oxygen Saturation (SpO2)
+            if (oxygenSaturation.HasValue)
+            {
+                int score = 0;
+                decimal val = oxygenSaturation.Value;
+                if (val >= 96) score = 0;
+                else if (val >= 94) score = 1;
+                else if (val >= 92) score = 2;
+                else score = 3;
+
+                totalScore += score;
+                if (score == 3) hasSingleThree = true;
+                breakdown.Add($"تشبع الأكسجين ({val}%): +{score} نقاط");
+            }
+
+            // 2. Systolic BP
+            if (systolicBP.HasValue)
+            {
+                int score = 0;
+                decimal val = systolicBP.Value;
+                if (val <= 90 || val >= 220) score = 3;
+                else if (val >= 91 && val <= 100) score = 2;
+                else if (val >= 101 && val <= 110) score = 1;
+                else score = 0;
+
+                totalScore += score;
+                if (score == 3) hasSingleThree = true;
+                breakdown.Add($"ضغط الدم الانقباضي ({val} mmHg): +{score} نقاط");
+            }
+
+            // 3. Heart Rate
+            if (heartRate.HasValue)
+            {
+                int score = 0;
+                decimal val = heartRate.Value;
+                if (val <= 40 || val >= 131) score = 3;
+                else if (val >= 111 && val <= 130) score = 2;
+                else if (val >= 41 && val <= 50) score = 1;
+                else if (val >= 91 && val <= 110) score = 1;
+                else score = 0;
+
+                totalScore += score;
+                if (score == 3) hasSingleThree = true;
+                breakdown.Add($"معدل ضربات القلب ({val} bpm): +{score} نقاط");
+            }
+
+            // 4. Temperature
+            if (temperature.HasValue)
+            {
+                int score = 0;
+                decimal val = temperature.Value;
+                if (val <= 35.0m) score = 3;
+                else if (val >= 39.1m) score = 2;
+                else if (val >= 35.1m && val <= 36.0m) score = 1;
+                else if (val >= 38.1m && val <= 39.0m) score = 1;
+                else score = 0;
+
+                totalScore += score;
+                if (score == 3) hasSingleThree = true;
+                breakdown.Add($"درجة الحرارة ({val}°C): +{score} نقاط");
+            }
+
+            // Categorize risk level
+            string rating = "Low";
+            string ratingArabic = "منخفض";
+
+            if (totalScore >= 7)
+            {
+                rating = "High";
+                ratingArabic = "مرتفع جداً";
+                recs.Add("🚨 استجابة سريرية فورية عاجلة: يجب استدعاء فريق الطوارئ الطبي المتقدم فوراً.");
+                recs.Add("مراقبة مستمرة للمؤشرات الحيوية ودعم مجرى الهواء والأكسجين.");
+            }
+            else if (totalScore >= 5 || hasSingleThree)
+            {
+                rating = "Medium";
+                ratingArabic = "متوسط";
+                recs.Add("⚠️ تقييم عاجل من طبيب الطوارئ: يجب إعلام الطبيب المسؤول وتكثيف المراقبة لتكون كل ساعة.");
+                recs.Add("مراقبة تطور الأعراض بدقة والتجهيز لاحتمالية النقل.");
+            }
+            else
+            {
+                rating = "Low";
+                ratingArabic = "منخفض";
+                recs.Add("✅ مراقبة روتينية: استمر في متابعة العلامات الحيوية بشكل دوري كل 4 إلى 6 ساعات.");
+            }
+
+            return (totalScore, rating, ratingArabic, breakdown, recs);
+        }
     }
 }

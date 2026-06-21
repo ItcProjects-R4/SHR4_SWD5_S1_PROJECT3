@@ -2,6 +2,9 @@ using Etmen_BLL.Repositories.IServices;
 using Etmen_PL.Models.ViewModels.Patient;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using System.IO;
 
 namespace Etmen_PL.Controllers
 {
@@ -211,6 +214,110 @@ namespace Etmen_PL.Controllers
                 TempData["Error"] = "حدث خطأ أثناء تحميل ملف تقرير التحليل";
                 return RedirectToAction(nameof(Index));
             }
+        }
+
+        /// <summary>
+        /// POST: /LabResults/UpdateApiKey
+        /// Updates the Gemini API Key in appsettings.json dynamically
+        /// </summary>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UpdateApiKey(string apiKey)
+        {
+            if (string.IsNullOrWhiteSpace(apiKey))
+            {
+                TempData["Error"] = "الرجاء إدخال مفتاح API صالح لـ Gemini";
+                return RedirectToAction(nameof(Index));
+            }
+
+            try
+            {
+                var trimmedKey = apiKey.Trim();
+                var appSettingsPath = Path.Combine(Directory.GetCurrentDirectory(), "appsettings.json");
+                if (System.IO.File.Exists(appSettingsPath))
+                {
+                    var json = await System.IO.File.ReadAllTextAsync(appSettingsPath);
+                    var rootNode = JsonNode.Parse(json);
+                    if (rootNode != null)
+                    {
+                        var chatbotApi = rootNode["ChatbotApi"];
+                        if (chatbotApi != null)
+                        {
+                            chatbotApi["ApiKey"] = trimmedKey;
+                        }
+                        
+                        var geminiVisionApi = rootNode["GeminiVisionApi"];
+                        if (geminiVisionApi != null)
+                        {
+                            geminiVisionApi["ApiKey"] = trimmedKey;
+                        }
+
+                        var options = new JsonSerializerOptions { WriteIndented = true };
+                        var updatedJson = rootNode.ToJsonString(options);
+                        await System.IO.File.WriteAllTextAsync(appSettingsPath, updatedJson);
+                        
+                        TempData["Success"] = "تم تحديث مفتاح Gemini API بنجاح في النظام!";
+                        _logger.LogInformation("Gemini API Key updated successfully in appsettings.json");
+                    }
+                    else
+                    {
+                        TempData["Error"] = "فشل في قراءة ملف الإعدادات";
+                    }
+                }
+                else
+                {
+                    TempData["Error"] = "ملف الإعدادات appsettings.json غير موجود";
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating Gemini API Key in appsettings.json");
+                TempData["Error"] = "حدث خطأ أثناء تحديث مفتاح الـ API: " + ex.Message;
+            }
+
+            return RedirectToAction(nameof(Index));
+        }
+
+        /// <summary>
+        /// POST: /LabResults/CreateDemoSample
+        /// Generates a mock lab result synchronously for presentation purposes
+        /// </summary>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateDemoSample(string testType)
+        {
+            try
+            {
+                var patient = HttpContext.Items["PatientProfile"] as Etmen_Domain.Entities.PatientProfile;
+                if (patient == null)
+                {
+                    TempData["Error"] = "فشل تحديد ملف المريض";
+                    return RedirectToAction(nameof(Index));
+                }
+
+                if (string.IsNullOrWhiteSpace(testType))
+                {
+                    TempData["Error"] = "الرجاء تحديد نوع الفحص";
+                    return RedirectToAction(nameof(Index));
+                }
+
+                var result = await _labService.CreateDemoSampleAsync(patient.Id, testType);
+                if (result.IsSuccess)
+                {
+                    TempData["Success"] = "تم توليد نموذج الفحص الافتراضي بنجاح للعرض التقديمي!";
+                }
+                else
+                {
+                    TempData["Error"] = result.ErrorMessage ?? "فشل توليد نموذج الفحص";
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating demo lab sample");
+                TempData["Error"] = "حدث خطأ أثناء توليد نموذج الفحص";
+            }
+
+            return RedirectToAction(nameof(Index));
         }
     }
 }

@@ -17,6 +17,7 @@ namespace Etmen_BLL.Repositories.IServices
         Task<ServiceResult<LabResultDto>> UploadLabResultAsync(LabUploadDto dto);
         Task<ServiceResult> UpdateLabResultAsync(int labResultId, LabUploadDto dto);
         Task<ServiceResult> DeleteLabResultAsync(int labResultId);
+        Task<ServiceResult<LabResultDto>> CreateDemoSampleAsync(int patientId, string testType);
 
         // Lab Analysis
         Task<ServiceResult<Dictionary<string, object>>> AnalyzeLabResultsAsync(int patientId);

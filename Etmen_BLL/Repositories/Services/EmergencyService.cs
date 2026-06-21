@@ -4,6 +4,7 @@ using Etmen_BLL.Repositories.IServices;
 using Etmen_DAL.Repositories.Interfaces;
 using Etmen_Domain.Entities;
 using Etmen_Domain.Enums;
+using Microsoft.EntityFrameworkCore;
 using Mapster;
 
 namespace Etmen_BLL.Repositories.Services
@@ -48,6 +49,53 @@ namespace Etmen_BLL.Repositories.Services
                     }
                 }
 
+                int? assignedProviderId = dto.HealthcareProviderId;
+
+                if (!assignedProviderId.HasValue || assignedProviderId <= 0)
+                {
+                    var emergencyProviders = await _uow.HealthcareProviders.Table
+                        .Where(p => p.IsActive && p.IsEmergencyCenter)
+                        .ToListAsync();
+
+                    if (emergencyProviders.Any())
+                    {
+                        var sortedProviders = emergencyProviders
+                            .Select(p => new
+                            {
+                                Provider = p,
+                                Distance = GeoHelper.CalculateDistanceKm(
+                                    (double)dto.Latitude, (double)dto.Longitude,
+                                    (double)p.Latitude, (double)p.Longitude),
+                                HasAmbulances = (p.AvailableAmbulances ?? 0) > 0
+                            })
+                            .OrderBy(x => x.Distance)
+                            .ToList();
+
+                        var closest = sortedProviders.FirstOrDefault();
+                        if (closest != null)
+                        {
+                            if (closest.HasAmbulances)
+                            {
+                                assignedProviderId = closest.Provider.Id;
+                            }
+                            else
+                            {
+                                // Smart Routing: find closest alternative with available ambulances
+                                var alternative = sortedProviders.FirstOrDefault(x => x.HasAmbulances);
+                                if (alternative != null)
+                                {
+                                    assignedProviderId = alternative.Provider.Id;
+                                }
+                                else
+                                {
+                                    // Fallback to closest provider
+                                    assignedProviderId = closest.Provider.Id;
+                                }
+                            }
+                        }
+                    }
+                }
+
                 var emergencyRequest = new EmergencyRequest
                 {
                     PatientProfileId = dto.PatientProfileId,
@@ -58,7 +106,7 @@ namespace Etmen_BLL.Repositories.Services
                     Status = EmergencyRequestStatus.Pending,
                     RequestedAt = DateTime.UtcNow,
                     RiskAssessmentId = dto.RiskAssessmentId,
-                    HealthcareProviderId = dto.HealthcareProviderId,
+                    HealthcareProviderId = assignedProviderId,
                     PriorityScore = priorityScore
                 };
 
@@ -167,6 +215,7 @@ namespace Etmen_BLL.Repositories.Services
                     emergencyRequest.HealthcareProviderId = dto.AssignedProviderId;
                 }
 
+                var wasAccepted = emergencyRequest.Status == EmergencyRequestStatus.Accepted;
                 emergencyRequest.Status = newStatus;
 
                 if (!string.IsNullOrWhiteSpace(dto.ResponseNotes))
@@ -177,6 +226,24 @@ namespace Etmen_BLL.Repositories.Services
 
                 if (newStatus == EmergencyRequestStatus.Completed && emergencyRequest.CompletedAt == null)
                     emergencyRequest.CompletedAt = DateTime.UtcNow;
+
+                if (emergencyRequest.HealthcareProviderId.HasValue)
+                {
+                    var provider = await _uow.HealthcareProviders.GetByIdAsync(emergencyRequest.HealthcareProviderId.Value);
+                    if (provider != null)
+                    {
+                        if (newStatus == EmergencyRequestStatus.Accepted && !wasAccepted)
+                        {
+                            provider.AvailableAmbulances = Math.Max(0, (provider.AvailableAmbulances ?? 0) - 1);
+                            provider.AvailableBeds = Math.Max(0, (provider.AvailableBeds ?? 0) - 1);
+                        }
+                        else if (wasAccepted && (newStatus == EmergencyRequestStatus.Completed || newStatus == EmergencyRequestStatus.Cancelled || newStatus == EmergencyRequestStatus.Rejected))
+                        {
+                            provider.AvailableAmbulances = Math.Min(provider.AmbulanceCapacity ?? 4, (provider.AvailableAmbulances ?? 0) + 1);
+                        }
+                        _uow.HealthcareProviders.Update(provider);
+                    }
+                }
 
                 _uow.EmergencyRequests.Update(emergencyRequest);
                 await _uow.CompleteAsync();

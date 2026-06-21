@@ -8,6 +8,8 @@ using Etmen_Domain.Entities;
 using Etmen_DAL.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using System.Linq;
+using Microsoft.AspNetCore.SignalR;
+using Etmen_PL.Hubs;
 
 namespace Etmen_PL.Controllers
 {
@@ -23,6 +25,7 @@ namespace Etmen_PL.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IUnitOfWork _uow;
         private readonly IEmailService _emailService;
+        private readonly IHubContext<QueueHub> _queueHubContext;
         private readonly ILogger<AdminProvidersController> _logger;
 
         public AdminProvidersController(
@@ -31,6 +34,7 @@ namespace Etmen_PL.Controllers
             UserManager<ApplicationUser> userManager,
             IUnitOfWork uow,
             IEmailService emailService,
+            IHubContext<QueueHub> queueHubContext,
             ILogger<AdminProvidersController> logger)
         {
             _adminService = adminService;
@@ -38,6 +42,7 @@ namespace Etmen_PL.Controllers
             _userManager = userManager;
             _uow = uow;
             _emailService = emailService;
+            _queueHubContext = queueHubContext;
             _logger = logger;
         }
 
@@ -100,6 +105,9 @@ namespace Etmen_PL.Controllers
                     Address = viewModel.Address,
                     Phone = viewModel.PhoneNumber,
                     AvailableBeds = viewModel.AvailableBeds,
+                    BedCapacity = viewModel.BedCapacity,
+                    AmbulanceCapacity = viewModel.AmbulanceCapacity,
+                    AvailableAmbulances = viewModel.AvailableAmbulances,
                     Latitude = viewModel.Latitude,
                     Longitude = viewModel.Longitude,
                     IsEmergencyCenter = viewModel.IsEmergencyCenter
@@ -150,6 +158,9 @@ namespace Etmen_PL.Controllers
                     Address = result.Data.Address,
                     PhoneNumber = result.Data.Phone,
                     AvailableBeds = result.Data.AvailableBeds,
+                    BedCapacity = result.Data.BedCapacity,
+                    AmbulanceCapacity = result.Data.AmbulanceCapacity,
+                    AvailableAmbulances = result.Data.AvailableAmbulances,
                     Latitude = result.Data.Latitude,
                     Longitude = result.Data.Longitude,
                     IsEmergencyCenter = result.Data.IsEmergencyCenter,
@@ -196,6 +207,9 @@ namespace Etmen_PL.Controllers
                     Address = viewModel.Address,
                     Phone = viewModel.PhoneNumber,
                     AvailableBeds = viewModel.AvailableBeds,
+                    BedCapacity = viewModel.BedCapacity,
+                    AmbulanceCapacity = viewModel.AmbulanceCapacity,
+                    AvailableAmbulances = viewModel.AvailableAmbulances,
                     Latitude = viewModel.Latitude,
                     Longitude = viewModel.Longitude,
                     IsEmergencyCenter = viewModel.IsEmergencyCenter,
@@ -209,6 +223,20 @@ namespace Etmen_PL.Controllers
                     await PopulateStaffMembersAsync(id);
                     await PopulateDoctorsAsync(id);
                     return View(viewModel);
+                }
+
+                // Broadcast capacity changes to SignalR clients
+                var provider = await _uow.HealthcareProviders.GetByIdAsync(id);
+                if (provider != null)
+                {
+                    await _queueHubContext.Clients.All.SendAsync("HospitalBedsUpdated", new
+                    {
+                        providerId = id,
+                        availableBeds = provider.AvailableBeds ?? 0,
+                        bedCapacity = provider.BedCapacity ?? 150,
+                        availableAmbulances = provider.AvailableAmbulances ?? 0,
+                        ambulanceCapacity = provider.AmbulanceCapacity ?? 4
+                    });
                 }
 
                 _logger.LogInformation("Provider {ProviderId} updated", id);

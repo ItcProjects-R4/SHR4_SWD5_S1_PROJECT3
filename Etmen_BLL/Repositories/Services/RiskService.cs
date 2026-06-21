@@ -84,7 +84,23 @@ namespace Etmen_BLL.Repositories.Services
                             ? RiskLevel.Medium
                             : RiskLevel.Low;
 
+                var news2 = RiskCalculatorHelper.CalculateNews2(
+                    dto.SystolicBP,
+                    dto.HeartRate,
+                    dto.Temperature,
+                    dto.OxygenSaturation);
+
+                // Add the clinical score and details to triggeredFactors list so they get saved in database
+                triggeredFactors.Add($"مؤشر NEWS2 السريري: {news2.Score} من 12 ({news2.RatingArabic})");
+                triggeredFactors.Add($"تفاصيل NEWS2: {string.Join(" | ", news2.Breakdown)}");
+
+                if (news2.Score >= 7 && riskLevel < RiskLevel.High)
+                {
+                    riskLevel = RiskLevel.High;
+                }
+
                 var recs = RiskCalculatorHelper.GenerateRecommendations(riskLevel, triggeredFactors);
+                recs.AddRange(news2.Recommendations);
 
                 return ServiceResult<RiskResultDto>.Success(new RiskResultDto
                 {
@@ -92,9 +108,13 @@ namespace Etmen_BLL.Repositories.Services
                     RiskLevel = riskLevel,
                     RiskColor = RiskLevelMapper.ToColor(riskLevel),
                     RiskLabel = RiskLevelMapper.ToArabicLabel(riskLevel),
-                    IsEmergency = isEmergency || riskLevel == RiskLevel.Emergency,
+                    IsEmergency = isEmergency || riskLevel == RiskLevel.Emergency || news2.Score >= 7,
                     Recommendations = recs,
-                    TriggeredSymptoms = triggeredFactors
+                    TriggeredSymptoms = triggeredFactors,
+                    News2Score = news2.Score,
+                    News2Rating = news2.Rating,
+                    News2RatingArabic = news2.RatingArabic,
+                    News2Breakdown = news2.Breakdown
                 });
             }
 
@@ -165,16 +185,40 @@ namespace Etmen_BLL.Repositories.Services
                     dto.BloodSugar,
                     dto.Symptoms);
 
+                var news2 = RiskCalculatorHelper.CalculateNews2(
+                    dto.SystolicBP,
+                    dto.HeartRate,
+                    dto.Temperature,
+                    dto.OxygenSaturation);
+
+                // Add the clinical score and details to triggeredFactors list so they get saved in database
+                triggeredFactors.Add($"مؤشر NEWS2 السريري: {news2.Score} من 12 ({news2.RatingArabic})");
+                triggeredFactors.Add($"تفاصيل NEWS2: {string.Join(" | ", news2.Breakdown)}");
+
                 var riskLevel = RiskCalculatorHelper.GetRiskLevel(riskScore);
+                
+                // If NEWS2 is high or emergency, escalate risk level appropriately
+                if (news2.Score >= 7 && riskLevel < RiskLevel.High)
+                {
+                    riskLevel = RiskLevel.High;
+                }
+
+                var recommendations = RiskCalculatorHelper.GenerateRecommendations(riskLevel, triggeredFactors);
+                recommendations.AddRange(news2.Recommendations);
+
                 return ServiceResult<RiskResultDto>.Success(new RiskResultDto
                 {
                     RiskScore = riskScore,
                     RiskLevel = riskLevel,
                     RiskColor = RiskLevelMapper.ToColor(riskLevel),
                     RiskLabel = RiskLevelMapper.ToArabicLabel(riskLevel),
-                    IsEmergency = isEmergency,
-                    Recommendations = RiskCalculatorHelper.GenerateRecommendations(riskLevel, triggeredFactors),
-                    TriggeredSymptoms = triggeredFactors
+                    IsEmergency = isEmergency || news2.Score >= 7,
+                    Recommendations = recommendations,
+                    TriggeredSymptoms = triggeredFactors,
+                    News2Score = news2.Score,
+                    News2Rating = news2.Rating,
+                    News2RatingArabic = news2.RatingArabic,
+                    News2Breakdown = news2.Breakdown
                 });
             }
             catch (Exception ex)
@@ -309,6 +353,53 @@ namespace Etmen_BLL.Repositories.Services
                 ? new List<string>()
                 : JsonSerializer.Deserialize<List<string>>(assessment.RecommendationsJson) ?? new List<string>();
 
+            var triggeredList = string.IsNullOrWhiteSpace(assessment.Symptoms)
+                ? new List<string>()
+                : assessment.Symptoms.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
+
+            int news2Score = 0;
+            string news2Rating = "Low";
+            string news2RatingArabic = "منخفض";
+            var news2Breakdown = new List<string>();
+
+            // Find and parse NEWS2 score
+            var news2MainFactor = triggeredList.FirstOrDefault(f => f.Contains("مؤشر NEWS2 السريري:"));
+            if (news2MainFactor != null)
+            {
+                var match = System.Text.RegularExpressions.Regex.Match(news2MainFactor, @"مؤشر NEWS2 السريري:\s*(\d+)");
+                if (match.Success)
+                {
+                    int.TryParse(match.Groups[1].Value, out news2Score);
+                    if (news2MainFactor.Contains("مرتفع"))
+                    {
+                        news2Rating = "High";
+                        news2RatingArabic = "مرتفع جداً";
+                    }
+                    else if (news2MainFactor.Contains("متوسط"))
+                    {
+                        news2Rating = "Medium";
+                        news2RatingArabic = "متوسط";
+                    }
+                    else
+                    {
+                        news2Rating = "Low";
+                        news2RatingArabic = "منخفض";
+                    }
+                }
+            }
+
+            var news2DetailsFactor = triggeredList.FirstOrDefault(f => f.Contains("تفاصيل NEWS2:"));
+            if (news2DetailsFactor != null)
+            {
+                var detailsStr = news2DetailsFactor.Replace("تفاصيل NEWS2:", "").Trim();
+                news2Breakdown = detailsStr.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
+            }
+
+            // Clean up the list so standard view doesn't show the technical logs in the symptom badges
+            var cleanTriggeredList = triggeredList
+                .Where(f => !f.Contains("مؤشر NEWS2 السريري:") && !f.Contains("تفاصيل NEWS2:"))
+                .ToList();
+
             return new RiskResultDto
             {
                 Id = assessment.Id,
@@ -318,10 +409,12 @@ namespace Etmen_BLL.Repositories.Services
                 RiskLabel = RiskLevelMapper.ToArabicLabel(assessment.RiskLevel),
                 IsEmergency = assessment.IsEmergency,
                 Recommendations = recommendations,
-                TriggeredSymptoms = string.IsNullOrWhiteSpace(assessment.Symptoms)
-                    ? new List<string>()
-                    : assessment.Symptoms.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList(),
-                AssessmentDate = assessment.AssessmentDate
+                TriggeredSymptoms = cleanTriggeredList,
+                AssessmentDate = assessment.AssessmentDate,
+                News2Score = news2Score,
+                News2Rating = news2Rating,
+                News2RatingArabic = news2RatingArabic,
+                News2Breakdown = news2Breakdown
             };
         }
     }

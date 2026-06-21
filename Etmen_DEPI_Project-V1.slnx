@@ -3,4 +3,5 @@
   <Project Path="Etmen_DAL/Etmen_DAL.csproj" />
   <Project Path="Etmen_Domain/Etmen_Domain.csproj" />
   <Project Path="Etmen_PL/Etmen_PL.csproj" />
+  <Project Path="Etmen_Tests/Etmen_Tests.csproj" />
 </Solution>

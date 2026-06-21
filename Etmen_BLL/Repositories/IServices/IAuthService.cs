@@ -12,6 +12,8 @@ namespace Etmen_BLL.Repositories.IServices
 
         Task<ServiceResult> VerifyEmailAsync(string userId, string token);
 
+        Task<ServiceResult> ResendActivationEmailAsync(string email);
+
         Task<ServiceResult> ForgotPasswordAsync(ForgotPasswordDto dto);
 
         Task<ServiceResult> ResetPasswordAsync(ResetPasswordDto dto);

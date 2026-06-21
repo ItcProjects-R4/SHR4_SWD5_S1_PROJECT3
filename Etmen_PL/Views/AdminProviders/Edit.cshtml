@@ -58,11 +58,28 @@
                         <span asp-validation-for="PhoneNumber" class="text-danger small"></span>
                     </div>
 
-                    <!-- AvailableBeds -->
+                    <!-- AvailableBeds & BedCapacity -->
                     <div class="col-md-6 col-12">
-                        <label asp-for="AvailableBeds" class="form-label fw-800 text-dark">عدد الأسرة المتاحة (للطوارئ)</label>
+                        <label asp-for="AvailableBeds" class="form-label fw-800 text-dark">عدد الأسرة المتاحة</label>
                         <input asp-for="AvailableBeds" type="number" min="0" class="form-control rounded-pill px-3" />
                         <span asp-validation-for="AvailableBeds" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-6 col-12">
+                        <label asp-for="BedCapacity" class="form-label fw-800 text-dark">سعة الأسرة الكلية</label>
+                        <input asp-for="BedCapacity" type="number" min="0" class="form-control rounded-pill px-3" />
+                        <span asp-validation-for="BedCapacity" class="text-danger small"></span>
+                    </div>
+
+                    <!-- AvailableAmbulances & AmbulanceCapacity -->
+                    <div class="col-md-6 col-12">
+                        <label asp-for="AvailableAmbulances" class="form-label fw-800 text-dark">سيارات الإسعاف المتاحة</label>
+                        <input asp-for="AvailableAmbulances" type="number" min="0" class="form-control rounded-pill px-3" />
+                        <span asp-validation-for="AvailableAmbulances" class="text-danger small"></span>
+                    </div>
+                    <div class="col-md-6 col-12">
+                        <label asp-for="AmbulanceCapacity" class="form-label fw-800 text-dark">سعة سيارات الإسعاف الكلية</label>
+                        <input asp-for="AmbulanceCapacity" type="number" min="0" class="form-control rounded-pill px-3" />
+                        <span asp-validation-for="AmbulanceCapacity" class="text-danger small"></span>
                     </div>
 
                     <!-- Address -->

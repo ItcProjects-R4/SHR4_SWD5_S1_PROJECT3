@@ -14,6 +14,9 @@ namespace Etmen_PL.Models.ViewModels.Hospital
         public int AcceptedCount { get; set; }
         public int EscalatedCount { get; set; }
         public int? AvailableBeds { get; set; }
+        public int? BedCapacity { get; set; }
+        public int? AmbulanceCapacity { get; set; }
+        public int? AvailableAmbulances { get; set; }
         public List<HospitalQueueItemViewModel> Items { get; set; } = new();
     }
 
@@ -34,5 +37,6 @@ namespace Etmen_PL.Models.ViewModels.Hospital
         public string? ReferringDoctorName { get; set; }
         public string? Notes { get; set; }
         public int? AssignedProviderId { get; set; }
+        public string? ResponseNotes { get; set; }
     }
 }

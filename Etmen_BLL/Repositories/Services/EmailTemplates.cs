@@ -1,8 +1,12 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
 namespace Etmen_BLL.Repositories.Services
 {
     /// <summary>
     /// Generates beautiful, responsive Arabic HTML email templates for all Etmen platform events.
-    /// All templates use inline CSS for maximum email-client compatibility.
+    /// All templates use inline CSS and table-based layouts for maximum email-client compatibility.
     /// </summary>
     internal static class EmailTemplates
     {
@@ -14,7 +18,8 @@ namespace Etmen_BLL.Repositories.Services
         private const string ColorBg       = "#f0fdf4";   // Light mint
         private const string ColorCard     = "#ffffff";
         private const string ColorText     = "#1f2937";
-        private const string ColorMuted    = "#6b7280";
+        private const string ColorMuted    = "#4b5563";   // Darker gray for better accessibility
+        private const string ColorBorder   = "#e5e7eb";
 
         // ────────────────────────────────────────────────────────────────
         // 1. ACCOUNT ACTIVATION
@@ -24,15 +29,15 @@ namespace Etmen_BLL.Repositories.Services
             var roleAr = role == "Doctor" ? "طبيب" : "مريض";
             return Wrap($@"
                 <div style='text-align:center; margin-bottom:32px;'>
-                    <div style='width:72px;height:72px;background:linear-gradient(135deg,{ColorPrimary},{ColorAccent});border-radius:50%;display:inline-flex;align-items:center;justify-content:center;margin-bottom:16px;'>
+                    <div style='width:72px;height:72px;background:linear-gradient(135deg,{ColorPrimary},{ColorAccent});border-radius:50%;display:inline-flex;align-items:center;justify-content:center;margin:0 auto 16px;'>
                         <span style='font-size:32px;'>✉️</span>
                     </div>
-                    <h1 style='color:{ColorPrimary};font-size:26px;margin:0 0 8px;'>تفعيل حسابك</h1>
-                    <p style='color:{ColorMuted};font-size:15px;margin:0;'>منصة اطمئن الطبية</p>
+                    <h1 style='color:{ColorPrimary};font-size:26px;font-weight:800;margin:0 0 8px;font-family:""Cairo"",sans-serif;'>تفعيل حسابك</h1>
+                    <p style='color:{ColorMuted};font-size:15px;margin:0;font-family:""Cairo"",sans-serif;'>منصة اطمئن الطبية</p>
                 </div>
 
-                <p style='color:{ColorText};font-size:16px;line-height:1.7;'>مرحباً <strong>{name}</strong>،</p>
-                <p style='color:{ColorText};font-size:16px;line-height:1.7;'>
+                <p style='color:{ColorText};font-size:16px;line-height:1.7;font-family:""Cairo"",sans-serif;'>مرحباً <strong>{name}</strong>،</p>
+                <p style='color:{ColorText};font-size:16px;line-height:1.7;font-family:""Cairo"",sans-serif;'>
                     شكراً لتسجيلك في <strong>منصة اطمئن</strong> كـ<strong>{roleAr}</strong>.
                     خطوة واحدة فقط تفصلك عن الوصول لحسابك — اضغط على الزر أدناه لتفعيل بريدك الإلكتروني.
                 </p>
@@ -40,18 +45,22 @@ namespace Etmen_BLL.Repositories.Services
                 <div style='text-align:center;margin:36px 0;'>
                     <a href='{activationLink}'
                        style='background:linear-gradient(135deg,{ColorPrimary},{ColorAccent});color:#fff;text-decoration:none;
-                              padding:16px 40px;border-radius:50px;font-size:17px;font-weight:700;
+                              padding:16px 40px;border-radius:12px;font-size:17px;font-weight:700;font-family:""Cairo"",sans-serif;
                               display:inline-block;box-shadow:0 4px 15px rgba(26,107,90,0.35);'>
                         ✅ تفعيل الحساب الآن
                     </a>
                 </div>
 
-                <div style='background:#f8fafc;border-radius:12px;padding:16px;margin-top:24px;'>
-                    <p style='color:{ColorMuted};font-size:13px;margin:0;text-align:center;'>
-                        ⏱️ هذا الرابط صالح لمدة <strong>24 ساعة</strong> فقط.<br>
-                        إذا لم تقم بالتسجيل، يمكنك تجاهل هذا البريد بأمان.
-                    </p>
-                </div>
+                <table width='100%' cellpadding='0' cellspacing='0' style='background:#f8fafc;border-right:4px solid {ColorWarning};border-radius:8px;margin-top:24px;'>
+                    <tr>
+                        <td style='padding:16px;'>
+                            <p style='color:{ColorMuted};font-size:13px;margin:0;line-height:1.6;font-family:""Cairo"",sans-serif;'>
+                                ⏱️ هذا الرابط صالح لمدة <strong>24 ساعة</strong> فقط.<br>
+                                إذا لم تقم بالتسجيل، يمكنك تجاهل هذا البريد بأمان.
+                            </p>
+                        </td>
+                    </tr>
+                </table>
             ", "تفعيل الحساب");
         }
 
@@ -78,24 +87,27 @@ namespace Etmen_BLL.Repositories.Services
                     ("👨‍👩‍👧", "ربط العائلة",             "اربط أفراد عائلتك لمتابعة صحتهم"),
                 };
 
+            // Use robust table layouts instead of display:flex for full Outlook compatibility
             var featureCards = string.Join("", features.Select(f => $@"
-                <div style='background:{ColorBg};border-radius:12px;padding:16px 20px;margin-bottom:12px;display:flex;align-items:flex-start;gap:12px;'>
-                    <span style='font-size:24px;'>{f.Item1}</span>
-                    <div>
-                        <div style='color:{ColorPrimary};font-weight:700;font-size:15px;'>{f.Item2}</div>
-                        <div style='color:{ColorMuted};font-size:13px;margin-top:2px;'>{f.Item3}</div>
-                    </div>
-                </div>
+                <table width='100%' cellpadding='0' cellspacing='0' style='background:{ColorBg};border-radius:12px;margin-bottom:12px;border:1px solid rgba(26,107,90,0.1);'>
+                    <tr>
+                        <td style='padding:16px;width:32px;vertical-align:top;font-size:24px;'>{f.Item1}</td>
+                        <td style='padding:16px 0 16px 16px;vertical-align:top;'>
+                            <div style='color:{ColorPrimary};font-weight:700;font-size:15px;font-family:""Cairo"",sans-serif;'>{f.Item2}</div>
+                            <div style='color:{ColorMuted};font-size:13px;margin-top:2px;font-family:""Cairo"",sans-serif;'>{f.Item3}</div>
+                        </td>
+                    </tr>
+                </table>
             "));
 
             return Wrap($@"
                 <div style='text-align:center;margin-bottom:32px;'>
                     <div style='font-size:56px;margin-bottom:12px;'>🎉</div>
-                    <h1 style='color:{ColorPrimary};font-size:28px;margin:0 0 8px;'>أهلاً بك يا {name}!</h1>
-                    <p style='color:{ColorMuted};font-size:15px;margin:0;'>انضم الآن إلى مجتمع اطمئن الطبي كـ<strong>{roleAr}</strong></p>
+                    <h1 style='color:{ColorPrimary};font-size:28px;font-weight:800;margin:0 0 8px;font-family:""Cairo"",sans-serif;'>أهلاً بك يا {name}!</h1>
+                    <p style='color:{ColorMuted};font-size:15px;margin:0;font-family:""Cairo"",sans-serif;'>انضم الآن إلى مجتمع اطمئن الطبي كـ<strong>{roleAr}</strong></p>
                 </div>
 
-                <p style='color:{ColorText};font-size:16px;line-height:1.7;'>
+                <p style='color:{ColorText};font-size:16px;line-height:1.7;font-family:""Cairo"",sans-serif;'>
                     تم تفعيل حسابك بنجاح 🎊 — إليك ما يمكنك فعله الآن:
                 </p>
 
@@ -104,14 +116,14 @@ namespace Etmen_BLL.Repositories.Services
                 <div style='text-align:center;margin:32px 0;'>
                     <a href='/'
                        style='background:linear-gradient(135deg,{ColorPrimary},{ColorAccent});color:#fff;text-decoration:none;
-                              padding:16px 44px;border-radius:50px;font-size:17px;font-weight:700;
+                              padding:16px 44px;border-radius:12px;font-size:17px;font-weight:700;font-family:""Cairo"",sans-serif;
                               display:inline-block;box-shadow:0 4px 15px rgba(26,107,90,0.35);'>
                         🚀 ابدأ الآن
                     </a>
                 </div>
 
-                <p style='color:{ColorMuted};font-size:14px;text-align:center;'>
-                    إذا واجهتك أي مشكلة، تواصل معنا على <a href='mailto:support@etmen.com' style='color:{ColorPrimary};'>support@etmen.com</a>
+                <p style='color:{ColorMuted};font-size:14px;text-align:center;font-family:""Cairo"",sans-serif;'>
+                    إذا واجهتك أي مشكلة، تواصل معنا على <a href='mailto:support@etmen.com' style='color:{ColorPrimary};text-decoration:none;font-weight:700;'>support@etmen.com</a>
                 </p>
             ", "مرحباً بك");
         }
@@ -123,41 +135,45 @@ namespace Etmen_BLL.Repositories.Services
         {
             return Wrap($@"
                 <div style='text-align:center;margin-bottom:32px;'>
-                    <div style='width:72px;height:72px;background:linear-gradient(135deg,#0ea5e9,#38bdf8);border-radius:50%;display:inline-flex;align-items:center;justify-content:center;margin-bottom:16px;'>
+                    <div style='width:72px;height:72px;background:linear-gradient(135deg,#0ea5e9,#38bdf8);border-radius:50%;display:inline-flex;align-items:center;justify-content:center;margin:0 auto 16px;'>
                         <span style='font-size:32px;'>🔬</span>
                     </div>
-                    <h1 style='color:#0369a1;font-size:26px;margin:0 0 8px;'>نتيجة تحليلك جاهزة</h1>
+                    <h1 style='color:#0369a1;font-size:26px;font-weight:800;margin:0 0 8px;font-family:""Cairo"",sans-serif;'>نتيجة تحليلك جاهزة</h1>
                 </div>
 
-                <p style='color:{ColorText};font-size:16px;line-height:1.7;'>مرحباً <strong>{name}</strong>،</p>
-                <p style='color:{ColorText};font-size:16px;line-height:1.7;'>
+                <p style='color:{ColorText};font-size:16px;line-height:1.7;font-family:""Cairo"",sans-serif;'>مرحباً <strong>{name}</strong>،</p>
+                <p style='color:{ColorText};font-size:16px;line-height:1.7;font-family:""Cairo"",sans-serif;'>
                     نتيجة تحليلك <strong>«{testName}»</strong> بتاريخ <strong>{testDate:dd/MM/yyyy}</strong>
                     أصبحت جاهزة. يمكنك الاطلاع على التقرير الكامل في المرفق.
                 </p>
 
-                <div style='background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:20px;margin:24px 0;'>
+                <div style='background:#eff6ff;border:1px solid #bfdbfe;border-radius:16px;padding:20px;margin:24px 0;'>
                     <table style='width:100%;border-collapse:collapse;'>
                         <tr>
-                            <td style='color:{ColorMuted};font-size:14px;padding:8px 0;'>اسم التحليل</td>
-                            <td style='color:{ColorText};font-weight:700;font-size:14px;text-align:left;'>{testName}</td>
+                            <td style='color:{ColorMuted};font-size:14px;padding:10px 0;font-family:""Cairo"",sans-serif;'>اسم التحليل</td>
+                            <td style='color:{ColorText};font-weight:700;font-size:14px;text-align:left;padding:10px 0;font-family:""Cairo"",sans-serif;'>{testName}</td>
                         </tr>
                         <tr>
-                            <td style='color:{ColorMuted};font-size:14px;padding:8px 0;border-top:1px solid #dbeafe;'>تاريخ التحليل</td>
-                            <td style='color:{ColorText};font-weight:700;font-size:14px;text-align:left;border-top:1px solid #dbeafe;'>{testDate:dd MMMM yyyy}</td>
+                            <td style='color:{ColorMuted};font-size:14px;padding:10px 0;border-top:1px solid #dbeafe;font-family:""Cairo"",sans-serif;'>تاريخ التحليل</td>
+                            <td style='color:{ColorText};font-weight:700;font-size:14px;text-align:left;padding:10px 0;border-top:1px solid #dbeafe;font-family:""Cairo"",sans-serif;'>{testDate:dd MMMM yyyy}</td>
                         </tr>
                         <tr>
-                            <td style='color:{ColorMuted};font-size:14px;padding:8px 0;border-top:1px solid #dbeafe;'>التقرير</td>
-                            <td style='color:#0369a1;font-weight:700;font-size:14px;text-align:left;border-top:1px solid #dbeafe;'>📎 مرفق بهذا البريد (PDF)</td>
+                            <td style='color:{ColorMuted};font-size:14px;padding:10px 0;border-top:1px solid #dbeafe;font-family:""Cairo"",sans-serif;'>التقرير</td>
+                            <td style='color:#0369a1;font-weight:700;font-size:14px;text-align:left;padding:10px 0;border-top:1px solid #dbeafe;font-family:""Cairo"",sans-serif;'>📎 مرفق بهذا البريد (PDF)</td>
                         </tr>
                     </table>
                 </div>
 
-                <div style='background:#fefce8;border:1px solid #fde68a;border-radius:12px;padding:16px;margin-top:16px;'>
-                    <p style='color:#92400e;font-size:14px;margin:0;'>
-                        ⚕️ <strong>تنبيه طبي:</strong> هذا التقرير لأغراض المعلومات فقط.
-                        يُرجى مراجعة طبيبك لتفسير النتائج وتقديم العلاج المناسب.
-                    </p>
-                </div>
+                <table width='100%' cellpadding='0' cellspacing='0' style='background:#fffbeb;border-right:4px solid {ColorWarning};border-radius:12px;margin-top:16px;'>
+                    <tr>
+                        <td style='padding:16px;'>
+                            <p style='color:#92400e;font-size:14px;margin:0;line-height:1.6;font-family:""Cairo"",sans-serif;'>
+                                ⚕️ <strong>تنبيه طبي:</strong> هذا التقرير لأغراض المعلومات فقط.
+                                يُرجى مراجعة طبيبك لتفسير النتائج وتقديم العلاج المناسب.
+                            </p>
+                        </td>
+                    </tr>
+                </table>
             ", "نتيجة التحليل");
         }
 
@@ -173,41 +189,47 @@ namespace Etmen_BLL.Repositories.Services
 
             return Wrap($@"
                 <div style='text-align:center;margin-bottom:32px;'>
-                    <div style='font-size:56px;margin-bottom:12px;'>📅</div>
-                    <h1 style='color:{ColorPrimary};font-size:26px;margin:0 0 8px;'>تأكيد الموعد</h1>
-                    <p style='color:{ColorMuted};font-size:15px;margin:0;'>{greeting}</p>
+                    <div style='width:72px;height:72px;background:linear-gradient(135deg,{ColorPrimary},{ColorAccent});border-radius:50%;display:inline-flex;align-items:center;justify-content:center;margin:0 auto 16px;'>
+                        <span style='font-size:32px;'>📅</span>
+                    </div>
+                    <h1 style='color:{ColorPrimary};font-size:26px;font-weight:800;margin:0 0 8px;font-family:""Cairo"",sans-serif;'>تأكيد الموعد</h1>
+                    <p style='color:{ColorMuted};font-size:15px;margin:0;font-family:""Cairo"",sans-serif;'>{greeting}</p>
                 </div>
 
-                <p style='color:{ColorText};font-size:16px;line-height:1.7;'>مرحباً <strong>{toName}</strong>،</p>
+                <p style='color:{ColorText};font-size:16px;line-height:1.7;font-family:""Cairo"",sans-serif;'>مرحباً <strong>{toName}</strong>،</p>
 
                 <div style='background:{ColorBg};border:2px solid {ColorAccent};border-radius:16px;padding:24px;margin:24px 0;'>
-                    <h3 style='color:{ColorPrimary};margin:0 0 16px;font-size:17px;'>📋 تفاصيل الموعد</h3>
+                    <h3 style='color:{ColorPrimary};margin:0 0 16px;font-size:17px;font-family:""Cairo"",sans-serif;'>📋 تفاصيل الموعد</h3>
                     <table style='width:100%;border-collapse:collapse;'>
                         <tr>
-                            <td style='color:{ColorMuted};font-size:14px;padding:10px 0;'>📅 التاريخ</td>
-                            <td style='color:{ColorText};font-weight:700;font-size:15px;'>{date:dddd، dd MMMM yyyy}</td>
+                            <td style='color:{ColorMuted};font-size:14px;padding:10px 0;font-family:""Cairo"",sans-serif;'>📅 التاريخ</td>
+                            <td style='color:{ColorText};font-weight:700;font-size:15px;padding:10px 0;font-family:""Cairo"",sans-serif;'>{date:dddd، dd MMMM yyyy}</td>
                         </tr>
                         <tr style='border-top:1px solid #d1fae5;'>
-                            <td style='color:{ColorMuted};font-size:14px;padding:10px 0;'>⏰ الوقت</td>
-                            <td style='color:{ColorText};font-weight:700;font-size:15px;'>{start:hh\\:mm} – {end:hh\\:mm}</td>
+                            <td style='color:{ColorMuted};font-size:14px;padding:10px 0;font-family:""Cairo"",sans-serif;'>⏰ الوقت</td>
+                            <td style='color:{ColorText};font-weight:700;font-size:15px;padding:10px 0;font-family:""Cairo"",sans-serif;'>{start:hh\\:mm} – {end:hh\\:mm}</td>
                         </tr>
                         <tr style='border-top:1px solid #d1fae5;'>
-                            <td style='color:{ColorMuted};font-size:14px;padding:10px 0;'>👤 {(isDoctor ? "المريض" : "الطبيب")}</td>
-                            <td style='color:{ColorText};font-weight:700;font-size:15px;'>{otherParty}</td>
+                            <td style='color:{ColorMuted};font-size:14px;padding:10px 0;font-family:""Cairo"",sans-serif;'>👤 {(isDoctor ? "المريض" : "الطبيب")}</td>
+                            <td style='color:{ColorText};font-weight:700;font-size:15px;padding:10px 0;font-family:""Cairo"",sans-serif;'>{otherParty}</td>
                         </tr>
                         {(string.IsNullOrWhiteSpace(notes) ? "" : $@"
                         <tr style='border-top:1px solid #d1fae5;'>
-                            <td style='color:{ColorMuted};font-size:14px;padding:10px 0;'>📝 ملاحظات</td>
-                            <td style='color:{ColorText};font-size:14px;'>{notes}</td>
+                            <td style='color:{ColorMuted};font-size:14px;padding:10px 0;font-family:""Cairo"",sans-serif;'>📝 ملاحظات</td>
+                            <td style='color:{ColorText};font-size:14px;padding:10px 0;font-family:""Cairo"",sans-serif;'>{notes}</td>
                         </tr>")}
                     </table>
                 </div>
 
-                <div style='background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:16px;'>
-                    <p style='color:#92400e;font-size:14px;margin:0;'>
-                        ⏰ ستصلك تذكيرات تلقائية قبل الموعد بـ <strong>يوم كامل</strong> وقبله بـ <strong>ساعتين</strong>.
-                    </p>
-                </div>
+                <table width='100%' cellpadding='0' cellspacing='0' style='background:#fffbeb;border-right:4px solid {ColorWarning};border-radius:12px;'>
+                    <tr>
+                        <td style='padding:16px;'>
+                            <p style='color:#92400e;font-size:14px;margin:0;line-height:1.6;font-family:""Cairo"",sans-serif;'>
+                                ⏰ ستصلك تذكيرات تلقائية قبل الموعد بـ <strong>يوم كامل</strong> وقبله بـ <strong>ساعتين</strong>.
+                            </p>
+                        </td>
+                    </tr>
+                </table>
             ", "تأكيد الموعد");
         }
 
@@ -220,35 +242,35 @@ namespace Etmen_BLL.Repositories.Services
         {
             return Wrap($@"
                 <div style='text-align:center;margin-bottom:32px;'>
-                    <div style='width:72px;height:72px;background:linear-gradient(135deg,{ColorWarning},#fbbf24);border-radius:50%;display:inline-flex;align-items:center;justify-content:center;margin-bottom:16px;'>
+                    <div style='width:72px;height:72px;background:linear-gradient(135deg,{ColorWarning},#fbbf24);border-radius:50%;display:inline-flex;align-items:center;justify-content:center;margin:0 auto 16px;'>
                         <span style='font-size:32px;'>⏰</span>
                     </div>
-                    <h1 style='color:#92400e;font-size:26px;margin:0 0 8px;'>تذكير بموعدك</h1>
-                    <p style='color:{ColorMuted};font-size:15px;margin:0;'>موعدك بعد <strong>{timeLabel}</strong></p>
+                    <h1 style='color:#92400e;font-size:26px;font-weight:800;margin:0 0 8px;font-family:""Cairo"",sans-serif;'>تذكير بموعدك</h1>
+                    <p style='color:{ColorMuted};font-size:15px;margin:0;font-family:""Cairo"",sans-serif;'>موعدك بعد <strong>{timeLabel}</strong></p>
                 </div>
 
-                <p style='color:{ColorText};font-size:16px;line-height:1.7;'>
+                <p style='color:{ColorText};font-size:16px;line-height:1.7;font-family:""Cairo"",sans-serif;'>
                     مرحباً <strong>{toName}</strong>، هذا تذكير بموعدك القادم:
                 </p>
 
                 <div style='background:#fffbeb;border:2px solid {ColorWarning};border-radius:16px;padding:24px;margin:24px 0;'>
                     <table style='width:100%;border-collapse:collapse;'>
                         <tr>
-                            <td style='color:{ColorMuted};font-size:14px;padding:10px 0;'>📅 التاريخ</td>
-                            <td style='color:{ColorText};font-weight:700;font-size:15px;'>{date:dddd، dd MMMM yyyy}</td>
+                            <td style='color:{ColorMuted};font-size:14px;padding:10px 0;font-family:""Cairo"",sans-serif;'>📅 التاريخ</td>
+                            <td style='color:{ColorText};font-weight:700;font-size:15px;padding:10px 0;font-family:""Cairo"",sans-serif;'>{date:dddd، dd MMMM yyyy}</td>
                         </tr>
                         <tr style='border-top:1px solid #fde68a;'>
-                            <td style='color:{ColorMuted};font-size:14px;padding:10px 0;'>⏰ الوقت</td>
-                            <td style='color:{ColorText};font-weight:700;font-size:15px;'>{start:hh\\:mm}</td>
+                            <td style='color:{ColorMuted};font-size:14px;padding:10px 0;font-family:""Cairo"",sans-serif;'>⏰ الوقت</td>
+                            <td style='color:{ColorText};font-weight:700;font-size:15px;padding:10px 0;font-family:""Cairo"",sans-serif;'>{start:hh\\:mm}</td>
                         </tr>
                         <tr style='border-top:1px solid #fde68a;'>
-                            <td style='color:{ColorMuted};font-size:14px;padding:10px 0;'>🩺 الطبيب</td>
-                            <td style='color:{ColorText};font-weight:700;font-size:15px;'>د. {doctorName}</td>
+                            <td style='color:{ColorMuted};font-size:14px;padding:10px 0;font-family:""Cairo"",sans-serif;'>🩺 الطبيب</td>
+                            <td style='color:{ColorText};font-weight:700;font-size:15px;padding:10px 0;font-family:""Cairo"",sans-serif;'>د. {doctorName}</td>
                         </tr>
                     </table>
                 </div>
 
-                <p style='color:{ColorMuted};font-size:14px;text-align:center;'>
+                <p style='color:{ColorMuted};font-size:14px;text-align:center;font-family:""Cairo"",sans-serif;'>
                     يُرجى الحضور قبل موعدك بـ 10 دقائق على الأقل. 🙏
                 </p>
             ", "تذكير بالموعد");
@@ -265,25 +287,25 @@ namespace Etmen_BLL.Repositories.Services
 
             return Wrap($@"
                 <div style='text-align:center;margin-bottom:32px;'>
-                    <div style='width:72px;height:72px;background:linear-gradient(135deg,{ColorDanger},#f87171);border-radius:50%;display:inline-flex;align-items:center;justify-content:center;margin-bottom:16px;'>
+                    <div style='width:72px;height:72px;background:linear-gradient(135deg,{ColorDanger},#f87171);border-radius:50%;display:inline-flex;align-items:center;justify-content:center;margin:0 auto 16px;'>
                         <span style='font-size:32px;'>❌</span>
                     </div>
-                    <h1 style='color:#991b1b;font-size:26px;margin:0 0 8px;'>تم إلغاء الموعد</h1>
+                    <h1 style='color:#991b1b;font-size:26px;font-weight:800;margin:0 0 8px;font-family:""Cairo"",sans-serif;'>تم إلغاء الموعد</h1>
                 </div>
 
-                <p style='color:{ColorText};font-size:16px;line-height:1.7;'>
+                <p style='color:{ColorText};font-size:16px;line-height:1.7;font-family:""Cairo"",sans-serif;'>
                     مرحباً <strong>{toName}</strong>، نأسف لإبلاغك بأنه تم إلغاء موعدك مع <strong>{otherParty}</strong>.
                 </p>
 
                 <div style='background:#fef2f2;border:1px solid #fecaca;border-radius:16px;padding:24px;margin:24px 0;'>
                     <table style='width:100%;border-collapse:collapse;'>
                         <tr>
-                            <td style='color:{ColorMuted};font-size:14px;padding:10px 0;'>📅 التاريخ المُلغى</td>
-                            <td style='color:#991b1b;font-weight:700;font-size:15px;text-decoration:line-through;'>{date:dd/MM/yyyy}</td>
+                            <td style='color:{ColorMuted};font-size:14px;padding:10px 0;font-family:""Cairo"",sans-serif;'>📅 التاريخ المُلغى</td>
+                            <td style='color:#991b1b;font-weight:700;font-size:15px;text-decoration:line-through;padding:10px 0;font-family:""Cairo"",sans-serif;'>{date:dd/MM/yyyy}</td>
                         </tr>
                         <tr style='border-top:1px solid #fecaca;'>
-                            <td style='color:{ColorMuted};font-size:14px;padding:10px 0;'>⏰ الوقت</td>
-                            <td style='color:#991b1b;font-weight:700;font-size:15px;text-decoration:line-through;'>{start:hh\\:mm}</td>
+                            <td style='color:{ColorMuted};font-size:14px;padding:10px 0;font-family:""Cairo"",sans-serif;'>⏰ الوقت</td>
+                            <td style='color:#991b1b;font-weight:700;font-size:15px;text-decoration:line-through;padding:10px 0;font-family:""Cairo"",sans-serif;'>{start:hh\\:mm}</td>
                         </tr>
                     </table>
                 </div>
@@ -291,7 +313,8 @@ namespace Etmen_BLL.Repositories.Services
                 <div style='text-align:center;margin:28px 0;'>
                     <a href='/NearbyProviders'
                        style='background:linear-gradient(135deg,{ColorPrimary},{ColorAccent});color:#fff;text-decoration:none;
-                              padding:14px 36px;border-radius:50px;font-size:16px;font-weight:700;display:inline-block;'>
+                              padding:14px 36px;border-radius:12px;font-size:16px;font-weight:700;font-family:""Cairo"",sans-serif;
+                              display:inline-block;box-shadow:0 4px 12px rgba(26,107,90,0.25);'>
                         📅 احجز موعداً جديداً
                     </a>
                 </div>
@@ -315,8 +338,8 @@ namespace Etmen_BLL.Repositories.Services
 
             var recs = recommendations.Count > 0
                 ? string.Join("", recommendations.Select(r =>
-                    $"<li style='color:{ColorText};font-size:14px;padding:6px 0;'>{r}</li>"))
-                : "<li style='color:{ColorMuted};font-size:14px;'>لا توجد توصيات محددة</li>";
+                    $"<li style='color:{ColorText};font-size:14px;padding:6px 0;font-family:\"Cairo\",sans-serif;'>{r}</li>"))
+                : $"<li style='color:{ColorMuted};font-size:14px;font-family:\"Cairo\",sans-serif;'>لا توجد توصيات محددة</li>";
 
             var contextMsg = isFamilyMember
                 ? $"<strong>تنبيه:</strong> مستوى الخطر الصحي لأحد أفراد عائلتك <strong>{patientName}</strong> قد ارتفع."
@@ -325,36 +348,40 @@ namespace Etmen_BLL.Repositories.Services
             return Wrap($@"
                 <div style='text-align:center;margin-bottom:32px;'>
                     <div style='font-size:56px;margin-bottom:12px;'>{riskEmoji}</div>
-                    <h1 style='color:{riskColor};font-size:26px;margin:0 0 8px;'>تنبيه: ارتفاع مستوى الخطر</h1>
-                    <p style='color:{ColorMuted};font-size:15px;margin:0;'>
+                    <h1 style='color:{riskColor};font-size:26px;font-weight:800;margin:0 0 8px;font-family:""Cairo"",sans-serif;'>تنبيه: ارتفاع مستوى الخطر</h1>
+                    <p style='color:{ColorMuted};font-size:15px;margin:0;font-family:""Cairo"",sans-serif;'>
                         {(isFamilyMember ? $"المريض: {patientName}" : "حالتك الصحية")}
                     </p>
                 </div>
 
-                <p style='color:{ColorText};font-size:16px;line-height:1.7;'>
+                <p style='color:{ColorText};font-size:16px;line-height:1.7;font-family:""Cairo"",sans-serif;'>
                     مرحباً <strong>{toName}</strong>،<br>{contextMsg}
                 </p>
 
                 <div style='background:{riskBg};border:2px solid {riskColor};border-radius:16px;padding:24px;margin:24px 0;text-align:center;'>
-                    <div style='font-size:48px;font-weight:900;color:{riskColor};'>{riskPercent}%</div>
-                    <div style='font-size:20px;font-weight:700;color:{riskColor};margin-top:4px;'>مستوى الخطر: {riskLevel}</div>
-                    <div style='background:#e5e7eb;border-radius:50px;height:10px;margin:16px auto;max-width:280px;'>
+                    <div style='font-size:48px;font-weight:900;color:{riskColor};font-family:""Cairo"",sans-serif;'>{riskPercent}%</div>
+                    <div style='font-size:20px;font-weight:700;color:{riskColor};margin-top:4px;font-family:""Cairo"",sans-serif;'>مستوى الخطر: {riskLevel}</div>
+                    <div style='background:#e5e7eb;border-radius:50px;height:10px;margin:16px auto;max-width:280px;overflow:hidden;'>
                         <div style='background:{riskColor};border-radius:50px;height:10px;width:{riskPercent}%;'></div>
                     </div>
                 </div>
 
-                <div style='background:{ColorBg};border-radius:12px;padding:20px;margin-top:16px;'>
-                    <h3 style='color:{ColorPrimary};font-size:16px;margin:0 0 12px;'>💡 التوصيات الطبية</h3>
+                <div style='background:{ColorBg};border-radius:16px;padding:20px;margin-top:16px;border:1px solid rgba(26,107,90,0.1);'>
+                    <h3 style='color:{ColorPrimary};font-size:16px;margin:0 0 12px;font-family:""Cairo"",sans-serif;'>💡 التوصيات الطبية</h3>
                     <ul style='margin:0;padding-right:20px;'>
                         {recs}
                     </ul>
                 </div>
 
-                <div style='background:#fef2f2;border:1px solid #fecaca;border-radius:12px;padding:16px;margin-top:16px;'>
-                    <p style='color:#991b1b;font-size:14px;margin:0;'>
-                        🚑 في حالة الطوارئ، اتصل فوراً بالإسعاف أو توجه لأقرب مستشفى.
-                    </p>
-                </div>
+                <table width='100%' cellpadding='0' cellspacing='0' style='background:#fef2f2;border-right:4px solid {ColorDanger};border-radius:12px;margin-top:16px;'>
+                    <tr>
+                        <td style='padding:16px;'>
+                            <p style='color:#991b1b;font-size:14px;margin:0;line-height:1.6;font-family:""Cairo"",sans-serif;'>
+                                🚑 في حالة الطوارئ، اتصل فوراً بالإسعاف أو توجه لأقرب مستشفى.
+                            </p>
+                        </td>
+                    </tr>
+                </table>
             ", "تنبيه صحي");
         }
 
@@ -365,14 +392,14 @@ namespace Etmen_BLL.Repositories.Services
         {
             return Wrap($@"
                 <div style='text-align:center;margin-bottom:32px;'>
-                    <div style='width:72px;height:72px;background:linear-gradient(135deg,#7c3aed,#a78bfa);border-radius:50%;display:inline-flex;align-items:center;justify-content:center;margin-bottom:16px;'>
+                    <div style='width:72px;height:72px;background:linear-gradient(135deg,#7c3aed,#a78bfa);border-radius:50%;display:inline-flex;align-items:center;justify-content:center;margin:0 auto 16px;'>
                         <span style='font-size:32px;'>🔒</span>
                     </div>
-                    <h1 style='color:#5b21b6;font-size:26px;margin:0 0 8px;'>إعادة تعيين كلمة المرور</h1>
+                    <h1 style='color:#5b21b6;font-size:26px;font-weight:800;margin:0 0 8px;font-family:""Cairo"",sans-serif;'>إعادة تعيين كلمة المرور</h1>
                 </div>
 
-                <p style='color:{ColorText};font-size:16px;line-height:1.7;'>مرحباً <strong>{name}</strong>،</p>
-                <p style='color:{ColorText};font-size:16px;line-height:1.7;'>
+                <p style='color:{ColorText};font-size:16px;line-height:1.7;font-family:""Cairo"",sans-serif;'>مرحباً <strong>{name}</strong>،</p>
+                <p style='color:{ColorText};font-size:16px;line-height:1.7;font-family:""Cairo"",sans-serif;'>
                     تلقينا طلباً لإعادة تعيين كلمة مرور حسابك في منصة اطمئن.
                     اضغط على الزر أدناه لاختيار كلمة مرور جديدة:
                 </p>
@@ -380,18 +407,22 @@ namespace Etmen_BLL.Repositories.Services
                 <div style='text-align:center;margin:36px 0;'>
                     <a href='{resetLink}'
                        style='background:linear-gradient(135deg,#7c3aed,#a78bfa);color:#fff;text-decoration:none;
-                              padding:16px 40px;border-radius:50px;font-size:17px;font-weight:700;
+                              padding:16px 40px;border-radius:12px;font-size:17px;font-weight:700;font-family:""Cairo"",sans-serif;
                               display:inline-block;box-shadow:0 4px 15px rgba(124,58,237,0.35);'>
                         🔑 إعادة تعيين كلمة المرور
                     </a>
                 </div>
 
-                <div style='background:#f5f3ff;border:1px solid #ddd6fe;border-radius:12px;padding:16px;'>
-                    <p style='color:#6d28d9;font-size:13px;margin:0;text-align:center;'>
-                        ⏱️ هذا الرابط صالح لمدة <strong>2 ساعة</strong> فقط.<br>
-                        إذا لم تطلب ذلك، تجاهل هذا البريد — حسابك بأمان تام.
-                    </p>
-                </div>
+                <table width='100%' cellpadding='0' cellspacing='0' style='background:#f5f3ff;border-right:4px solid #7c3aed;border-radius:12px;'>
+                    <tr>
+                        <td style='padding:16px;'>
+                            <p style='color:#6d28d9;font-size:13px;margin:0;line-height:1.6;font-family:""Cairo"",sans-serif;'>
+                                ⏱️ هذا الرابط صالح لمدة <strong>ساعتين</strong> فقط.<br>
+                                إذا لم تطلب ذلك، تجاهل هذا البريد — حسابك بأمان تام.
+                            </p>
+                        </td>
+                    </tr>
+                </table>
             ", "إعادة تعيين كلمة المرور");
         }
 
@@ -402,35 +433,35 @@ namespace Etmen_BLL.Repositories.Services
         {
             return Wrap($@"
                 <div style='text-align:center;margin-bottom:32px;'>
-                    <div style='width:72px;height:72px;background:linear-gradient(135deg,{ColorDanger},#f87171);border-radius:50%;display:inline-flex;align-items:center;justify-content:center;margin-bottom:16px;'>
+                    <div style='width:72px;height:72px;background:linear-gradient(135deg,{ColorDanger},#f87171);border-radius:50%;display:inline-flex;align-items:center;justify-content:center;margin:0 auto 16px;'>
                         <span style='font-size:32px;'>🚨</span>
                     </div>
-                    <h1 style='color:#991b1b;font-size:26px;margin:0 0 8px;'>تم استلام طلب الطوارئ</h1>
+                    <h1 style='color:#991b1b;font-size:26px;font-weight:800;margin:0 0 8px;font-family:""Cairo"",sans-serif;'>تم استلام طلب الطوارئ</h1>
                 </div>
 
-                <p style='color:{ColorText};font-size:16px;line-height:1.7;'>مرحباً <strong>{name}</strong>،</p>
-                <p style='color:{ColorText};font-size:16px;line-height:1.7;'>
+                <p style='color:{ColorText};font-size:16px;line-height:1.7;font-family:""Cairo"",sans-serif;'>مرحباً <strong>{name}</strong>،</p>
+                <p style='color:{ColorText};font-size:16px;line-height:1.7;font-family:""Cairo"",sans-serif;'>
                     تم استلام طلب طوارئك بنجاح وجاري التعامل معه فوراً.
                 </p>
 
                 <div style='background:#fef2f2;border:2px solid {ColorDanger};border-radius:16px;padding:24px;margin:24px 0;'>
                     <table style='width:100%;border-collapse:collapse;'>
                         <tr>
-                            <td style='color:{ColorMuted};font-size:14px;padding:10px 0;'>🆘 نوع الطوارئ</td>
-                            <td style='color:#991b1b;font-weight:700;font-size:15px;'>{emergencyType}</td>
+                            <td style='color:{ColorMuted};font-size:14px;padding:10px 0;font-family:""Cairo"",sans-serif;'>🆘 نوع الطوارئ</td>
+                            <td style='color:#991b1b;font-weight:700;font-size:15px;padding:10px 0;font-family:""Cairo"",sans-serif;'>{emergencyType}</td>
                         </tr>
                         <tr style='border-top:1px solid #fecaca;'>
-                            <td style='color:{ColorMuted};font-size:14px;padding:10px 0;'>🕐 وقت الطلب</td>
-                            <td style='color:{ColorText};font-weight:700;font-size:15px;'>{requestTime:dd/MM/yyyy — HH:mm}</td>
+                            <td style='color:{ColorMuted};font-size:14px;padding:10px 0;font-family:""Cairo"",sans-serif;'>🕐 وقت الطلب</td>
+                            <td style='color:{ColorText};font-weight:700;font-size:15px;padding:10px 0;font-family:""Cairo"",sans-serif;'>{requestTime:dd/MM/yyyy — HH:mm}</td>
                         </tr>
                         <tr style='border-top:1px solid #fecaca;'>
-                            <td style='color:{ColorMuted};font-size:14px;padding:10px 0;'>📌 الحالة</td>
-                            <td style='color:#dc2626;font-weight:700;font-size:15px;'>⚡ قيد المعالجة</td>
+                            <td style='color:{ColorMuted};font-size:14px;padding:10px 0;font-family:""Cairo"",sans-serif;'>📌 الحالة</td>
+                            <td style='color:#dc2626;font-weight:700;font-size:15px;padding:10px 0;font-family:""Cairo"",sans-serif;'>⚡ قيد المعالجة</td>
                         </tr>
                     </table>
                 </div>
 
-                <p style='color:{ColorMuted};font-size:14px;text-align:center;'>
+                <p style='color:{ColorMuted};font-size:14px;text-align:center;line-height:1.6;font-family:""Cairo"",sans-serif;'>
                     في انتظار المساعدة، ابقَ هادئاً ومكانك. سيتواصل معك فريقنا في أقرب وقت. 🙏
                 </p>
             ", "تأكيد طلب الطوارئ");
@@ -450,29 +481,34 @@ namespace Etmen_BLL.Repositories.Services
             return Wrap($@"
                 <div style='text-align:center;margin-bottom:32px;'>
                     <div style='font-size:56px;margin-bottom:12px;'>{emoji}</div>
-                    <h1 style='color:{color};font-size:26px;margin:0 0 8px;'>{title}</h1>
+                    <h1 style='color:{color};font-size:26px;font-weight:800;margin:0 0 8px;font-family:""Cairo"",sans-serif;'>{title}</h1>
                 </div>
 
-                <p style='color:{ColorText};font-size:16px;line-height:1.7;'>مرحباً دكتور <strong>{name}</strong>،</p>
-                <p style='color:{ColorText};font-size:16px;line-height:1.7;'>{msg}</p>
+                <p style='color:{ColorText};font-size:16px;line-height:1.7;font-family:""Cairo"",sans-serif;'>مرحباً دكتور <strong>{name}</strong>،</p>
+                <p style='color:{ColorText};font-size:16px;line-height:1.7;font-family:""Cairo"",sans-serif;'>{msg}</p>
 
                 {(!isApproved && !string.IsNullOrWhiteSpace(reason) ? $@"
-                <div style='background:#fef2f2;border:1px solid #fecaca;border-radius:12px;padding:16px;margin:20px 0;'>
-                    <p style='color:#991b1b;font-size:14px;margin:0;'>
-                        <strong>سبب الرفض:</strong> {reason}
-                    </p>
-                </div>" : "")}
+                <table width='100%' cellpadding='0' cellspacing='0' style='background:#fef2f2;border-right:4px solid {ColorDanger};border-radius:12px;margin:20px 0;'>
+                    <tr>
+                        <td style='padding:16px;'>
+                            <p style='color:#991b1b;font-size:14px;margin:0;line-height:1.6;font-family:""Cairo"",sans-serif;'>
+                                <strong>سبب الرفض:</strong> {reason}
+                            </p>
+                        </td>
+                    </tr>
+                </table>" : "")}
 
                 {(isApproved ? $@"
                 <div style='text-align:center;margin:32px 0;'>
                     <a href='/Account/Login'
                        style='background:linear-gradient(135deg,{ColorPrimary},{ColorAccent});color:#fff;text-decoration:none;
-                              padding:16px 44px;border-radius:50px;font-size:17px;font-weight:700;display:inline-block;'>
+                              padding:16px 44px;border-radius:12px;font-size:17px;font-weight:700;font-family:""Cairo"",sans-serif;
+                              display:inline-block;box-shadow:0 4px 15px rgba(26,107,90,0.35);'>
                         🚀 تسجيل الدخول الآن
                     </a>
-                </div>" : @"
-                <p style='color:{ColorMuted};font-size:14px;text-align:center;'>
-                    للاستفسار عن هذا القرار، تواصل معنا على <a href='mailto:support@etmen.com' style='color:{ColorPrimary};'>support@etmen.com</a>
+                </div>" : $@"
+                <p style='color:{ColorMuted};font-size:14px;text-align:center;font-family:""Cairo"",sans-serif;'>
+                    للاستفسار عن هذا القرار، تواصل معنا على <a href='mailto:support@etmen.com' style='color:{ColorPrimary};text-decoration:none;font-weight:700;'>support@etmen.com</a>
                 </p>")}
             ", isApproved ? "قبول التسجيل" : "نتيجة طلب التسجيل");
         }
@@ -488,9 +524,25 @@ namespace Etmen_BLL.Repositories.Services
     <meta charset='UTF-8'>
     <meta name='viewport' content='width=device-width, initial-scale=1.0'>
     <title>{previewText} — منصة اطمئن</title>
-    <!--[if mso]><noscript><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml></noscript><![endif]-->
+    <link rel='preconnect' href='https://fonts.googleapis.com'>
+    <link rel='preconnect' href='https://fonts.gstatic.com' crossorigin>
+    <link href='https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap' rel='stylesheet'>
+    <!--[if mso]>
+    <noscript>
+    <xml>
+      <o:OfficeDocumentSettings>
+        <o:PixelsPerInch>96</o:PixelsPerInch>
+      </o:OfficeDocumentSettings>
+    </xml>
+    </noscript>
+    <![endif]-->
+    <style>
+        body, table, td, a {{
+            font-family: 'Cairo', 'Segoe UI', Tahoma, Arial, sans-serif !important;
+        }}
+    </style>
 </head>
-<body style='margin:0;padding:0;background-color:{ColorBg};font-family:""Segoe UI"",Arial,sans-serif;direction:rtl;'>
+<body style='margin:0;padding:0;background-color:{ColorBg};font-family:""Cairo"", ""Segoe UI"", Arial, sans-serif;direction:rtl;'>
 
     <!-- Preview text (shown in email clients) -->
     <div style='display:none;max-height:0;overflow:hidden;color:{ColorBg};'>{previewText} — منصة اطمئن الطبية</div>
@@ -499,33 +551,33 @@ namespace Etmen_BLL.Repositories.Services
       <tr>
         <td align='center' style='padding:40px 16px;'>
 
-          <!-- Card -->
-          <table width='600' cellpadding='0' cellspacing='0' style='max-width:600px;width:100%;'>
+          <!-- Card Wrapper with soft shadow and borders -->
+          <table width='600' cellpadding='0' cellspacing='0' style='max-width:600px;width:100%;background:#ffffff;border-radius:24px;border:1px solid rgba(229,231,235,0.6);box-shadow:0 15px 30px rgba(0,0,0,0.04);overflow:hidden;'>
 
             <!-- Header -->
             <tr>
-              <td style='background:linear-gradient(135deg,{ColorPrimary} 0%,{ColorAccent} 100%);border-radius:20px 20px 0 0;padding:28px 36px;text-align:center;'>
-                <span style='color:#fff;font-size:26px;font-weight:900;letter-spacing:1px;'>🏥 منصة اطمئن</span>
-                <p style='color:rgba(255,255,255,0.85);font-size:13px;margin:6px 0 0;'>نظام الصحة الرقمية المتكامل</p>
+              <td style='background:linear-gradient(135deg,{ColorPrimary} 0%,{ColorAccent} 100%);padding:36px 40px;text-align:center;'>
+                <span style='color:#fff;font-size:28px;font-weight:900;letter-spacing:1px;font-family:""Cairo"",sans-serif;'>🏥 منصة اطمئن</span>
+                <p style='color:rgba(255,255,255,0.9);font-size:13px;margin:6px 0 0;font-family:""Cairo"",sans-serif;font-weight:600;'>نظام الصحة الرقمية المتكامل لإدارة الأزمات</p>
               </td>
             </tr>
 
             <!-- Body -->
             <tr>
-              <td style='background:{ColorCard};padding:36px 40px;border-radius:0;'>
+              <td style='background:{ColorCard};padding:40px 48px;'>
                 {content}
               </td>
             </tr>
 
             <!-- Footer -->
             <tr>
-              <td style='background:linear-gradient(135deg,#f8fafc,#f0fdf4);border-radius:0 0 20px 20px;padding:24px 36px;text-align:center;border-top:1px solid #e5e7eb;'>
-                <p style='color:{ColorMuted};font-size:13px;margin:0 0 8px;'>
-                    هذا البريد أُرسل تلقائياً من <strong style=""color:{ColorPrimary}"">منصة اطمئن</strong>.
+              <td style='background:linear-gradient(135deg,#f8fafc,#f0fdf4);padding:28px 40px;text-align:center;border-top:1px solid #e5e7eb;'>
+                <p style='color:{ColorMuted};font-size:13px;margin:0 0 8px;line-height:1.5;font-family:""Cairo"",sans-serif;'>
+                    هذا البريد أُرسل تلقائياً من <strong style=""color:{ColorPrimary}"">منصة اطمئن</strong>.<br>
                     يُرجى عدم الرد على هذا البريد مباشرةً.
                 </p>
-                <p style='color:{ColorMuted};font-size:12px;margin:0;'>
-                    للدعم: <a href='mailto:support@etmen.com' style='color:{ColorPrimary};text-decoration:none;'>support@etmen.com</a>
+                <p style='color:{ColorMuted};font-size:12px;margin:0;font-family:""Cairo"",sans-serif;'>
+                    للدعم والمساعدة: <a href='mailto:support@etmen.com' style='color:{ColorPrimary};text-decoration:none;font-weight:700;'>support@etmen.com</a>
                     &nbsp;|&nbsp; © {DateTime.UtcNow.Year} منصة اطمئن — جميع الحقوق محفوظة
                 </p>
               </td>

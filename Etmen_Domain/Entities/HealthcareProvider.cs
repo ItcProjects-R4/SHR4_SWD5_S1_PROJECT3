@@ -23,6 +23,12 @@ namespace Etmen_Domain.Entities
         public string? Phone { get; set; }
         [ConcurrencyCheck]
         public int? AvailableBeds { get; set; }
+        [ConcurrencyCheck]
+        public int? BedCapacity { get; set; } = 150;
+        [ConcurrencyCheck]
+        public int? AmbulanceCapacity { get; set; } = 4;
+        [ConcurrencyCheck]
+        public int? AvailableAmbulances { get; set; } = 4;
         public bool IsEmergencyCenter { get; set; }
         public bool IsActive { get; set; } = true;
 

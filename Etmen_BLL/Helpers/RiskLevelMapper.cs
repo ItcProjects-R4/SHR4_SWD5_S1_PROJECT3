@@ -20,19 +20,23 @@ namespace Etmen_BLL.Helpers
         /// <summary>Returns a Bootstrap / Tailwind colour token for the given level.</summary>
         public static string ToColor(RiskLevel level) => level switch
         {
-            RiskLevel.High   => "danger",
-            RiskLevel.Medium => "warning",
-            RiskLevel.Low    => "success",
-            _                => "secondary"
+            RiskLevel.Low       => "#10B981", // Emerald Green
+            RiskLevel.Medium    => "#F59E0B", // Amber Orange
+            RiskLevel.High      => "#F97316", // Orange
+            RiskLevel.Critical  => "#E74C3C", // Red
+            RiskLevel.Emergency => "#EF4444", // Crimson Red
+            _                   => "#3B82F6"  // Blue
         };
 
         /// <summary>Returns an Arabic label for display in views.</summary>
         public static string ToArabicLabel(RiskLevel level) => level switch
         {
-            RiskLevel.High   => "خطر مرتفع",
-            RiskLevel.Medium => "خطر متوسط",
-            RiskLevel.Low    => "خطر منخفض",
-            _                => "غير محدد"
+            RiskLevel.Low       => "خطر منخفض",
+            RiskLevel.Medium    => "خطر متوسط",
+            RiskLevel.High      => "خطر مرتفع",
+            RiskLevel.Critical  => "حرج جداً",
+            RiskLevel.Emergency => "حالة طوارئ قصوى 🚨",
+            _                   => "غير محدد"
         };
     }
 }

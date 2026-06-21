@@ -1,4 +1,4 @@
-﻿namespace Etmen_BLL.DTOs.Admin
+namespace Etmen_BLL.DTOs.Admin
 {
     public class ProviderListItemDto
     {
@@ -8,6 +8,9 @@
         public string? Address { get; set; }
         public string? Phone { get; set; }
         public int? AvailableBeds { get; set; }
+        public int? BedCapacity { get; set; }
+        public int? AmbulanceCapacity { get; set; }
+        public int? AvailableAmbulances { get; set; }
         public bool IsEmergencyCenter { get; set; }
         public bool IsActive { get; set; }
         public decimal Latitude { get; set; }

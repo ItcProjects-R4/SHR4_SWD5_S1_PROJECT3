@@ -91,25 +91,20 @@ namespace Etmen_PL.Controllers
             {
                 _logger.LogInformation("New {Role} registered: {Email}", dto.Role, dto.Email);
 
-                // For Patients: Auto-login and redirect to dashboard
-                if (dto.Role == "Patient")
-                {
-                    var user = await _userManager.FindByEmailAsync(dto.Email);
-                    if (user != null)
-                    {
-                        await _signInManager.SignInAsync(user, isPersistent: false);
-                        return await RedirectByRoleAsync("Patient");
-                    }
-                }
-
-                // For Doctors: Redirect to email verification notice
                 TempData["Email"] = dto.Email;
                 TempData["RegisteredRole"] = dto.Role;
                 return RedirectToAction(nameof(VerifyEmailNotice));
             }
 
-            foreach (var error in result.Errors)
-                ModelState.AddModelError(string.Empty, error);
+            if (!string.IsNullOrEmpty(result.ErrorMessage))
+            {
+                ModelState.AddModelError(string.Empty, result.ErrorMessage);
+            }
+            else
+            {
+                foreach (var error in result.Errors)
+                    ModelState.AddModelError(string.Empty, error);
+            }
 
             return View(dto);
         }
@@ -318,9 +313,36 @@ namespace Etmen_PL.Controllers
             ViewBag.Success = result.IsSuccess;
             ViewBag.Message = result.IsSuccess
                 ? "تم التحقق من بريدك الإلكتروني بنجاح. يمكنك تسجيل الدخول الآن."
-                : result.Errors.FirstOrDefault() ?? "فشل التحقق. الرابط منتهي أو غير صالح.";
+                : "فشل التحقق من البريد الإلكتروني. قد يكون الرابط قد انتهت صلاحيته.";
 
             return View();
+        }
+
+        [HttpPost]
+        [AllowAnonymous]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ResendVerification(string email)
+        {
+            if (string.IsNullOrWhiteSpace(email))
+            {
+                TempData["Error"] = "البريد الإلكتروني مطلوب.";
+                return RedirectToAction(nameof(Login));
+            }
+
+            var result = await _authService.ResendActivationEmailAsync(email);
+
+            if (result.IsSuccess)
+            {
+                TempData["Email"] = email;
+                TempData["Success"] = "تم إعادة إرسال رابط التفعيل بنجاح. يرجى مراجعة بريدك الإلكتروني.";
+            }
+            else
+            {
+                TempData["Email"] = email;
+                TempData["Error"] = result.ErrorMessage ?? "فشل إعادة إرسال رابط التفعيل.";
+            }
+
+            return RedirectToAction(nameof(VerifyEmailNotice));
         }
 
         // ─────────────────────────────────────────────────────────
@@ -358,13 +380,18 @@ namespace Etmen_PL.Controllers
                 return await RedirectByRoleAsync(result.Data?.Role);
             }
 
-            if (result.Errors.Any(e => e.Contains("مقفل") || e.Contains("locked")))
+            // Check lockouts by checking both Errors and ErrorMessage
+            bool isLocked = (result.ErrorMessage != null && (result.ErrorMessage.Contains("مقفل") || result.ErrorMessage.Contains("locked"))) ||
+                            result.Errors.Any(e => e.Contains("مقفل") || e.Contains("locked"));
+
+            if (isLocked)
             {
                 _logger.LogWarning("Locked-out login attempt for: {Email}", dto.Email);
                 return RedirectToAction(nameof(Lockout));
             }
 
-            ModelState.AddModelError(string.Empty, result.Errors.FirstOrDefault()
+            ModelState.AddModelError(string.Empty, result.ErrorMessage 
+                ?? result.Errors.FirstOrDefault() 
                 ?? "البريد الإلكتروني أو كلمة المرور غير صحيحة.");
 
             return View(dto);

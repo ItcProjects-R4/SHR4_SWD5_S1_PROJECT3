@@ -6,6 +6,36 @@
 }
 
 <style>
+    /* Custom light badges for OCR table outcomes */
+    .bg-danger-light {
+        background-color: #FFF5F5 !important;
+        color: #DC2626 !important;
+        border: 1px solid rgba(220, 38, 38, 0.15) !important;
+    }
+    .bg-success-light {
+        background-color: #F0FDF4 !important;
+        color: #16A34A !important;
+        border: 1px solid rgba(22, 163, 74, 0.15) !important;
+    }
+    .demo-control-card {
+        border-right: 4px solid var(--accent);
+        background: #FDFEFE;
+    }
+    .api-settings-card {
+        border-right: 4px solid #10B981;
+        background: #F0FDF4;
+    }
+    .ocr-live-badge {
+        background: #ECFDF5 !important;
+        color: #047857 !important;
+        border: 1px solid #A7F3D0 !important;
+    }
+    .ocr-mock-badge {
+        background: #EFF6FF !important;
+        color: #1D4ED8 !important;
+        border: 1px solid #BFDBFE !important;
+    }
+
     /* Premium file upload area */
     .upload-zone-custom {
         border: 2.5px dashed var(--border);
@@ -138,6 +168,60 @@
                 <button type="submit" class="btn btn-submit w-100 py-3"><i class="fas fa-upload"></i> رفع وتخزين التقرير</button>
             </form>
         </div>
+
+        <!-- Presentation Helper & API Controls -->
+        <div class="med-card mt-4 demo-control-card animate__animated animate__fadeInUp" style="animation-delay: 0.15s;">
+            <h4 class="fw-black text-primary mb-3"><i class="fas fa-desktop text-accent"></i> لوحة التحكم ومساعد العرض (Demo Controls)</h4>
+            <p class="text-muted small">هذا القسم مخصص للجنة التحكيم وعرض المشروع لضمان استقرار العرض دون أي انقطاع في الـ API.</p>
+            
+            <!-- 1-Click Demo -->
+            <div class="p-3 mb-3 rounded-3" style="background: rgba(254,243,199,0.35); border: 1px solid #FDE68A;">
+                <h6 class="fw-bold text-dark mb-2"><i class="fas fa-magic text-warning"></i> توليد عينات فحص فورية بنقرة واحدة</h6>
+                <p class="text-muted small mb-3">لا داعي للبحث عن ملف PDF حقيقي! اختر أحد الفحوصات أدناه لتوليد نموذج تحليل تفاعلي متكامل فوراً:</p>
+                <div class="d-flex flex-wrap gap-2">
+                    <form method="post" asp-controller="LabResults" asp-action="CreateDemoSample" class="m-0">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="testType" value="cbc" />
+                        <button type="submit" class="btn btn-xs btn-outline-primary rounded-pill py-1.5 px-3 small fw-bold"><i class="fas fa-tint text-danger me-1"></i> صورة دم (CBC)</button>
+                    </form>
+                    <form method="post" asp-controller="LabResults" asp-action="CreateDemoSample" class="m-0">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="testType" value="diabetes" />
+                        <button type="submit" class="btn btn-xs btn-outline-primary rounded-pill py-1.5 px-3 small fw-bold"><i class="fas fa-chart-line text-success me-1"></i> سكر تراكمي (HbA1c)</button>
+                    </form>
+                    <form method="post" asp-controller="LabResults" asp-action="CreateDemoSample" class="m-0">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="testType" value="urine" />
+                        <button type="submit" class="btn btn-xs btn-outline-primary rounded-pill py-1.5 px-3 small fw-bold"><i class="fas fa-vial text-info me-1"></i> تحليل بول (Urine)</button>
+                    </form>
+                    <form method="post" asp-controller="LabResults" asp-action="CreateDemoSample" class="m-0">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="testType" value="radiology" />
+                        <button type="submit" class="btn btn-xs btn-outline-primary rounded-pill py-1.5 px-3 small fw-bold"><i class="fas fa-x-ray text-secondary me-1"></i> أشعة صدر (X-Ray)</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- API Key Settings -->
+            <div class="p-3 rounded-3 api-settings-card" style="border: 1px solid #A7F3D0;">
+                <h6 class="fw-bold text-success mb-2"><i class="fas fa-key"></i> إعداد مفتاح Gemini API الخاص بك</h6>
+                <p class="text-muted small mb-2">يتيح لك هذا الخيار ربط حسابك بـ Google AI Studio لتشغيل التعرف الضوئي (OCR) الفعلي على أي ملف ترفعه:</p>
+                
+                <ol class="text-muted small ps-0 pr-3 mb-3" style="direction: rtl; list-style-position: inside;">
+                    <li>انتقل إلى <a href="https://aistudio.google.com/" target="_blank" class="text-primary fw-bold text-decoration-none">Google AI Studio <i class="fas fa-external-link-alt" style="font-size:0.75rem;"></i></a> وسجل بحسابك.</li>
+                    <li>انقر على زر <strong>Create API Key</strong> ثم انسخ المفتاح.</li>
+                    <li>ألصق المفتاح في الحقل أدناه واضغط حفظ.</li>
+                </ol>
+
+                <form method="post" asp-controller="LabResults" asp-action="UpdateApiKey" class="m-0">
+                    @Html.AntiForgeryToken()
+                    <div class="input-group">
+                        <input type="password" name="apiKey" class="form-control form-control-sm" placeholder="AIzaSy..." required style="font-family: monospace; font-size: 0.85rem;" />
+                        <button class="btn btn-sm btn-success px-3 fw-bold" type="submit"><i class="fas fa-sync-alt me-1"></i> حفظ ومزامنة</button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 
     <!-- Left side: Timeline list -->
@@ -188,9 +272,42 @@
 
                                 @if (!string.IsNullOrEmpty(lab.OcrExtractedData))
                                 {
-                                    <div class="p-3 mb-2 rounded-3" style="background:#F0FDF4; border:1px solid #BBF7D0;">
-                                        <span class="small fw-bold text-success d-block mb-1"><i class="fas fa-brain"></i> البيانات المستخرجة بالـ OCR:</span>
-                                        <p class="mb-0 small text-dark">@lab.OcrExtractedData</p>
+                                    bool isMock = (lab.FilePath != null && lab.FilePath.Contains("demo_sample.pdf")) || lab.OcrExtractedData.Contains("افتراضي");
+                                    var cardBg = isMock ? "#EFF6FF" : "#F0FDF4";
+                                    var cardBorder = isMock ? "#BFDBFE" : "#BBF7D0";
+                                    var titleColor = isMock ? "#1D4ED8" : "#16A34A";
+                                    
+                                    <div class="p-3 mb-3 rounded-3 animate__animated animate__fadeIn" style="background:@cardBg; border:1px solid @cardBorder; box-shadow: inset 0 2px 4px rgba(0,0,0,0.01);">
+                                        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2 pb-2 border-bottom" style="border-color: rgba(0,0,0,0.05) !important;">
+                                            <span class="small fw-bold d-inline-flex align-items-center gap-2" style="color: @titleColor; font-size: 0.82rem;">
+                                                <i class="fas fa-brain animate__animated animate__pulse animate__infinite"></i> 
+                                                البيانات المستخرجة بالتعرف الضوئي OCR:
+                                            </span>
+                                            @if (isMock)
+                                            {
+                                                <span class="badge ocr-mock-badge py-1 px-2.5 rounded-pill shadow-sm">
+                                                    <i class="fas fa-magic"></i> وضع المحاكاة للعرض التقديمي
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge ocr-live-badge py-1 px-2.5 rounded-pill shadow-sm">
+                                                    <i class="fas fa-bolt text-warning me-1 animate__animated animate__flash animate__infinite"></i> تحليل حي بالذكاء الاصطناعي (Gemini)
+                                                </span>
+                                            }
+                                        </div>
+                                        
+                                        <div class="ocr-content mb-0 text-dark" data-raw="@lab.OcrExtractedData" style="line-height:1.6; font-size:0.88rem;"></div>
+                                        
+                                        @if (isMock)
+                                        {
+                                            <div class="mt-3 p-2 rounded-3 bg-white border border-info-subtle text-muted small d-flex gap-2 align-items-start" style="font-size: 0.78rem; line-height: 1.4;">
+                                                <i class="fas fa-info-circle text-primary mt-0.5"></i>
+                                                <div>
+                                                    تم عرض هذه البيانات الافتراضية لضمان نجاح العرض التقديمي. يمكنك ربط مفتاح API الفعلي من اللوحة الجانبية لتفعيل القراءة الحية من الملفات المرفوعة.
+                                                </div>
+                                            </div>
+                                        }
                                     </div>
                                 }
 
@@ -244,6 +361,93 @@
                 const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
                 display.innerHTML = `<i class="fas fa-check-circle text-success"></i> <strong>${file.name}</strong> (${sizeMB} ميجا)`;
             }
+        });
+
+        // Markdown table parser for premium presentation
+        function parseOcrMarkdown(text) {
+            if (!text) return '';
+            
+            // Format headers
+            let html = text
+                .replace(/^\s*###\s+(.*?)$/gm, '<h6 class="fw-black text-success mt-3 mb-2 border-bottom pb-1" style="font-size:0.95rem; font-weight: 800;"><i class="fas fa-notes-medical me-1"></i> $1</h6>')
+                .replace(/^\s*##\s+(.*?)$/gm, '<h5 class="fw-black text-success mt-4 mb-2" style="font-size:1.1rem; font-weight: 800;">$1</h5>')
+                .replace(/^\s*#\s+(.*?)$/gm, '<h4 class="fw-black text-success mt-4 mb-2" style="font-size:1.25rem; font-weight: 900;">$1</h4>');
+
+            // Format bold
+            html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
+            // Format bullet points
+            html = html.replace(/^\s*-\s+(.*?)$/gm, '<li class="ms-3 mb-1 text-muted">$1</li>');
+            
+            // Line breaks
+            html = html.replace(/\n/g, '<br>');
+
+            // Parse tables
+            const lines = html.split('<br>');
+            let inTable = false;
+            let tableHtml = '<div class="table-responsive my-2"><table class="table table-sm table-hover text-right" style="font-size:0.82rem; background: white; direction: rtl; border-collapse: separate; border-spacing: 0; border: 1px solid #E5E7EB; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">';
+            let parsedLines = [];
+
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (line.startsWith('|') && line.endsWith('|')) {
+                    if (!inTable) {
+                        inTable = true;
+                    }
+                    // Skip separator row (e.g. |---|---|)
+                    if (line.match(/^[|\s-:]+$/)) {
+                        continue;
+                    }
+                    const cells = line.split('|').map(c => c.trim()).filter((c, idx, arr) => idx > 0 && idx < arr.length - 1);
+                    let rowHtml = '<tr>';
+                    cells.forEach(cell => {
+                        if (line.includes('الفحص') || line.includes('النتيجة') || line.includes('الوحدة') || line.includes('Test') || line.includes('Result') || line.includes('المدى')) {
+                            rowHtml += `<th class="bg-light fw-bold text-dark text-center" style="font-weight: 800; border-bottom: 2px solid #E5E7EB; padding: 10px 12px; background-color: #F8FAFC !important; color: #1E293B !important;">${cell}</th>`;
+                        } else {
+                            // Style abnormal / normal values
+                            let cellHtml = cell;
+                            let tdStyle = 'padding: 8px 12px; vertical-align: middle; border-bottom: 1px solid #F1F5F9;';
+                            let tdClass = '';
+                            
+                            if (cell.includes('مرتفع') || cell.includes('منخفض') || cell.includes('غير طبيعي') || cell.includes('Abnormal')) {
+                                tdClass = 'bg-danger-light';
+                                cellHtml = `<span class="badge bg-danger-light text-danger border border-danger-subtle px-2 py-1"><i class="fas fa-exclamation-circle me-1 animate__animated animate__flash animate__infinite"></i> ${cell}</span>`;
+                            } else if (cell === 'طبيعي' || cell === 'Normal') {
+                                tdClass = 'bg-success-light';
+                                cellHtml = `<span class="badge bg-success-light text-success border border-success-subtle px-2 py-1"><i class="fas fa-check-circle me-1"></i> ${cell}</span>`;
+                            }
+                            rowHtml += `<td class="${tdClass}" style="${tdStyle}">${cellHtml}</td>`;
+                        }
+                    });
+                    rowHtml += '</tr>';
+                    tableHtml += rowHtml;
+                } else {
+                    if (inTable) {
+                        inTable = false;
+                        tableHtml += '</table></div>';
+                        parsedLines.push(tableHtml);
+                        tableHtml = '<div class="table-responsive my-2"><table class="table table-sm table-hover text-right" style="font-size:0.82rem; background: white; direction: rtl; border-collapse: separate; border-spacing: 0; border: 1px solid #E5E7EB; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">';
+                    }
+                    parsedLines.push(line);
+                }
+            }
+
+            if (inTable) {
+                tableHtml += '</table></div>';
+                parsedLines.push(tableHtml);
+            }
+
+            return parsedLines.join('<br>').replace(/(<br>\s*){2,}/g, '<br>');
+        }
+
+        // Apply parsing on load
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.ocr-content').forEach(el => {
+                const raw = el.getAttribute('data-raw');
+                if (raw) {
+                    el.innerHTML = parseOcrMarkdown(raw);
+                }
+            });
         });
     </script>
 }

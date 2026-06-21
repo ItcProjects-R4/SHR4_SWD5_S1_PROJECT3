@@ -18,6 +18,203 @@
 }
 
 <style>
+    /* Dynamic telemetry alert colors */
+    @@keyframes pulseRed {
+        0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); transform: scale(1); }
+        70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); transform: scale(1.05); }
+        100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); transform: scale(1); }
+    }
+    .pulsing-red-alert {
+        background-color: #ef4444 !important;
+        color: #ffffff !important;
+        animation: pulseRed 1.5s infinite;
+        display: inline-block;
+    }
+
+    /* ── Map Overlay Header ── */
+    .map-overlay-header {
+        position: absolute;
+        top: 12px;
+        left: 12px;
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        background: rgba(10, 25, 41, 0.85);
+        border: 1.5px solid rgba(0, 240, 255, 0.45);
+        border-radius: 10px;
+        padding: 6px 12px;
+        box-shadow: 0 4px 15px rgba(0, 240, 255, 0.2);
+        backdrop-filter: blur(6px);
+        pointer-events: none;
+    }
+    .overlay-icon {
+        font-size: 14px;
+        color: #00f0ff;
+        margin-right: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        background: rgba(0, 240, 255, 0.1);
+        border-radius: 6px;
+        animation: pulse-glow 2s infinite;
+    }
+    .overlay-details {
+        display: flex;
+        flex-direction: column;
+        text-align: left;
+    }
+    .overlay-title {
+        font-family: 'Outfit', 'Inter', sans-serif;
+        font-size: 9px;
+        font-weight: 800;
+        color: #ffffff;
+        letter-spacing: 0.8px;
+        margin: 0;
+        line-height: 1.1;
+    }
+    .overlay-status {
+        font-family: 'Inter', sans-serif;
+        font-size: 8px;
+        color: rgba(255, 255, 255, 0.6);
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        margin-top: 1px;
+    }
+    .live-indicator {
+        color: #ff4d4d;
+        font-weight: 700;
+        animation: flash-live 1s infinite alternate;
+    }
+    @@keyframes flash-live {
+        0% { opacity: 0.5; }
+        100% { opacity: 1; }
+    }
+    @@keyframes pulse-glow {
+        0% { box-shadow: 0 0 0 0 rgba(0, 240, 255, 0.4); }
+        70% { box-shadow: 0 0 0 8px rgba(0, 240, 255, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(0, 240, 255, 0); }
+    }
+
+    /* ── Glow Badge Styling ── */
+    .glow-badge {
+        display: flex;
+        align-items: center;
+        background: rgba(10, 25, 41, 0.9);
+        border: 1.5px solid #00f0ff;
+        border-radius: 20px;
+        padding: 4px 10px 4px 6px;
+        box-shadow: 0 0 15px rgba(0, 240, 255, 0.35);
+        color: #ffffff;
+        font-family: 'Inter', sans-serif;
+        white-space: nowrap;
+        width: fit-content;
+    }
+    .glow-badge.orange {
+        border-color: #ff9f00;
+        box-shadow: 0 0 15px rgba(255, 159, 0, 0.35);
+    }
+    .pulse-dot {
+        width: 8px;
+        height: 8px;
+        background: #00f0ff;
+        border-radius: 50%;
+        margin-right: 6px;
+        margin-left: 2px;
+        position: relative;
+        flex-shrink: 0;
+    }
+    .glow-badge.orange .pulse-dot {
+        background: #ff9f00;
+    }
+    .pulse-dot::after {
+        content: '';
+        position: absolute;
+        top: -6px;
+        left: -6px;
+        right: -6px;
+        bottom: -6px;
+        border: 2px solid #00f0ff;
+        border-radius: 50%;
+        animation: pulse-ring 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+    }
+    .glow-badge.orange .pulse-dot::after {
+        border-color: #ff9f00;
+    }
+    @@keyframes pulse-ring {
+        0% { transform: scale(0.35); opacity: 1; }
+        50% { opacity: 0.5; }
+        100% { transform: scale(1.5); opacity: 0; }
+    }
+    .badge-icon {
+        font-size: 13px;
+        margin-right: 6px;
+        display: flex;
+        align-items: center;
+    }
+    .badge-text {
+        display: flex;
+        flex-direction: column;
+        line-height: 1.1;
+        text-align: left;
+    }
+    .badge-title {
+        font-size: 9px;
+        font-weight: 700;
+        color: #00f0ff;
+        letter-spacing: 0.5px;
+    }
+    .glow-badge.orange .badge-title {
+        color: #ff9f00;
+    }
+    .badge-sub {
+        font-size: 8px;
+        color: rgba(255, 255, 255, 0.85);
+        font-weight: 600;
+    }
+
+    /* ── Hospital Glow Marker ── */
+    .hosp-glow-marker {
+        background: #ff9f00;
+        color: #fff;
+        border: 1.5px solid #fff;
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 0 12px #ff9f00;
+        font-size: 11px;
+    }
+
+    /* ── Patient Glow Marker ── */
+    .patient-glow-marker {
+        position: relative;
+        width: 14px;
+        height: 14px;
+        background: #ff4d4d;
+        border-radius: 50%;
+        border: 2px solid #fff;
+        box-shadow: 0 0 10px #ff4d4d;
+    }
+    .patient-pulse {
+        position: absolute;
+        width: 30px;
+        height: 30px;
+        border: 2px solid #ff4d4d;
+        border-radius: 50%;
+        top: -10px;
+        left: -10px;
+        animation: patient-pulse-ring 1.8s ease-out infinite;
+    }
+    @@keyframes patient-pulse-ring {
+        0% { transform: scale(0.5); opacity: 1; }
+        100% { transform: scale(1.8); opacity: 0; }
+    }
+
     /* Card design from WellNest reference */
     .dashboard-card {
         background: #FFFFFF;
@@ -239,13 +436,34 @@
             <h2 class="fw-900 m-0" style="font-weight: 900;">لوحة الفرز والانتظار - @Model.ProviderName</h2>
             <p class="text-muted small mb-0"><i class="fas fa-stethoscope me-1"></i> غرفة عمليات فرز وتوجيه عربات الإسعاف وتتبع السعة الاستيعابية والمواقع للمستشفى</p>
         </div>
-        <a href="/HospitalQueue/ExportReport?providerId=@Model.ProviderId" class="btn btn-outline-success rounded-pill px-4 py-2.5 fw-800 shadow-sm">
-            <i class="fas fa-file-excel me-1"></i> تصدير تقرير الطوارئ اليومي
-        </a>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <!-- AI Auto Accept Toggle -->
+            <div class="form-check form-switch d-inline-flex align-items-center gap-2 border px-3 py-2 rounded-pill bg-light shadow-sm" style="cursor: pointer; height: 42px; margin-bottom: 0;">
+                <input class="form-check-input ms-0" type="checkbox" role="switch" id="aiAutoAcceptToggle" @(ViewBag.IsAiModeActive == true ? "checked" : "") onchange="toggleAiMode(@Model.ProviderId, this.checked)" style="cursor: pointer;">
+                <label class="form-check-label fw-800 text-dark" for="aiAutoAcceptToggle" style="font-size: 0.82rem; cursor: pointer; user-select: none;">
+                    <i class="fas fa-robot text-primary animate__animated animate__pulse animate__infinite"></i> الفرز الآلي بالذكاء الاصطناعي
+                </label>
+            </div>
+
+            <!-- Audio Alarm Toggle -->
+            <button id="btnToggleAudio" class="btn btn-outline-success rounded-pill px-3 py-2 fw-800 shadow-sm" onclick="toggleAudioMute()" style="height: 42px; display: inline-flex; align-items: center; gap: 6px;">
+                <i class="fas fa-volume-up" id="audioToggleIcon"></i> <span id="audioToggleText">التنبيه الصوتي: مفعل</span>
+            </button>
+
+            <!-- Export Report -->
+            <a href="/HospitalQueue/ExportReport?providerId=@Model.ProviderId" class="btn btn-outline-success rounded-pill px-4 py-2 fw-800 shadow-sm" style="height: 42px; display: inline-flex; align-items: center; gap: 6px;">
+                <i class="fas fa-file-excel"></i> تصدير التقرير
+            </a>
+        </div>
     </div>
 
     <!-- Stats Boxes Grid -->
-    <div class="col-12">
+    <div class="col-12" id="statsSectionContainer" 
+         data-critical-count="@criticalCount" 
+         data-medium-count="@mediumCount" 
+         data-low-count="@lowCount" 
+         data-available-beds="@(Model.AvailableBeds ?? 0)" 
+         data-bed-capacity="@(Model.BedCapacity ?? 150)">
         <div class="stat-box-container">
             <!-- Bed Stats -->
             <div class="stat-box">
@@ -321,7 +539,7 @@
         </div>
 
         <!-- Cases segmented lists -->
-        <div class="dashboard-card">
+        <div class="dashboard-card" id="queueTablesContainer">
             <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
                 <h3 class="card-title-lg m-0" style="font-size: 1.2rem;">
                     <i class="fas fa-list-ol text-primary"></i>
@@ -514,6 +732,7 @@
                                         <th>نوع الطوارئ</th>
                                         <th>الأولوية والخطورة</th>
                                         <th>المسافة والوصول (ETA)</th>
+                                        <th>جهة القبول</th>
                                         <th>تاريخ القبول</th>
                                         <th class="text-center">الملف الطبي</th>
                                     </tr>
@@ -542,10 +761,24 @@
                                                 </div>
                                             </td>
                                             <td>
-                                                <div class="text-success small fw-700">
-                                                    <i class="fas fa-check-double me-1"></i> @item.RequestedAt.ToString("g")
-                                                </div>
-                                            </td>
+                                                 @if (item.ResponseNotes != null && (item.ResponseNotes.Contains("تلقائياً") || item.ResponseNotes.Contains("الذكاء الاصطناعي")))
+                                                 {
+                                                     <span class="badge bg-light text-primary border border-primary px-2.5 py-1.5 fw-bold" style="border-radius: 6px; font-size: 0.75rem;">
+                                                         <i class="fas fa-robot animate__animated animate__pulse animate__infinite"></i> الذكاء الاصطناعي
+                                                     </span>
+                                                 }
+                                                 else
+                                                 {
+                                                     <span class="badge bg-light text-success border border-success px-2.5 py-1.5 fw-bold" style="border-radius: 6px; font-size: 0.75rem;">
+                                                         <i class="fas fa-user-tie"></i> الموظف المناوب
+                                                     </span>
+                                                 }
+                                             </td>
+                                             <td>
+                                                 <div class="text-success small fw-700">
+                                                     <i class="fas fa-check-double me-1"></i> @item.RequestedAt.ToString("g")
+                                                 </div>
+                                             </td>
                                             <td class="text-center">
                                                 <a href="/HospitalQueue/Details/@item.RequestId?providerId=@Model.ProviderId" class="btn btn-sm btn-outline-success rounded-pill px-3 fw-700">
                                                     <i class="fas fa-notes-medical"></i> عرض التفاصيل
@@ -689,27 +922,46 @@
                                             <td class="text-center">
                                                 @if (item.Status == "Pending")
                                                 {
+                                                    var isAmbReq = item.EmergencyType != "استقبال مباشر" && item.EmergencyType != "DoctorTransfer";
+                                                    var disableAcc = isAmbReq && (Model.AvailableAmbulances ?? 4) <= 0;
+                                                    
                                                     <div class="d-flex gap-1 justify-content-center">
                                                         <form method="post" action="/HospitalQueue/Respond" style="display:inline;">
                                                             @Html.AntiForgeryToken()
                                                             <input type="hidden" name="RequestId" value="@item.RequestId" />
                                                             <input type="hidden" name="ProviderId" value="@Model.ProviderId" />
                                                             <input type="hidden" name="Status" value="Accepted" />
-                                                            <input type="hidden" name="ResponseNotes" value="تم قبول الحالة المحولة من الطبيب المعالج" />
-                                                            <button type="submit" class="btn btn-sm btn-success rounded-pill px-2.5 fw-700">
+                                                            <input type="hidden" name="ResponseNotes" value="تم قبول الحالة وتوجيه الإسعاف فوراً" />
+                                                            <button type="submit" class="btn btn-sm btn-success rounded-pill px-2.5 fw-700 triage-accept-btn @(disableAcc ? "disabled" : "")" @(disableAcc ? "disabled" : "") data-is-amb="@(isAmbReq ? "true" : "false")">
                                                                 <i class="fas fa-check"></i> قبول
                                                             </button>
                                                         </form>
-                                                        <form method="post" action="/HospitalQueue/Respond" style="display:inline;">
-                                                            @Html.AntiForgeryToken()
-                                                            <input type="hidden" name="RequestId" value="@item.RequestId" />
-                                                            <input type="hidden" name="ProviderId" value="@Model.ProviderId" />
-                                                            <input type="hidden" name="Status" value="Rejected" />
-                                                            <input type="hidden" name="ResponseNotes" value="تم رفض التحويل من قبل الموظف" />
-                                                            <button type="submit" class="btn btn-sm btn-danger rounded-pill px-2.5 fw-700">
-                                                                <i class="fas fa-times"></i> رفض
-                                                            </button>
-                                                        </form>
+                                                        @if (disableAcc)
+                                                        {
+                                                            <form method="post" action="/HospitalQueue/Respond" style="display:inline;">
+                                                                @Html.AntiForgeryToken()
+                                                                <input type="hidden" name="RequestId" value="@item.RequestId" />
+                                                                <input type="hidden" name="ProviderId" value="@Model.ProviderId" />
+                                                                <input type="hidden" name="Status" value="Rejected" />
+                                                                <input type="hidden" name="ResponseNotes" value="عذراً، جميع سيارات الإسعاف لدينا مشغولة حالياً. يرجى التوجه بنفسك للمستشفى بسيارتك الخاصة (طلب استقبال مباشر) أو طلب مستشفى أخرى." />
+                                                                <button type="submit" class="btn btn-sm btn-warning rounded-pill px-2 fw-700 text-dark" title="إرسال توجيه بالتوجه الذاتي">
+                                                                    <i class="fas fa-route"></i> توجيه ذاتي
+                                                                </button>
+                                                            </form>
+                                                        }
+                                                        else
+                                                        {
+                                                            <form method="post" action="/HospitalQueue/Respond" style="display:inline;">
+                                                                @Html.AntiForgeryToken()
+                                                                <input type="hidden" name="RequestId" value="@item.RequestId" />
+                                                                <input type="hidden" name="ProviderId" value="@Model.ProviderId" />
+                                                                <input type="hidden" name="Status" value="Rejected" />
+                                                                <input type="hidden" name="ResponseNotes" value="تم رفض التحويل من قبل الموظف" />
+                                                                <button type="submit" class="btn btn-sm btn-danger rounded-pill px-2.5 fw-700">
+                                                                    <i class="fas fa-times"></i> رفض
+                                                                </button>
+                                                            </form>
+                                                        }
                                                         <a href="/HospitalQueue/Details/@item.RequestId?providerId=@Model.ProviderId" class="btn btn-sm btn-outline-primary rounded-pill px-2 fw-700">
                                                             تفاصيل
                                                         </a>
@@ -766,16 +1018,40 @@
                     </div>
                 </div>
 
-                <!-- Available Beds -->
+                <!-- Available Beds & BedCapacity -->
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <label class="form-label small fw-800 text-muted mb-0">سعة الأسرة الإجمالية:</label>
+                        <span class="badge bg-secondary font-monospace" id="bedCapVal">@(Model.BedCapacity ?? 150)</span>
+                    </div>
+                    <input type="range" class="form-range" name="BedCapacity" id="bedCapRange" min="10" max="500" value="@(Model.BedCapacity ?? 150)" oninput="updateBedCapLabel(this.value)">
+                </div>
+
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <label class="form-label small fw-800 text-muted mb-0">الأسرة الشاغرة (المتاحة):</label>
+                        <span class="badge font-monospace text-white" id="bedVal" style="transition: all 0.3s ease;">@(Model.AvailableBeds ?? 0)</span>
+                    </div>
+                    <input type="range" class="form-range" name="AvailableBeds" id="bedRange" min="0" max="@(Model.BedCapacity ?? 150)" value="@(Model.AvailableBeds ?? 0)" oninput="updateBedLabel(this.value)">
+                </div>
+
+                <hr class="my-3" style="opacity: 0.15;" />
+
+                <!-- Available Ambulances & AmbulanceCapacity -->
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <label class="form-label small fw-800 text-muted mb-0">سعة سيارات الإسعاف الإجمالية:</label>
+                        <span class="badge bg-secondary font-monospace" id="ambCapVal">@(Model.AmbulanceCapacity ?? 4)</span>
+                    </div>
+                    <input type="range" class="form-range" name="AmbulanceCapacity" id="ambCapRange" min="1" max="25" value="@(Model.AmbulanceCapacity ?? 4)" oninput="updateAmbCapLabel(this.value)">
+                </div>
+
                 <div class="mb-4">
-                    <div class="bed-slider-label">
-                        <span>سعة الأسرة الشاغرة بالاستقبال:</span>
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <label class="form-label small fw-800 text-muted mb-0">سيارات الإسعاف المتاحة (الشاغرة):</label>
+                        <span class="badge font-monospace text-white" id="ambVal" style="transition: all 0.3s ease;">@(Model.AvailableAmbulances ?? 4)</span>
                     </div>
-                    <div class="d-flex align-items-center justify-content-between mb-2">
-                        <span class="text-muted small">سحب لتغيير السعة</span>
-                        <span class="bed-slider-val" id="bedVal">@(Model.AvailableBeds ?? 0)</span>
-                    </div>
-                    <input type="range" class="form-range" name="AvailableBeds" id="bedRange" min="0" max="150" value="@(Model.AvailableBeds ?? 0)" oninput="updateBedLabel(this.value)">
+                    <input type="range" class="form-range" name="AvailableAmbulances" id="ambRange" min="0" max="@(Model.AmbulanceCapacity ?? 4)" value="@(Model.AvailableAmbulances ?? 4)" oninput="updateAmbLabel(this.value)">
                 </div>
 
                 <button type="submit" class="btn btn-primary w-100 rounded-pill py-2.5 fw-800">
@@ -848,8 +1124,17 @@
 
             <!-- Map -->
             <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-            <div id="hospAmbMap" style="height:280px;border-radius:14px;overflow:hidden;
-                 border:1px solid #e2e8f0;"></div>
+            <div class="position-relative">
+                <div class="map-overlay-header">
+                    <div class="overlay-icon"><i class="fas fa-star-of-life"></i></div>
+                    <div class="overlay-details">
+                        <div class="overlay-title">EMERGENCY MEDICAL DASHBOARD</div>
+                        <div class="overlay-status"><span class="utc-clock">--:--:-- UTC</span> | <span class="live-indicator">LIVE</span></div>
+                    </div>
+                </div>
+                <div id="hospAmbMap" style="height:280px;border-radius:14px;overflow:hidden;
+                     border:2px solid #1e293b;box-shadow:0 0 25px rgba(0, 240, 255, 0.12);"></div>
+            </div>
 
             <!-- Legend -->
             <div class="d-flex gap-3 justify-content-center mt-2 flex-wrap" style="font-size:.75rem;color:#64748b;">
@@ -883,26 +1168,191 @@
     <!-- Chart.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        function updateBedLabel(val) {
-            document.getElementById('bedVal').innerText = val;
-            
-            // Proactively update bed status chart values if exists
+        function updateBedCapLabel(val) {
+            document.getElementById('bedCapVal').innerText = val;
+            const bedRange = document.getElementById('bedRange');
+            if (bedRange) {
+                bedRange.setAttribute('max', val);
+                if (parseInt(bedRange.value) > parseInt(val)) {
+                    bedRange.value = val;
+                    document.getElementById('bedVal').innerText = val;
+                    updateBedColor(val);
+                }
+            }
             if (window.bedChart) {
-                const totalBeds = 150; // Mock Max Beds Capacity
-                const available = parseInt(val);
-                const occupied = Math.max(0, totalBeds - available);
+                const available = bedRange ? parseInt(bedRange.value) : 0;
+                const total = parseInt(val);
+                const occupied = Math.max(0, total - available);
                 window.bedChart.data.datasets[0].data = [available, occupied];
                 window.bedChart.update();
             }
         }
 
+        function updateBedLabel(val) {
+            document.getElementById('bedVal').innerText = val;
+            updateBedColor(val);
+            
+            if (window.bedChart) {
+                const totalRange = document.getElementById('bedCapRange');
+                const total = totalRange ? parseInt(totalRange.value) : 150;
+                const available = parseInt(val);
+                const occupied = Math.max(0, total - available);
+                window.bedChart.data.datasets[0].data = [available, occupied];
+                window.bedChart.update();
+            }
+        }
+
+        function updateBedColor(val) {
+            const el = document.getElementById('bedVal');
+            if (!el) return;
+            const num = parseInt(val);
+            el.className = 'badge font-monospace ';
+            el.style.animation = '';
+            el.style.backgroundColor = '';
+            
+            if (num === 0) {
+                el.classList.add('pulsing-red-alert');
+                el.innerText = 'ممتلئ تماماً (0)';
+            } else if (num === 1) {
+                el.classList.add('bg-warning', 'text-dark');
+                el.innerText = 'سرير واحد متبقي (1)';
+                el.style.backgroundColor = '#f59e0b';
+            } else {
+                el.classList.add('bg-success', 'text-white');
+                el.innerText = `سعة كافية (${num})`;
+                el.style.backgroundColor = '#10b981';
+            }
+        }
+
+        function updateAmbCapLabel(val) {
+            document.getElementById('ambCapVal').innerText = val;
+            const ambRange = document.getElementById('ambRange');
+            ambRange.setAttribute('max', val);
+            if (parseInt(ambRange.value) > parseInt(val)) {
+                ambRange.value = val;
+                document.getElementById('ambVal').innerText = val;
+            }
+            updateAmbulanceStatusMapCapacity();
+        }
+
+        function updateAmbLabel(val) {
+            document.getElementById('ambVal').innerText = val;
+            updateAmbColor(val);
+            updateAmbulanceStatusMapCapacity();
+        }
+
+        function updateAmbColor(val) {
+            const el = document.getElementById('ambVal');
+            if (!el) return;
+            const num = parseInt(val);
+            el.className = 'badge font-monospace ';
+            el.style.animation = '';
+            el.style.backgroundColor = '';
+            
+            if (num === 0) {
+                el.classList.add('pulsing-red-alert');
+                el.innerText = 'ممتلئ تماماً (0)';
+            } else if (num === 1) {
+                el.classList.add('bg-warning', 'text-dark');
+                el.innerText = 'سيارة واحدة متبقية (1)';
+                el.style.backgroundColor = '#f59e0b';
+            } else {
+                el.classList.add('bg-success', 'text-white');
+                el.innerText = `سعة كافية (${num})`;
+                el.style.backgroundColor = '#10b981';
+            }
+        }
+
+        function updateAmbulanceStatusMapCapacity() {
+            const freeEl = document.getElementById('ambRange');
+            const capEl = document.getElementById('ambCapRange');
+            if (!freeEl || !capEl) return;
+            const freeAmbs = parseInt(freeEl.value);
+            const totalAmbs = parseInt(capEl.value);
+            const capPct = Math.max(0, Math.round(freeAmbs / totalAmbs * 100));
+
+            const labelEl = document.getElementById('capLabel');
+            if (labelEl) {
+                labelEl.textContent = `${freeAmbs}/${totalAmbs} متاح`;
+            }
+            const barEl = document.getElementById('capBar');
+            if (barEl) {
+                barEl.style.width = capPct + '%';
+                barEl.style.background = capPct === 0 ? '#ef4444' : capPct < 40 ? '#f59e0b' : '#22c55e';
+            }
+            const alertEl = document.getElementById('noAmbHospAlert');
+            if (alertEl) {
+                if (freeAmbs <= 0) {
+                    alertEl.style.display = 'block';
+                    document.querySelectorAll('.triage-accept-btn[data-is-amb="true"]').forEach(btn => {
+                        btn.classList.add('disabled');
+                        btn.setAttribute('disabled', 'true');
+                    });
+                } else {
+                    alertEl.style.display = 'none';
+                    document.querySelectorAll('.triage-accept-btn[data-is-amb="true"]').forEach(btn => {
+                        btn.classList.remove('disabled');
+                        btn.removeAttribute('disabled');
+                    });
+                }
+            }
+        }
+
+        let audioMuted = localStorage.getItem('hospital_audio_muted') === 'true';
+        let globalAudioCtx = null;
+
+        function updateAudioButtonUI() {
+            const btn = document.getElementById('btnToggleAudio');
+            const icon = document.getElementById('audioToggleIcon');
+            const text = document.getElementById('audioToggleText');
+            if (!btn || !icon || !text) return;
+
+            if (audioMuted) {
+                btn.className = 'btn btn-outline-secondary rounded-pill px-3 py-2 fw-800 shadow-sm';
+                icon.className = 'fas fa-volume-mute';
+                text.innerText = 'التنبيه الصوتي: صامت';
+            } else {
+                btn.className = 'btn btn-outline-success rounded-pill px-3 py-2 fw-800 shadow-sm';
+                icon.className = 'fas fa-volume-up';
+                text.innerText = 'التنبيه الصوتي: مفعل';
+            }
+        }
+
+        function toggleAudioMute() {
+            audioMuted = !audioMuted;
+            localStorage.setItem('hospital_audio_muted', audioMuted ? 'true' : 'false');
+            updateAudioButtonUI();
+
+            if (!audioMuted) {
+                try {
+                    if (!globalAudioCtx) {
+                        globalAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    }
+                    if (globalAudioCtx.state === 'suspended') {
+                        globalAudioCtx.resume();
+                    }
+                    playMedicalAlertSound();
+                } catch (e) {
+                    console.error("Failed to initialize AudioContext on unmute: ", e);
+                }
+            }
+        }
+
         // Web Audio API medical warning synthesizer
         function playMedicalAlertSound() {
+            if (audioMuted) return;
             try {
-                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if (!globalAudioCtx) {
+                    globalAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                const audioCtx = globalAudioCtx;
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
                 
                 function beep(freq, duration, delay) {
                     setTimeout(() => {
+                        if (audioCtx.state === 'closed') return;
                         const osc = audioCtx.createOscillator();
                         const gain = audioCtx.createGain();
                         osc.connect(gain);
@@ -923,6 +1373,22 @@
             }
         }
 
+        function toggleAiMode(providerId, enable) {
+            $.post('/HospitalQueue/ToggleAiMode', { providerId: providerId, enable: enable })
+                .done(function (data) {
+                    if (data && data.success) {
+                        console.log("AI Auto-Admission mode toggled: " + data.isEnabled);
+                    } else {
+                        console.error("Failed to toggle AI mode");
+                        document.getElementById('aiAutoAcceptToggle').checked = !enable;
+                    }
+                })
+                .fail(function (xhr, status, error) {
+                    console.error("Error toggling AI mode: " + error);
+                    document.getElementById('aiAutoAcceptToggle').checked = !enable;
+                });
+        }
+
         // Haversine Distance Calculator (km)
         function getHaversineDistance(lat1, lon1, lat2, lon2) {
             const R = 6371; // Radius of the earth in km
@@ -937,10 +1403,11 @@
         }
 
         $(document).ready(function() {
+            updateAudioButtonUI();
             // 1. Bed Status Chart Configuration
             const ctxBed = document.getElementById('bedStatusChart').getContext('2d');
             const availBeds = parseInt('@(Model.AvailableBeds ?? 0)');
-            const totalMaxBeds = 150;
+            const totalMaxBeds = parseInt('@(Model.BedCapacity ?? 150)');
             const occupiedBeds = Math.max(0, totalMaxBeds - availBeds);
 
             window.bedChart = new Chart(ctxBed, {
@@ -1032,26 +1499,36 @@
             });
 
             // 3. Dynamic Haversine ETA calculations for all table cells
-            const hospLat = parseFloat('@Model.ProviderLatitude');
-            const hospLng = parseFloat('@Model.ProviderLongitude');
+            window.recalculateETAs = function() {
+                const hospLat = parseFloat('@Model.ProviderLatitude');
+                const hospLng = parseFloat('@Model.ProviderLongitude');
 
-            if (!isNaN(hospLat) && !isNaN(hospLng)) {
-                $('.eta-calc-cell').each(function() {
-                    const lat = parseFloat($(this).attr('data-lat'));
-                    const lng = parseFloat($(this).attr('data-lng'));
+                if (!isNaN(hospLat) && !isNaN(hospLng)) {
+                    $('.eta-calc-cell').each(function() {
+                        const lat = parseFloat($(this).attr('data-lat'));
+                        const lng = parseFloat($(this).attr('data-lng'));
 
-                    if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
-                        const dist = getHaversineDistance(hospLat, hospLng, lat, lng);
-                        const eta = Math.round((dist / 50) * 60 + 2); // 50 km/h avg speed + 2 min overhead
-                        $(this).html(`<i class="fas fa-truck-medical text-danger"></i> ${dist.toFixed(1)} كم (${eta} دقيقة)`);
-                    } else {
-                        $(this).html('<span class="text-muted small">غير متوفر</span>');
-                    }
-                });
-            } else {
-                $('.eta-calc-cell').html('<span class="text-muted small">غير متوفر</span>');
-            }
+                        if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
+                            const dist = getHaversineDistance(hospLat, hospLng, lat, lng);
+                            const eta = Math.round((dist / 50) * 60 + 2); // 50 km/h avg speed + 2 min overhead
+                            $(this).html(`<i class="fas fa-truck-medical text-danger"></i> ${dist.toFixed(1)} كم (${eta} دقيقة)`);
+                        } else {
+                            $(this).html('<span class="text-muted small">غير متوفر</span>');
+                        }
+                    });
+                } else {
+                    $('.eta-calc-cell').html('<span class="text-muted small">غير متوفر</span>');
+                }
+            };
 
+            // Run initial ETA calculation
+            recalculateETAs();
+            
+            // Initial call to set telemetry color indicators
+            updateAmbulanceStatusMapCapacity();
+            updateBedColor(parseInt('@(Model.AvailableBeds ?? 0)'));
+            updateAmbColor(parseInt('@(Model.AvailableAmbulances ?? 4)'));
+ 
             // 4. SignalR Real-Time connection for incoming pending requests
             const providerId = '@Model.ProviderId';
             
@@ -1069,10 +1546,75 @@
                     toast.show();
                 }
                 
-                // Reload view after 3 seconds to show new rows in the table
-                setTimeout(function() {
-                    location.reload();
-                }, 3000);
+                // Perform dynamic zero-refresh load of stats and tables
+                const activeTabId = $('#triageTabs .nav-link.active').attr('id');
+                
+                $('#statsSectionContainer').load(window.location.href + ' #statsSectionContainer > *', function() {
+                    const critical = parseInt($('#statsSectionContainer').attr('data-critical-count'));
+                    const medium = parseInt($('#statsSectionContainer').attr('data-medium-count'));
+                    const low = parseInt($('#statsSectionContainer').attr('data-low-count'));
+                    const availBeds = parseInt($('#statsSectionContainer').attr('data-available-beds'));
+                    const bedCap = parseInt($('#statsSectionContainer').attr('data-bed-capacity'));
+
+                    if (window.priorityChartObj && !isNaN(critical)) {
+                        window.priorityChartObj.data.datasets[0].data = [critical, medium, low];
+                        window.priorityChartObj.update();
+                    }
+                    if (window.bedChart && !isNaN(availBeds)) {
+                        const occupiedBeds = Math.max(0, bedCap - availBeds);
+                        window.bedChart.data.datasets[0].data = [availBeds, occupiedBeds];
+                        window.bedChart.update();
+                    }
+                    // Update badges/sliders if they are present
+                    updateBedColor(availBeds);
+                });
+
+                $('#queueTablesContainer').load(window.location.href + ' #queueTablesContainer > *', function() {
+                    if (activeTabId) {
+                        $('#triageTabs .nav-link').removeClass('active');
+                        $('.tab-pane').removeClass('show active');
+
+                        const newTabButton = $('#' + activeTabId);
+                        newTabButton.addClass('active');
+
+                        const targetPaneId = newTabButton.attr('data-bs-target');
+                        $(targetPaneId).addClass('show active');
+                    }
+                    recalculateETAs();
+                });
+            });
+
+            connection.on("HospitalBedsUpdated", function(data) {
+                if (data.providerId == providerId) {
+                    // Update sliders
+                    const bedCap = document.getElementById('bedCapRange');
+                    if (bedCap) bedCap.value = data.bedCapacity;
+                    const bedCapVal = document.getElementById('bedCapVal');
+                    if (bedCapVal) bedCapVal.innerText = data.bedCapacity;
+
+                    const bedRange = document.getElementById('bedRange');
+                    if (bedRange) {
+                        bedRange.setAttribute('max', data.bedCapacity);
+                        bedRange.value = data.availableBeds;
+                        document.getElementById('bedVal').innerText = data.availableBeds;
+                    }
+
+                    const ambCap = document.getElementById('ambCapRange');
+                    if (ambCap) ambCap.value = data.ambulanceCapacity;
+                    const ambCapVal = document.getElementById('ambCapVal');
+                    if (ambCapVal) ambCapVal.innerText = data.ambulanceCapacity;
+
+                    const ambRange = document.getElementById('ambRange');
+                    if (ambRange) {
+                        ambRange.setAttribute('max', data.ambulanceCapacity);
+                        ambRange.value = data.availableAmbulances;
+                        document.getElementById('ambVal').innerText = data.availableAmbulances;
+                    }
+
+                    // Update charts and map telemetry
+                    updateBedLabel(data.availableBeds);
+                    updateAmbLabel(data.availableAmbulances);
+                }
             });
 
             connection.start().then(function() {
@@ -1098,7 +1640,8 @@
     (function() {
         const HOSP_LAT   = parseFloat('@Model.ProviderLatitude') || 30.0444;
         const HOSP_LNG   = parseFloat('@Model.ProviderLongitude') || 31.2357;
-        const TOTAL_AMBS = 4;   // simulated total ambulances for this hospital
+        const TOTAL_AMBS = parseInt('@(Model.AmbulanceCapacity ?? 4)');
+        const FREE_AMBS  = parseInt('@(Model.AvailableAmbulances ?? 4)');
         const AVG_KMH    = 40;
         const ANIM_FPS   = 15;
         const SPEEDUP    = 12;  // 12× real-time
@@ -1123,34 +1666,47 @@
 
         // ── Init Leaflet map ──
         const dispMap = L.map('hospAmbMap').setView([HOSP_LAT, HOSP_LNG], 12);
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-            {attribution:'&copy; OpenStreetMap'}).addTo(dispMap);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+            {attribution:'&copy; OpenStreetMap &copy; CartoDB'}).addTo(dispMap);
+
+        // Live UTC Clock updater
+        setInterval(() => {
+            const clocks = document.querySelectorAll('.utc-clock');
+            if (clocks.length) {
+                const now = new Date();
+                const pad = (n) => String(n).padStart(2, '0');
+                const timeStr = `${pad(now.getUTCHours())}:${pad(now.getUTCMinutes())}:${pad(now.getUTCSeconds())} UTC`;
+                clocks.forEach(c => c.textContent = timeStr);
+            }
+        }, 1000);
 
         // Hospital marker
         L.marker([HOSP_LAT, HOSP_LNG], {
             icon: L.divIcon({
                 className:'',
-                html:'<div style="font-size:22px;filter:drop-shadow(0 2px 4px rgba(0,0,0,.3))">🏥</div>',
-                iconSize:[28,28], iconAnchor:[14,14]
+                html:`<div class="hosp-glow-marker" style="background:#ff9f00;box-shadow:0 0 12px #ff9f00;"><i class="fas fa-hospital"></i></div>`,
+                iconSize:[24,24], iconAnchor:[12,12]
             })
         }).addTo(dispMap).bindPopup('<b>@Html.Raw(Model.ProviderName?.Replace("'", "\\'") ?? "")</b>');
 
         // ── Capacity calculation ──
-        const usedAmbs  = Math.min(acceptedCases.length, TOTAL_AMBS);
-        const freeAmbs  = TOTAL_AMBS - usedAmbs;
+        const freeAmbs  = FREE_AMBS;
         const capPct    = Math.max(0, Math.round(freeAmbs / TOTAL_AMBS * 100));
 
         document.getElementById('capLabel').textContent = `${freeAmbs}/${TOTAL_AMBS} متاح`;
         const capBar = document.getElementById('capBar');
         capBar.style.width   = capPct + '%';
-        capBar.style.background = capPct === 0 ? '#ef4444' : capPct < 50 ? '#f59e0b' : '#22c55e';
+        capBar.style.background = capPct === 0 ? '#ef4444' : capPct < 40 ? '#f59e0b' : '#22c55e';
 
         // Show no-ambulance alert if all busy
         if (freeAmbs <= 0) {
             document.getElementById('noAmbHospAlert').style.display = 'block';
-            // Find nearest hospital hint from static data (just a message here)
             document.getElementById('altHospText').textContent =
                 'أنصح بتحويل الحالات الجديدة لأقرب مستشفى مجاور حتى تعود إحدى السيارات.';
+            document.querySelectorAll('.triage-accept-btn[data-is-amb="true"]').forEach(btn => {
+                btn.classList.add('disabled');
+                btn.setAttribute('disabled', 'true');
+            });
         }
 
         // ── Draw patient markers + animated ambulances ──
@@ -1165,26 +1721,39 @@
             const stepMs    = 1000 / ANIM_FPS;
             const steps     = Math.ceil(simMs / stepMs);
 
-            // Patient marker (red circle)
+            // Patient marker (red circle with pulse)
             L.marker([c.lat, c.lng], {
                 icon: L.divIcon({
                     className:'',
-                    html:`<div style="background:#ef4444;width:14px;height:14px;border:2px solid #fff;border-radius:50%;box-shadow:0 0 8px #ef4444;"></div>`,
+                    html:`<div class="patient-glow-marker"><div class="patient-pulse"></div></div>`,
                     iconSize:[14,14], iconAnchor:[7,7]
                 })
             }).addTo(dispMap).bindPopup(`<b>${c.name}</b><br>${c.type}`);
 
-            // Route line (dashed)
+            // Route line (neon glowing polyline: back glow + front line)
+            const isCyan = (idx % 2 === 0);
+            const neonColor = isCyan ? '#00f0ff' : '#ff9f00';
             L.polyline([[HOSP_LAT, HOSP_LNG],[c.lat, c.lng]], {
-                color:'#ef4444', dashArray:'6 4', weight:2, opacity:.55
+                color: neonColor, weight: 7, opacity: 0.16
+            }).addTo(dispMap);
+            L.polyline([[HOSP_LAT, HOSP_LNG],[c.lat, c.lng]], {
+                color: neonColor, weight: 2.2, opacity: 0.8
             }).addTo(dispMap);
 
-            // Ambulance marker (starts at hospital)
+            // Ambulance marker (glowing badge styled exactly like the concept mockup)
+            const badgeColorClass = isCyan ? '' : 'orange';
             const ambM = L.marker([HOSP_LAT, HOSP_LNG], {
                 icon: L.divIcon({
                     className:'',
-                    html:`<div style="font-size:20px;animation:bounce 1s infinite ${idx*0.3}s;">🚑</div>`,
-                    iconSize:[26,26], iconAnchor:[13,13]
+                    html:`<div class="glow-badge ${badgeColorClass}">
+                              <div class="pulse-dot"></div>
+                              <div class="badge-icon">🚑</div>
+                              <div class="badge-text">
+                                  <div class="badge-title">AMB-0${idx+1}</div>
+                                  <div class="badge-sub">ETA ${etaMin}m to Patient</div>
+                              </div>
+                          </div>`,
+                    iconSize:[120,34], iconAnchor:[15,17]
                 }),
                 zIndexOffset: 900 + idx
             }).addTo(dispMap).bindPopup(`إسعاف → ${c.name}`);

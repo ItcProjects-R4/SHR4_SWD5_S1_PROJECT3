@@ -619,7 +619,7 @@
         </div>
 
         <!-- Telemetry Counters Grid -->
-        <div class="stats-grid animate__animated animate__fadeIn">
+        <div class="stats-grid animate__animated animate__fadeIn" id="adminStatsGrid">
             <div class="stat-card">
                 <div>
                     <div class="stat-card-title">
@@ -1221,9 +1221,18 @@
             </div>
 
             <!-- Map -->
-            <div id="globalAmbMap" style="height:450px;border-radius:16px;overflow:hidden;
-                 border:2px solid @(Model.IsCrisisModeActive ? "#ef4444" : "#e2e8f0");
-                 box-shadow:0 4px 30px rgba(0,0,0,0.07);"></div>
+            <div class="position-relative">
+                <div class="map-overlay-header">
+                    <div class="overlay-icon"><i class="fas fa-star-of-life"></i></div>
+                    <div class="overlay-details">
+                        <div class="overlay-title">EMERGENCY MEDICAL DASHBOARD</div>
+                        <div class="overlay-status"><span class="utc-clock">--:--:-- UTC</span> | <span class="live-indicator">LIVE</span></div>
+                    </div>
+                </div>
+                <div id="globalAmbMap" style="height:450px;border-radius:16px;overflow:hidden;
+                     border:2.5px solid @(Model.IsCrisisModeActive ? "#ef4444" : "#1e293b");
+                     box-shadow:0 0 30px rgba(0, 240, 255, 0.15);"></div>
+            </div>
 
             <!-- Dispatch table -->
             <div class="mt-3 table-responsive">
@@ -2064,6 +2073,12 @@
                 });
             }
 
+            function reloadStatsGrid() {
+                if ($('#adminStatsGrid').length) {
+                    $('#adminStatsGrid').load(window.location.href + ' #adminStatsGrid > *');
+                }
+            }
+
             // SignalR Connection for Real-Time Telemetry
             const connection = new signalR.HubConnectionBuilder()
                 .withUrl("/hubs/queue")
@@ -2075,6 +2090,8 @@
                 reloadGovernorateRiskTable();
                 reloadTelemetryStats();
                 reloadRecentActivities();
+                reloadStatsGrid();
+                if (window.reloadDispatchMap) window.reloadDispatchMap();
             });
 
             connection.on("EmergencyRequestUpdated", function(update) {
@@ -2082,6 +2099,8 @@
                 reloadGovernorateRiskTable();
                 reloadTelemetryStats();
                 reloadRecentActivities();
+                reloadStatsGrid();
+                if (window.reloadDispatchMap) window.reloadDispatchMap();
             });
 
             connection.on("HospitalBedsUpdated", function(update) {
@@ -2089,6 +2108,8 @@
                 reloadGovernorateRiskTable();
                 reloadTelemetryStats();
                 reloadRecentActivities();
+                reloadStatsGrid();
+                if (window.reloadDispatchMap) window.reloadDispatchMap();
             });
 
             connection.start().then(function() {
@@ -2117,6 +2138,190 @@
             0%, 100% { transform: translateY(0); }
             50%       { transform: translateY(-5px); }
         }
+
+        /* ── Map Overlay Header ── */
+        .map-overlay-header {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            background: rgba(10, 25, 41, 0.85);
+            border: 1.5px solid rgba(0, 240, 255, 0.45);
+            border-radius: 12px;
+            padding: 8px 16px;
+            box-shadow: 0 4px 20px rgba(0, 240, 255, 0.2);
+            backdrop-filter: blur(8px);
+            pointer-events: none;
+        }
+        .overlay-icon {
+            font-size: 16px;
+            color: #00f0ff;
+            margin-right: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            background: rgba(0, 240, 255, 0.1);
+            border-radius: 8px;
+            animation: pulse-glow 2s infinite;
+        }
+        .overlay-details {
+            display: flex;
+            flex-direction: column;
+            text-align: left;
+        }
+        .overlay-title {
+            font-family: 'Outfit', 'Inter', sans-serif;
+            font-size: 10px;
+            font-weight: 800;
+            color: #ffffff;
+            letter-spacing: 1px;
+            margin: 0;
+            line-height: 1.2;
+        }
+        .overlay-status {
+            font-family: 'Inter', sans-serif;
+            font-size: 8px;
+            color: rgba(255, 255, 255, 0.6);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 2px;
+        }
+        .live-indicator {
+            color: #ff4d4d;
+            font-weight: 700;
+            animation: flash-live 1s infinite alternate;
+        }
+        @@keyframes flash-live {
+            0% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        @@keyframes pulse-glow {
+            0% { box-shadow: 0 0 0 0 rgba(0, 240, 255, 0.4); }
+            70% { box-shadow: 0 0 0 8px rgba(0, 240, 255, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(0, 240, 255, 0); }
+        }
+
+        /* ── Glow Badge Styling ── */
+        .glow-badge {
+            display: flex;
+            align-items: center;
+            background: rgba(10, 25, 41, 0.9);
+            border: 1.5px solid #00f0ff;
+            border-radius: 20px;
+            padding: 4px 10px 4px 6px;
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.35);
+            color: #ffffff;
+            font-family: 'Inter', sans-serif;
+            white-space: nowrap;
+            width: fit-content;
+        }
+        .glow-badge.orange {
+            border-color: #ff9f00;
+            box-shadow: 0 0 15px rgba(255, 159, 0, 0.35);
+        }
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            background: #00f0ff;
+            border-radius: 50%;
+            margin-right: 6px;
+            margin-left: 2px;
+            position: relative;
+            flex-shrink: 0;
+        }
+        .glow-badge.orange .pulse-dot {
+            background: #ff9f00;
+        }
+        .pulse-dot::after {
+            content: '';
+            position: absolute;
+            top: -6px;
+            left: -6px;
+            right: -6px;
+            bottom: -6px;
+            border: 2px solid #00f0ff;
+            border-radius: 50%;
+            animation: pulse-ring 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+        }
+        .glow-badge.orange .pulse-dot::after {
+            border-color: #ff9f00;
+        }
+        @@keyframes pulse-ring {
+            0% { transform: scale(0.35); opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { transform: scale(1.5); opacity: 0; }
+        }
+        .badge-icon {
+            font-size: 13px;
+            margin-right: 6px;
+            display: flex;
+            align-items: center;
+        }
+        .badge-text {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.1;
+            text-align: left;
+        }
+        .badge-title {
+            font-size: 9px;
+            font-weight: 700;
+            color: #00f0ff;
+            letter-spacing: 0.5px;
+        }
+        .glow-badge.orange .badge-title {
+            color: #ff9f00;
+        }
+        .badge-sub {
+            font-size: 8px;
+            color: rgba(255, 255, 255, 0.85);
+            font-weight: 600;
+        }
+
+        /* ── Hospital Glow Marker ── */
+        .hosp-glow-marker {
+            background: #ff9f00;
+            color: #fff;
+            border: 1.5px solid #fff;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 12px #ff9f00;
+            font-size: 11px;
+        }
+
+        /* ── Patient Glow Marker ── */
+        .patient-glow-marker {
+            position: relative;
+            width: 14px;
+            height: 14px;
+            background: #ff4d4d;
+            border-radius: 50%;
+            border: 2px solid #fff;
+            box-shadow: 0 0 10px #ff4d4d;
+        }
+        .patient-pulse {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            border: 2px solid #ff4d4d;
+            border-radius: 50%;
+            top: -10px;
+            left: -10px;
+            animation: patient-pulse-ring 1.8s ease-out infinite;
+        }
+        @@keyframes patient-pulse-ring {
+            0% { transform: scale(0.5); opacity: 1; }
+            100% { transform: scale(1.8); opacity: 0; }
+        }
     </style>
     <!-- ════ Global Ambulance Dispatch Map JS ════ -->
     <script>
@@ -2133,13 +2338,35 @@
 
         // Default center Egypt
         const gMap = L.map('globalAmbMap').setView([26.8206, 30.8025], 6);
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-            {attribution:'&copy; OpenStreetMap'}).addTo(gMap);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+            {attribution:'&copy; OpenStreetMap &copy; CartoDB'}).addTo(gMap);
+
+        // Live UTC Clock updater
+        setInterval(() => {
+            const clocks = document.querySelectorAll('.utc-clock');
+            if (clocks.length) {
+                const now = new Date();
+                const pad = (n) => String(n).padStart(2, '0');
+                const timeStr = `${pad(now.getUTCHours())}:${pad(now.getUTCMinutes())}:${pad(now.getUTCSeconds())} UTC`;
+                clocks.forEach(c => c.textContent = timeStr);
+            }
+        }, 1000);
+
+        function clearMapLayers() {
+            gMap.eachLayer(function (layer) {
+                if (layer instanceof L.Marker || layer instanceof L.Polyline) {
+                    gMap.removeLayer(layer);
+                }
+            });
+        }
 
         function initGlobalDispatchMap(data) {
             if (!data || !data.success) return;
             const dispatches = data.dispatches || [];
             const hospitals  = data.hospitals  || [];
+
+            // Clear map layers before rendering new ones
+            clearMapLayers();
 
             // ── Stats ──
             document.getElementById('ambStatTotal').textContent     = dispatches.length;
@@ -2157,10 +2384,8 @@
                 L.marker([h.latitude, h.longitude], {
                     icon: L.divIcon({
                         className:'',
-                        html:`<div style="background:#3b82f6;width:20px;height:20px;border-radius:5px;
-                                    border:2px solid #fff;box-shadow:0 0 8px #3b82f6;display:flex;
-                                    align-items:center;justify-content:center;color:#fff;font-size:9px;font-weight:bold;">H</div>`,
-                        iconSize:[20,20], iconAnchor:[10,10]
+                        html:`<div class="hosp-glow-marker"><i class="fas fa-hospital"></i></div>`,
+                        iconSize:[24,24], iconAnchor:[12,12]
                     })
                 }).addTo(gMap).bindPopup(`<b>${h.name}</b><br>الأسرة: ${h.availableBeds}`);
             });
@@ -2180,23 +2405,35 @@
                 L.marker([d.patientLat, d.patientLng], {
                     icon: L.divIcon({
                         className:'',
-                        html:`<div style="background:#ef4444;width:13px;height:13px;border:2px solid #fff;
-                                    border-radius:50%;box-shadow:0 0 8px #ef4444;"></div>`,
-                        iconSize:[13,13], iconAnchor:[6,6]
+                        html:`<div class="patient-glow-marker"><div class="patient-pulse"></div></div>`,
+                        iconSize:[14,14], iconAnchor:[7,7]
                     })
                 }).addTo(gMap).bindPopup(`<b>${d.patientName}</b><br>${d.emergencyType}`);
 
-                // Route line
+                // Route line (Glowing double polyline: back glow + front line)
+                const isCyan = (idx % 2 === 0);
+                const neonColor = isCyan ? '#00f0ff' : '#ff9f00';
                 L.polyline([[d.hospitalLat, d.hospitalLng],[d.patientLat, d.patientLng]], {
-                    color:'#ef4444', dashArray:'5 4', weight:2, opacity:.5
+                    color: neonColor, weight: 8, opacity: 0.18
+                }).addTo(gMap);
+                L.polyline([[d.hospitalLat, d.hospitalLng],[d.patientLat, d.patientLng]], {
+                    color: neonColor, weight: 2.5, opacity: 0.85
                 }).addTo(gMap);
 
-                // Ambulance marker
+                // Ambulance marker (glowing badge styled exactly like the concept mockup)
+                const badgeColorClass = isCyan ? '' : 'orange';
                 const ambM = L.marker([d.hospitalLat, d.hospitalLng], {
                     icon: L.divIcon({
                         className:'',
-                        html:`<div style="font-size:18px;animation:bounce 1s infinite ${idx*0.25}s;">🚑</div>`,
-                        iconSize:[24,24], iconAnchor:[12,12]
+                        html:`<div class="glow-badge ${badgeColorClass}">
+                                  <div class="pulse-dot"></div>
+                                  <div class="badge-icon">🚑</div>
+                                  <div class="badge-text">
+                                      <div class="badge-title">AMB-0${idx+1}</div>
+                                      <div class="badge-sub">ETA ${etaMin}m to Hosp</div>
+                                  </div>
+                              </div>`,
+                        iconSize:[120,34], iconAnchor:[15,17]
                     }),
                     zIndexOffset: 1000 + idx
                 }).addTo(gMap).bindPopup(`إسعاف → ${d.patientName}`);
@@ -2256,18 +2493,24 @@
             }
         }
 
-        // Fetch data from server
-        $.getJSON('/AdminDashboard/GetActiveDispatchMap', function(data) {
-            initGlobalDispatchMap(data);
-        }).fail(function() {
-            // Fallback: show map with hospitals only from GetGovernorateRiskStats
-            document.getElementById('globalDispatchBody').innerHTML =
-                '<tr><td colspan="6" class="text-center text-muted py-3">لا توجد بيانات طوارئ نشطة متاحة حالياً</td></tr>';
-            document.getElementById('ambStatTotal').textContent     = 0;
-            document.getElementById('ambStatEnRoute').textContent   = 0;
-            document.getElementById('ambStatHospitals').textContent = 0;
-            document.getElementById('ambStatAvgEta').textContent    = 0;
-        });
+        // Expose dispatch map reloading globally
+        window.reloadDispatchMap = function() {
+            $.getJSON('/AdminDashboard/GetActiveDispatchMap', function(data) {
+                initGlobalDispatchMap(data);
+            }).fail(function() {
+                // Fallback: show map with hospitals only from GetGovernorateRiskStats
+                document.getElementById('globalDispatchBody').innerHTML =
+                    '<tr><td colspan="6" class="text-center text-muted py-3">لا توجد بيانات طوارئ نشطة متاحة حالياً</td></tr>';
+                document.getElementById('ambStatTotal').textContent     = 0;
+                document.getElementById('ambStatEnRoute').textContent   = 0;
+                document.getElementById('ambStatHospitals').textContent = 0;
+                document.getElementById('ambStatAvgEta').textContent    = 0;
+                clearMapLayers();
+            });
+        };
+
+        // Run initial load
+        window.reloadDispatchMap();
 
     })();
     </script>

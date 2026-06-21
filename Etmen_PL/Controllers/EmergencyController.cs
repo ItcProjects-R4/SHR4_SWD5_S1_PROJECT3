@@ -1,4 +1,5 @@
 using Etmen_BLL.DTOs.Emergency;
+using Etmen_BLL.DTOs.HospitalStaff;
 using Etmen_BLL.Repositories.IServices;
 using Etmen_PL.Models.ViewModels.Patient;
 using Etmen_DAL.Repositories.Interfaces;
@@ -23,6 +24,7 @@ namespace Etmen_PL.Controllers
         private readonly ILogger<EmergencyController> _logger;
         private readonly Microsoft.AspNetCore.SignalR.IHubContext<Etmen_PL.Hubs.QueueHub> _queueHubContext;
         private readonly IUnitOfWork _uow;
+        private readonly IHospitalStaffService _hospitalStaffService;
 
         public EmergencyController(
             IEmergencyService emergencyService,
@@ -30,7 +32,8 @@ namespace Etmen_PL.Controllers
             IEmailService emailService,
             ILogger<EmergencyController> logger,
             Microsoft.AspNetCore.SignalR.IHubContext<Etmen_PL.Hubs.QueueHub> queueHubContext,
-            IUnitOfWork uow)
+            IUnitOfWork uow,
+            IHospitalStaffService hospitalStaffService)
         {
             _emergencyService = emergencyService;
             _patientService   = patientService;
@@ -38,6 +41,7 @@ namespace Etmen_PL.Controllers
             _logger           = logger;
             _queueHubContext  = queueHubContext;
             _uow              = uow;
+            _hospitalStaffService = hospitalStaffService;
         }
 
         /// <summary>
@@ -84,6 +88,49 @@ namespace Etmen_PL.Controllers
 
                 // Broadcast alert to all listening hospitals
                 await _queueHubContext.Clients.All.SendAsync("NewEmergencyRequest", result.Data);
+
+                // AI Auto-Admission Mode Check
+                if (result.IsSuccess && result.Data != null && result.Data.HealthcareProviderId.HasValue)
+                {
+                    int providerId = result.Data.HealthcareProviderId.Value;
+                    if (HospitalQueueController.IsAiModeActive(providerId))
+                    {
+                        var provider = await _uow.HealthcareProviders.GetByIdAsync(providerId);
+                        if (provider != null && (provider.AvailableBeds ?? 0) > 0 && (provider.AvailableAmbulances ?? 0) > 0)
+                        {
+                            var autoRespond = new HospitalStaffEmergencyRespondDto
+                            {
+                                RequestId = result.Data.Id,
+                                ProviderId = providerId,
+                                Status = "Accepted",
+                                ResponseNotes = "تم القبول والفرز تلقائياً بواسطة نظام الذكاء الاصطناعي لسرعة الاستجابة"
+                            };
+                            var autoAcceptResult = await _hospitalStaffService.RespondToRequestAsync(autoRespond);
+                            if (autoAcceptResult.IsSuccess)
+                            {
+                                // Broadcast update to SignalR clients (Patients and Admin dashboard)
+                                await _queueHubContext.Clients.All.SendAsync("EmergencyRequestUpdated", new
+                                {
+                                    requestId = result.Data.Id,
+                                    status = "Accepted",
+                                    providerId = providerId,
+                                    doctorName = "طاقم الطوارئ المناوب",
+                                    responseNotes = autoRespond.ResponseNotes
+                                });
+
+                                // Broadcast capacity changes to SignalR clients
+                                await _queueHubContext.Clients.All.SendAsync("HospitalBedsUpdated", new
+                                {
+                                    providerId = provider.Id,
+                                    availableBeds = provider.AvailableBeds ?? 0,
+                                    bedCapacity = provider.BedCapacity ?? 150,
+                                    availableAmbulances = provider.AvailableAmbulances ?? 0,
+                                    ambulanceCapacity = provider.AmbulanceCapacity ?? 4
+                                });
+                            }
+                        }
+                    }
+                }
 
                 var patientEmail = User.FindFirstValue(ClaimTypes.Email);
                 var patientName  = patient.FullName ?? "المريض";
@@ -168,15 +215,27 @@ namespace Etmen_PL.Controllers
                         Latitude = (double)h.Latitude,
                         Longitude = (double)h.Longitude,
                         AvailableBeds = h.AvailableBeds ?? 0,
+                        AvailableAmbulances = h.AvailableAmbulances ?? 0,
+                        AmbulanceCapacity = h.AmbulanceCapacity ?? 4,
                         h.Address
                     })
                     .ToListAsync();
                 ViewBag.Hospitals = hospitals;
 
                 // Load the raw entity to get status and accepted hospital info
-                var rawRequest = await _uow.EmergencyRequests.GetByIdAsync(requestId.Value);
+                var rawRequest = await _uow.EmergencyRequests.Table
+                    .Include(r => r.HealthcareProvider)
+                    .Include(r => r.AssignedDoctor)
+                    .FirstOrDefaultAsync(r => r.Id == requestId.Value);
+
                 ViewBag.CurrentStatus = rawRequest?.Status.ToString() ?? "Pending";
                 ViewBag.AcceptedProviderId = rawRequest?.HealthcareProviderId;
+                ViewBag.RequestedAt = rawRequest?.RequestedAt;
+                ViewBag.AcceptedAt = rawRequest?.AcceptedAt;
+                ViewBag.CompletedAt = rawRequest?.CompletedAt;
+                ViewBag.DoctorName = rawRequest?.AssignedDoctor != null 
+                    ? $"{rawRequest.AssignedDoctor.FirstName} {rawRequest.AssignedDoctor.LastName}" 
+                    : null;
 
                 return View(result.Data);
             }
@@ -228,11 +287,106 @@ namespace Etmen_PL.Controllers
                 // Broadcast alert to hospital via SignalR
                 await _queueHubContext.Clients.All.SendAsync("NewEmergencyRequest", result.Data);
 
+                // AI Auto-Admission Mode Check
+                if (result.IsSuccess && result.Data != null && result.Data.HealthcareProviderId.HasValue)
+                {
+                    int providerId = result.Data.HealthcareProviderId.Value;
+                    if (HospitalQueueController.IsAiModeActive(providerId))
+                    {
+                        var provider = await _uow.HealthcareProviders.GetByIdAsync(providerId);
+                        if (provider != null && (provider.AvailableBeds ?? 0) > 0)
+                        {
+                            var autoRespond = new HospitalStaffEmergencyRespondDto
+                            {
+                                RequestId = result.Data.Id,
+                                ProviderId = providerId,
+                                Status = "Accepted",
+                                ResponseNotes = "تم القبول والفرز تلقائياً بواسطة نظام الذكاء الاصطناعي لسرعة الاستجابة"
+                            };
+                            var autoAcceptResult = await _hospitalStaffService.RespondToRequestAsync(autoRespond);
+                            if (autoAcceptResult.IsSuccess)
+                            {
+                                // Broadcast update to SignalR clients (Patients and Admin dashboard)
+                                await _queueHubContext.Clients.All.SendAsync("EmergencyRequestUpdated", new
+                                {
+                                    requestId = result.Data.Id,
+                                    status = "Accepted",
+                                    providerId = providerId,
+                                    doctorName = "طاقم الطوارئ المناوب",
+                                    responseNotes = autoRespond.ResponseNotes
+                                });
+
+                                // Broadcast capacity changes to SignalR clients
+                                await _queueHubContext.Clients.All.SendAsync("HospitalBedsUpdated", new
+                                {
+                                    providerId = provider.Id,
+                                    availableBeds = provider.AvailableBeds ?? 0,
+                                    bedCapacity = provider.BedCapacity ?? 150,
+                                    availableAmbulances = provider.AvailableAmbulances ?? 0,
+                                    ambulanceCapacity = provider.AmbulanceCapacity ?? 4
+                                });
+                            }
+                        }
+                    }
+                }
+
                 return Json(new { success = true, message = "تم إرسال طلب الاستقبال بنجاح للمستشفى!" });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error requesting direct hospital reception");
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> CompleteRequest(int id)
+        {
+            try
+            {
+                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                if (string.IsNullOrEmpty(userId))
+                    return Json(new { success = false, message = "غير مصرح" });
+
+                var result = await _emergencyService.UpdateEmergencyStatusAsync(id, new Etmen_BLL.DTOs.Emergency.EmergencyUpdateDto
+                {
+                    Status = "Completed",
+                    ResponseNotes = "تم وصول الحالة تلقائياً عن طريق التتبع الجغرافي للمريض."
+                });
+
+                if (!result.IsSuccess)
+                    return Json(new { success = false, message = result.ErrorMessage ?? "فشل تحديث الحالة" });
+
+                // Get request info to broadcast capacity updates
+                var emergencyRequest = await _uow.EmergencyRequests.GetByIdAsync(id);
+                if (emergencyRequest != null && emergencyRequest.HealthcareProviderId.HasValue)
+                {
+                    var provider = await _uow.HealthcareProviders.GetByIdAsync(emergencyRequest.HealthcareProviderId.Value);
+                    if (provider != null)
+                    {
+                        await _queueHubContext.Clients.All.SendAsync("HospitalBedsUpdated", new
+                        {
+                            providerId = provider.Id,
+                            availableBeds = provider.AvailableBeds ?? 0,
+                            bedCapacity = provider.BedCapacity ?? 150,
+                            availableAmbulances = provider.AvailableAmbulances ?? 0,
+                            ambulanceCapacity = provider.AmbulanceCapacity ?? 4
+                        });
+                    }
+                }
+
+                // Broadcast SignalR update
+                await _queueHubContext.Clients.All.SendAsync("EmergencyRequestUpdated", new
+                {
+                    requestId = id,
+                    status = "Completed"
+                });
+
+                return Json(new { success = true });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error completing emergency request via client tracking");
                 return Json(new { success = false, message = ex.Message });
             }
         }

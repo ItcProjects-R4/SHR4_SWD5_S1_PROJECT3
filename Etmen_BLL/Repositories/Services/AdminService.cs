@@ -263,6 +263,9 @@ namespace Etmen_BLL.Repositories.Services
                         Address = p.Address,
                         Phone = p.Phone,
                         AvailableBeds = p.AvailableBeds,
+                        BedCapacity = p.BedCapacity,
+                        AmbulanceCapacity = p.AmbulanceCapacity,
+                        AvailableAmbulances = p.AvailableAmbulances,
                         IsEmergencyCenter = p.IsEmergencyCenter,
                         IsActive = p.IsActive,
                         Latitude = p.Latitude,
@@ -314,6 +317,9 @@ namespace Etmen_BLL.Repositories.Services
                     Address = provider.Address,
                     Phone = provider.Phone,
                     AvailableBeds = provider.AvailableBeds,
+                    BedCapacity = provider.BedCapacity,
+                    AmbulanceCapacity = provider.AmbulanceCapacity,
+                    AvailableAmbulances = provider.AvailableAmbulances,
                     IsEmergencyCenter = provider.IsEmergencyCenter,
                     IsActive = provider.IsActive,
                     Latitude = provider.Latitude,
@@ -355,6 +361,9 @@ namespace Etmen_BLL.Repositories.Services
                     Address = dto.Address,
                     Phone = dto.Phone,
                     AvailableBeds = dto.AvailableBeds ?? 0,
+                    BedCapacity = dto.BedCapacity ?? 150,
+                    AmbulanceCapacity = dto.AmbulanceCapacity ?? 4,
+                    AvailableAmbulances = dto.AvailableAmbulances ?? dto.AmbulanceCapacity ?? 4,
                     IsEmergencyCenter = dto.IsEmergencyCenter,
                     Latitude = dto.Latitude,
                     Longitude = dto.Longitude,
@@ -400,6 +409,9 @@ namespace Etmen_BLL.Repositories.Services
                 provider.Address = dto.Address;
                 provider.Phone = dto.Phone;
                 provider.AvailableBeds = dto.AvailableBeds ?? 0;
+                provider.BedCapacity = dto.BedCapacity ?? 150;
+                provider.AmbulanceCapacity = dto.AmbulanceCapacity ?? 4;
+                provider.AvailableAmbulances = dto.AvailableAmbulances ?? dto.AmbulanceCapacity ?? 4;
                 provider.IsEmergencyCenter = dto.IsEmergencyCenter;
                 provider.Latitude = dto.Latitude;
                 provider.Longitude = dto.Longitude;

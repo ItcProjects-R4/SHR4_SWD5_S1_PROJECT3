@@ -17,5 +17,9 @@ namespace Etmen_BLL.DTOs.Risk
         public int? EmergencyRequestId { get; set; }
         public string? EscalationMessage { get; set; }
         public DateTime AssessmentDate { get; set; } = DateTime.UtcNow;
+        public int News2Score { get; set; }
+        public string News2Rating { get; set; } = string.Empty;
+        public string News2RatingArabic { get; set; } = string.Empty;
+        public List<string> News2Breakdown { get; set; } = new List<string>();
     }
 }

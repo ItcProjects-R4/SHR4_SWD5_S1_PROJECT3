@@ -152,6 +152,9 @@ namespace Etmen_BLL.Repositories.Services
                 ProviderId = provider?.Id,
                 ProviderName = provider?.Name,
                 AvailableBeds = provider?.AvailableBeds,
+                BedCapacity = provider?.BedCapacity ?? 150,
+                AmbulanceCapacity = provider?.AmbulanceCapacity ?? 4,
+                AvailableAmbulances = provider?.AvailableAmbulances ?? 4,
                 PendingCount = requests.Count(e => e.Status == EmergencyRequestStatus.Pending),
                 AcceptedCount = requests.Count(e => e.Status == EmergencyRequestStatus.Accepted),
                 EscalatedCount = requests.Count(e => e.Status == EmergencyRequestStatus.Escalated),
@@ -758,7 +761,8 @@ namespace Etmen_BLL.Repositories.Services
                 Latitude = request.Latitude,
                 Longitude = request.Longitude,
                 AssignedProviderId = request.HealthcareProviderId,
-                AssignedProviderName = request.HealthcareProvider?.Name
+                AssignedProviderName = request.HealthcareProvider?.Name,
+                ResponseNotes = request.ResponseNotes
             };
         }
 
@@ -830,6 +834,7 @@ namespace Etmen_BLL.Repositories.Services
             EmergencyRequestStatus status,
             string? notes)
         {
+            var wasAccepted = request.Status == EmergencyRequestStatus.Accepted;
             request.Status = status;
             request.ResponseNotes = string.IsNullOrWhiteSpace(notes) ? request.ResponseNotes : notes.Trim();
 
@@ -839,14 +844,23 @@ namespace Etmen_BLL.Repositories.Services
                     request.HealthcareProviderId = provider.Id;
                     request.AcceptedAt ??= DateTime.UtcNow;
                     provider.AvailableBeds = Math.Max(0, (provider.AvailableBeds ?? 0) - 1);
+                    provider.AvailableAmbulances = Math.Max(0, (provider.AvailableAmbulances ?? 0) - 1);
                     break;
                 case EmergencyRequestStatus.Completed:
                     request.CompletedAt ??= DateTime.UtcNow;
+                    if (wasAccepted)
+                    {
+                        provider.AvailableAmbulances = Math.Min(provider.AmbulanceCapacity ?? 4, (provider.AvailableAmbulances ?? 0) + 1);
+                    }
                     break;
                 case EmergencyRequestStatus.Rejected:
                 case EmergencyRequestStatus.Escalated:
                 case EmergencyRequestStatus.Cancelled:
                     request.HealthcareProviderId ??= provider.Id;
+                    if (wasAccepted)
+                    {
+                        provider.AvailableAmbulances = Math.Min(provider.AmbulanceCapacity ?? 4, (provider.AvailableAmbulances ?? 0) + 1);
+                    }
                     break;
             }
         }

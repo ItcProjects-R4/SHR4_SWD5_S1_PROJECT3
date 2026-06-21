@@ -28,6 +28,15 @@ namespace Etmen_PL.Models.ViewModels.Admin
         [Range(0, 1000)]
         public int? AvailableBeds { get; set; }
 
+        [Range(0, 1000)]
+        public int? BedCapacity { get; set; } = 150;
+
+        [Range(0, 100)]
+        public int? AmbulanceCapacity { get; set; } = 4;
+
+        [Range(0, 100)]
+        public int? AvailableAmbulances { get; set; } = 4;
+
         public bool IsEmergencyCenter { get; set; } = false;
 
         public bool IsActive { get; set; } = true;
