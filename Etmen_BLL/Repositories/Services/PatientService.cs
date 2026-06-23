@@ -6,13 +6,16 @@ namespace Etmen_BLL.Repositories.Services
     {
         private readonly IUnitOfWork _uow;
         private readonly ICriticalCareEscalationService _criticalCareEscalationService;
+        private readonly UserManager<ApplicationUser> _userManager;
 
         public PatientService(
             IUnitOfWork uow,
-            ICriticalCareEscalationService criticalCareEscalationService)
+            ICriticalCareEscalationService criticalCareEscalationService,
+            UserManager<ApplicationUser> userManager)
         {
             _uow = uow;
             _criticalCareEscalationService = criticalCareEscalationService;
+            _userManager = userManager;
         }
 
         public async Task<ServiceResult<ProfileDto>> GetProfileAsync(string userId)
@@ -123,8 +126,24 @@ namespace Etmen_BLL.Repositories.Services
                     return ServiceResult<DashboardDto>.Failure("User ID is required.");
 
                 var patient = await _uow.PatientProfiles.GetByUserIdAsync(userId);
+
+                // Auto-create a minimal profile if it doesn't exist yet
+                // (can happen if registration profile creation failed silently)
                 if (patient == null)
-                    return ServiceResult<DashboardDto>.Failure("Patient profile not found.");
+                {
+                    var user = await _userManager.FindByIdAsync(userId);
+                    if (user == null)
+                        return ServiceResult<DashboardDto>.Failure("المستخدم غير موجود.");
+
+                    patient = new PatientProfile
+                    {
+                        ApplicationUserId = userId,
+                        FullName          = $"{user.FirstName} {user.LastName}".Trim(),
+                        CreatedAt         = DateTime.UtcNow
+                    };
+                    await _uow.PatientProfiles.AddAsync(patient);
+                    await _uow.CompleteAsync();
+                }
 
                 return await GetDashboardForPatientAsync(patient);
             }

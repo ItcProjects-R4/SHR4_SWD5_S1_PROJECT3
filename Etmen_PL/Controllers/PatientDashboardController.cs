@@ -46,8 +46,8 @@ namespace Etmen_PL.Controllers
                 if (!result.IsSuccess || result.Data == null)
                 {
                     _logger.LogWarning("Failed to retrieve dashboard for user {UserId}: {Message}", userId, result.ErrorMessage);
-                    TempData["Error"] = result.ErrorMessage ?? "حدث خطأ أثناء تحميل لوحة التحكم";
-                    return RedirectToAction("AccessDenied", "Account");
+                    TempData["Error"] = result.ErrorMessage ?? "حدث خطأ أثناء تحميل لوحة التحكم. يرجى إتمام إعداد ملفك الشخصي أولاً.";
+                    return RedirectToAction("Login", "Account");
                 }
 
                 List<Etmen_BLL.DTOs.Risk.RiskResultDto> riskHistory = new();
@@ -91,8 +91,8 @@ namespace Etmen_PL.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving patient dashboard");
-                TempData["Error"] = "حدث خطأ أثناء تحميل لوحة التحكم";
-                return RedirectToAction("AccessDenied", "Account");
+                TempData["Error"] = "حدث خطأ أثناء تحميل لوحة التحكم. يرجى المحاولة مجدداً.";
+                return RedirectToAction("Login", "Account");
             }
         }
     }

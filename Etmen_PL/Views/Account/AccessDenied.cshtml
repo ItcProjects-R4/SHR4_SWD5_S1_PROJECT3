@@ -39,7 +39,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            overflow: hidden;
+            overflow-y: auto;
             position: relative;
         }
 
@@ -254,14 +254,20 @@
 
         <!-- Actions -->
         <div class="error-actions">
-            <a href="/" class="btn-error btn-primary-error">
+            <a href="/" class="btn-error btn-primary-error" id="btn-home">
                 <i class="fas fa-home"></i>
                 العودة للرئيسية
             </a>
-            <a href="/Account/Login" class="btn-error btn-secondary-error">
+
+            <!-- Logout then go to login — requires POST for antiforgery -->
+            <form id="logout-form" method="post" action="/Account/Logout" style="display:none;">
+                @Html.AntiForgeryToken()
+            </form>
+            <button type="button" class="btn-error btn-secondary-error" id="btn-switch"
+                    onclick="document.getElementById('logout-form').submit()">
                 <i class="fas fa-sign-in-alt"></i>
                 تسجيل دخول بحساب آخر
-            </a>
+            </button>
         </div>
 
         <!-- Footer -->
