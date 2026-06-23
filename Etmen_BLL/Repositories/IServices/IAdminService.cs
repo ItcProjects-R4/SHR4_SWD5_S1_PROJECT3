@@ -7,14 +7,14 @@ namespace Etmen_BLL.Repositories.IServices
     public interface IAdminService
     {
         // User Management
-        Task<ServiceResult<PaginatedResult<UserListItemDto>>> GetAllUsersAsync(int pageNumber = 1, int pageSize = 10);
+        Task<ServiceResult<PaginatedResult<UserListItemDto>>> GetAllUsersAsync(int pageNumber = 1, int pageSize = 10, string? searchTerm = null, string? sortBy = null);
         Task<ServiceResult<UserListItemDto>> GetUserByIdAsync(int userId);
         Task<ServiceResult> UpdateUserStatusAsync(int userId, UpdateUserStatusDto dto);
         Task<ServiceResult> BulkUserActionAsync(BulkUserActionDto dto);
         Task<ServiceResult> DeleteUserAsync(int userId);
 
         // Provider Management
-        Task<ServiceResult<PaginatedResult<ProviderListItemDto>>> GetAllProvidersAsync(int pageNumber = 1, int pageSize = 10);
+        Task<ServiceResult<PaginatedResult<ProviderListItemDto>>> GetAllProvidersAsync(int pageNumber = 1, int pageSize = 10, string? searchTerm = null, string? sortBy = null);
         Task<ServiceResult<ProviderListItemDto>> GetProviderByIdAsync(int providerId);
         Task<ServiceResult> CreateProviderAsync(CreateProviderDto dto);
         Task<ServiceResult> UpdateProviderAsync(int providerId, UpdateProviderDto dto);

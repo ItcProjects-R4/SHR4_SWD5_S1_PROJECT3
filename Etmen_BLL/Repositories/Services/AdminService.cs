@@ -18,14 +18,36 @@ namespace Etmen_BLL.Repositories.Services
         /// <summary>
         /// Gets all users with pagination
         /// </summary>
-        public async Task<ServiceResult<PaginatedResult<UserListItemDto>>> GetAllUsersAsync(int pageNumber = 1, int pageSize = 10)
+        public async Task<ServiceResult<PaginatedResult<UserListItemDto>>> GetAllUsersAsync(int pageNumber = 1, int pageSize = 10, string? searchTerm = null, string? sortBy = null)
         {
             try
             {
                 if (pageNumber < 1 || pageSize < 1)
-                    return ServiceResult<PaginatedResult<UserListItemDto>>.Failure("Ø±Ù‚Ù… Ø§Ù„ØµÙØ­Ø© ÙˆØ­Ø¬Ù… Ø§Ù„ØµÙØ­Ø© ÙŠØ¬Ø¨ Ø£Ù† ÙŠÙƒÙˆÙ†Ø§ Ø£ÙƒØ¨Ø± Ù…Ù† 0.");
+                    return ServiceResult<PaginatedResult<UserListItemDto>>.Failure("رقم الصفحة وحجم الصفحة يجب أن يكونا أكبر من 0.");
 
                 var users = await _uow.Users.GetAllAsync();
+
+                // Apply search filter
+                if (!string.IsNullOrWhiteSpace(searchTerm))
+                {
+                    var term = searchTerm.Trim().ToLower();
+                    users = users.Where(u => 
+                        (u.FirstName != null && u.FirstName.ToLower().Contains(term)) ||
+                        (u.LastName != null && u.LastName.ToLower().Contains(term)) ||
+                        (u.Email != null && u.Email.ToLower().Contains(term)) ||
+                        (u.PhoneNumber != null && u.PhoneNumber.Contains(term))
+                    ).ToList();
+                }
+
+                // Apply sorting
+                users = sortBy switch
+                {
+                    "name_asc" => users.OrderBy(u => $"{u.FirstName} {u.LastName}").ToList(),
+                    "name_desc" => users.OrderByDescending(u => $"{u.FirstName} {u.LastName}").ToList(),
+                    "time_asc" => users.OrderBy(u => u.CreatedAt).ToList(),
+                    "time_desc" or _ => users.OrderByDescending(u => u.CreatedAt).ToList(),
+                };
+
                 var totalCount = users.Count();
 
                 var paginatedUsers = users
@@ -60,7 +82,7 @@ namespace Etmen_BLL.Repositories.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving all users.");
-                return ServiceResult<PaginatedResult<UserListItemDto>>.Failure("Ø­Ø¯Ø« Ø®Ø·Ø£ Ø£Ø«Ù†Ø§Ø¡ Ø§Ø³ØªØ±Ø¬Ø§Ø¹ Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù…ÙŠÙ†.");
+                return ServiceResult<PaginatedResult<UserListItemDto>>.Failure("حدث خطأ أثناء استرجاع المستخدمين.");
             }
         }
 
@@ -236,14 +258,39 @@ namespace Etmen_BLL.Repositories.Services
         /// <summary>
         /// Gets all providers with pagination
         /// </summary>
-        public async Task<ServiceResult<PaginatedResult<ProviderListItemDto>>> GetAllProvidersAsync(int pageNumber = 1, int pageSize = 10)
+        public async Task<ServiceResult<PaginatedResult<ProviderListItemDto>>> GetAllProvidersAsync(int pageNumber = 1, int pageSize = 10, string? searchTerm = null, string? sortBy = null)
         {
             try
             {
                 if (pageNumber < 1 || pageSize < 1)
-                    return ServiceResult<PaginatedResult<ProviderListItemDto>>.Failure("Ø±Ù‚Ù… Ø§Ù„ØµÙØ­Ø© ÙˆØ­Ø¬Ù… Ø§Ù„ØµÙØ­Ø© ÙŠØ¬Ø¨ Ø£Ù† ÙŠÙƒÙˆÙ†Ø§ Ø£ÙƒØ¨Ø± Ù…Ù† 0.");
+                    return ServiceResult<PaginatedResult<ProviderListItemDto>>.Failure("رقم الصفحة وحجم الصفحة يجب أن يكونا أكبر من 0.");
 
                 var providers = await _uow.HealthcareProviders.GetAllAsync();
+
+                // Apply search filter
+                if (!string.IsNullOrWhiteSpace(searchTerm))
+                {
+                    var term = searchTerm.Trim().ToLower();
+                    providers = providers.Where(p => 
+                        (p.Name != null && p.Name.ToLower().Contains(term)) ||
+                        (p.Address != null && p.Address.ToLower().Contains(term)) ||
+                        (p.Phone != null && p.Phone.Contains(term)) ||
+                        (p.Type != null && p.Type.ToLower().Contains(term))
+                    ).ToList();
+                }
+
+                // Apply sorting
+                providers = sortBy switch
+                {
+                    "name_asc" => providers.OrderBy(p => p.Name).ToList(),
+                    "name_desc" => providers.OrderByDescending(p => p.Name).ToList(),
+                    "beds_desc" => providers.OrderByDescending(p => p.AvailableBeds).ToList(),
+                    "beds_asc" => providers.OrderBy(p => p.AvailableBeds).ToList(),
+                    "nearest" => providers.OrderBy(p => calculateDistance(p.Latitude, p.Longitude)).ToList(),
+                    "farthest" => providers.OrderByDescending(p => calculateDistance(p.Latitude, p.Longitude)).ToList(),
+                    _ => providers.OrderByDescending(p => p.CreatedAt).ToList()
+                };
+
                 var totalCount = providers.Count();
 
                 var paginatedProviders = providers
@@ -282,8 +329,16 @@ namespace Etmen_BLL.Repositories.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving all providers.");
-                return ServiceResult<PaginatedResult<ProviderListItemDto>>.Failure("Ø­Ø¯Ø« Ø®Ø·Ø£ Ø£Ø«Ù†Ø§Ø¡ Ø§Ø³ØªØ±Ø¬Ø§Ø¹ Ø§Ù„Ù…ÙˆÙØ±ÙŠÙ†.");
+                return ServiceResult<PaginatedResult<ProviderListItemDto>>.Failure("حدث خطأ أثناء استرجاع المنشآت الطبية.");
             }
+        }
+
+        private static double calculateDistance(decimal? lat, decimal? lng)
+        {
+            if (!lat.HasValue || !lng.HasValue) return double.MaxValue;
+            double dLat = (double)(lat.Value - 30.0444m);
+            double dLng = (double)(lng.Value - 31.2357m);
+            return Math.Sqrt(dLat * dLat + dLng * dLng);
         }
 
         /// <summary>

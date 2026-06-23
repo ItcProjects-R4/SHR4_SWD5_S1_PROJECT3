@@ -51,18 +51,21 @@ namespace Etmen_PL.Controllers
         /// Lists provider centers with locations
         /// </summary>
         [HttpGet]
-        public async Task<IActionResult> Index(int pageNumber = 1)
+        public async Task<IActionResult> Index(int pageNumber = 1, string? searchTerm = null, string? sortBy = null)
         {
             try
             {
                 pageNumber = Math.Max(pageNumber, 1);
 
-                var result = await _adminService.GetAllProvidersAsync(pageNumber);
+                var result = await _adminService.GetAllProvidersAsync(pageNumber, 10, searchTerm, sortBy);
                 if (!result.IsSuccess || result.Data is null)
                 {
                     TempData["Error"] = result.ErrorMessage ?? "Error loading providers";
                     return RedirectToAction("Index", "AdminDashboard");
                 }
+
+                ViewBag.SearchTerm = searchTerm;
+                ViewBag.SortBy = sortBy;
 
                 return View(result.Data);
             }

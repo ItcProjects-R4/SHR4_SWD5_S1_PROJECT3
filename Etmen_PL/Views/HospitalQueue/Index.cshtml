@@ -424,6 +424,22 @@
         .stat-box { min-width: 150px !important; }
         .stat-box-container { gap: 0.75rem !important; }
         .triage-table th, .triage-table td { font-size: 0.75rem !important; padding: 0.5rem 0.4rem !important; }
+        .triage-tabs {
+            flex-wrap: nowrap !important;
+            overflow-x: auto !important;
+            overflow-y: hidden !important;
+            white-space: nowrap !important;
+            -webkit-overflow-scrolling: touch !important;
+            padding-bottom: 5px !important;
+            border-bottom: 1px solid var(--card-border) !important;
+        }
+        .triage-tabs .nav-item {
+            flex: 0 0 auto !important;
+        }
+        .triage-tabs .nav-link {
+            padding: 10px 12px !important;
+            font-size: 0.8rem !important;
+        }
     }
 </style>
 
@@ -580,6 +596,33 @@
                 </li>
             </ul>
 
+            <!-- Search & Sort Controls for Hospital Queue (Client-side) -->
+            <div class="row g-2 mb-4 p-3 border rounded-4 bg-light align-items-center">
+                <div class="col-md-6 col-12">
+                    <label class="form-label small fw-bold text-dark mb-1">بحث سريع في قائمة الحالات</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0 rounded-start-pill"><i class="fas fa-search text-muted"></i></span>
+                        <input type="text" id="queueSearchInput" class="form-control border-start-0 rounded-end-pill" placeholder="ابحث باسم المريض أو رقم الهاتف أو الطبيب..." />
+                    </div>
+                </div>
+                <div class="col-md-4 col-12">
+                    <label class="form-label small fw-bold text-dark mb-1">ترتيب الحالات حسب</label>
+                    <select id="queueSortSelect" class="form-select rounded-pill">
+                        <option value="waiting_desc">زمن الانتظار (الأطول أولاً)</option>
+                        <option value="waiting_asc">زمن الانتظار (الأقصر أولاً)</option>
+                        <option value="priority_desc">الأولوية والخطورة (الأعلى أولاً)</option>
+                        <option value="priority_asc">الأولوية والخطورة (الأقل أولاً)</option>
+                        <option value="distance_asc">المسافة (الأقرب أولاً)</option>
+                        <option value="distance_desc">المسافة (الأبعد أولاً)</option>
+                        <option value="name_asc">اسم المريض (أ-ي)</option>
+                        <option value="name_desc">اسم المريض (ي-أ)</option>
+                    </select>
+                </div>
+                <div class="col-md-2 col-12 text-end d-flex align-items-end h-100 mt-md-4">
+                    <button type="button" id="clearQueueFilters" class="btn btn-outline-secondary rounded-pill w-100 fw-bold">إعادة تعيين</button>
+                </div>
+            </div>
+
             <div class="tab-content" id="triageTabsContent">
                 
                 <!-- General Pending Tab Pane -->
@@ -611,7 +654,14 @@
                                     {
                                         var prioClass = item.PriorityScore >= 80 ? "prio-high" : (item.PriorityScore >= 55 ? "prio-med" : "prio-low");
                                         var prioText = item.PriorityScore >= 80 ? "خطرة جداً" : (item.PriorityScore >= 55 ? "متوسطة" : "مستقرة");
-                                        <tr class="triage-row">
+                                        <tr class="triage-row"
+                                            data-name="@item.PatientName" 
+                                            data-phone="@item.PatientPhone" 
+                                            data-priority="@item.PriorityScore" 
+                                            data-waiting="@item.WaitingMinutes" 
+                                            data-lat="@item.Latitude" 
+                                            data-lng="@item.Longitude"
+                                            data-time="@item.RequestedAt.Ticks">
                                             <td>
                                                 <div class="fw-800 text-dark">@item.PatientName</div>
                                                 <div class="text-muted small font-monospace">@item.PatientPhone</div>
@@ -676,7 +726,14 @@
                                     {
                                         var prioClass = item.PriorityScore >= 80 ? "prio-high" : (item.PriorityScore >= 55 ? "prio-med" : "prio-low");
                                         var prioText = item.PriorityScore >= 80 ? "خطرة جداً" : (item.PriorityScore >= 55 ? "متوسطة" : "مستقرة");
-                                        <tr class="triage-row" style="border-right: 4px solid var(--primary);">
+                                        <tr class="triage-row" style="border-right: 4px solid var(--primary);"
+                                            data-name="@item.PatientName" 
+                                            data-phone="@item.PatientPhone" 
+                                            data-priority="@item.PriorityScore" 
+                                            data-waiting="@item.WaitingMinutes" 
+                                            data-lat="@item.Latitude" 
+                                            data-lng="@item.Longitude"
+                                            data-time="@item.RequestedAt.Ticks">
                                             <td>
                                                 <div class="fw-800 text-dark">@item.PatientName</div>
                                                 <div class="text-muted small font-monospace">@item.PatientPhone</div>
@@ -742,7 +799,14 @@
                                     {
                                         var prioClass = item.PriorityScore >= 80 ? "prio-high" : (item.PriorityScore >= 55 ? "prio-med" : "prio-low");
                                         var prioText = item.PriorityScore >= 80 ? "خطرة جداً" : (item.PriorityScore >= 55 ? "متوسطة" : "مستقرة");
-                                        <tr class="triage-row">
+                                        <tr class="triage-row"
+                                            data-name="@item.PatientName" 
+                                            data-phone="@item.PatientPhone" 
+                                            data-priority="@item.PriorityScore" 
+                                            data-waiting="@item.WaitingMinutes" 
+                                            data-lat="@item.Latitude" 
+                                            data-lng="@item.Longitude"
+                                            data-time="@item.RequestedAt.Ticks">
                                             <td>
                                                 <div class="fw-800 text-dark">@item.PatientName</div>
                                                 <div class="text-muted small font-monospace">@item.PatientPhone</div>
@@ -821,7 +885,14 @@
                                     {
                                         var prioClass = item.PriorityScore >= 80 ? "prio-high" : (item.PriorityScore >= 55 ? "prio-med" : "prio-low");
                                         var prioText = item.PriorityScore >= 80 ? "خطرة جداً" : (item.PriorityScore >= 55 ? "متوسطة" : "مستقرة");
-                                        <tr class="triage-row" style="box-shadow: 0 0 10px rgba(231,76,60,0.1) inset;">
+                                        <tr class="triage-row" style="box-shadow: 0 0 10px rgba(231,76,60,0.1) inset;"
+                                            data-name="@item.PatientName" 
+                                            data-phone="@item.PatientPhone" 
+                                            data-priority="@item.PriorityScore" 
+                                            data-waiting="@item.WaitingMinutes" 
+                                            data-lat="@item.Latitude" 
+                                            data-lng="@item.Longitude"
+                                            data-time="@item.RequestedAt.Ticks">
                                             <td>
                                                 <div class="fw-800 text-danger"><i class="fas fa-triangle-exclamation animate__animated animate__flash animate__infinite"></i> @item.PatientName</div>
                                                 <div class="text-muted small font-monospace">@item.PatientPhone</div>
@@ -884,7 +955,15 @@
                                 <tbody>
                                     @foreach (var item in doctorTransfers)
                                     {
-                                        <tr class="triage-row">
+                                        <tr class="triage-row"
+                                            data-name="@item.PatientName" 
+                                            data-phone="@item.PatientPhone" 
+                                            data-doctor="@item.ReferringDoctorName" 
+                                            data-waiting="@item.WaitingMinutes" 
+                                            data-priority="0" 
+                                            data-lat="0" 
+                                            data-lng="0" 
+                                            data-time="@item.RequestedAt.Ticks">
                                             <td>
                                                 <div class="fw-800 text-dark">@item.PatientName</div>
                                                 <div class="text-muted small font-monospace">@item.PatientPhone</div>
@@ -1528,6 +1607,112 @@
             updateAmbulanceStatusMapCapacity();
             updateBedColor(parseInt('@(Model.AvailableBeds ?? 0)'));
             updateAmbColor(parseInt('@(Model.AvailableAmbulances ?? 4)'));
+
+            // ── Client-Side Search & Sorting Implementation ──
+            function getRowDistance(row, hospLat, hospLng) {
+                const lat = parseFloat(row.attr('data-lat'));
+                const lng = parseFloat(row.attr('data-lng'));
+                if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0 && !isNaN(hospLat) && !isNaN(hospLng)) {
+                    return getHaversineDistance(hospLat, hospLng, lat, lng);
+                }
+                return Infinity;
+            }
+
+            window.applyQueueFiltersAndSort = function() {
+                const searchTerm = ($('#queueSearchInput').val() || '').trim().toLowerCase();
+                const sortBy = $('#queueSortSelect').val() || 'waiting_desc';
+                const hospLat = parseFloat('@Model.ProviderLatitude');
+                const hospLng = parseFloat('@Model.ProviderLongitude');
+
+                $('.tab-pane').each(function() {
+                    const pane = $(this);
+                    const tbody = pane.find('table.triage-table tbody');
+                    if (tbody.length === 0) return;
+
+                    let rows = tbody.find('tr.triage-row').get();
+                    let visibleCount = 0;
+
+                    rows.forEach(function(rowEl) {
+                        const row = $(rowEl);
+                        const name = (row.attr('data-name') || '').toLowerCase();
+                        const phone = (row.attr('data-phone') || '').toLowerCase();
+                        const doctor = (row.attr('data-doctor') || '').toLowerCase();
+
+                        const matches = name.includes(searchTerm) || phone.includes(searchTerm) || doctor.includes(searchTerm);
+                        if (matches) {
+                            row.show();
+                            visibleCount++;
+                        } else {
+                            row.hide();
+                        }
+                    });
+
+                    rows.sort(function(a, b) {
+                        const rowA = $(a);
+                        const rowB = $(b);
+
+                        if (sortBy === 'waiting_desc') {
+                            return parseFloat(rowB.attr('data-waiting') || 0) - parseFloat(rowA.attr('data-waiting') || 0);
+                        } else if (sortBy === 'waiting_asc') {
+                            return parseFloat(rowA.attr('data-waiting') || 0) - parseFloat(rowB.attr('data-waiting') || 0);
+                        } else if (sortBy === 'priority_desc') {
+                            return parseFloat(rowB.attr('data-priority') || 0) - parseFloat(rowA.attr('data-priority') || 0);
+                        } else if (sortBy === 'priority_asc') {
+                            return parseFloat(rowA.attr('data-priority') || 0) - parseFloat(rowB.attr('data-priority') || 0);
+                        } else if (sortBy === 'distance_asc') {
+                            const distA = getRowDistance(rowA, hospLat, hospLng);
+                            const distB = getRowDistance(rowB, hospLat, hospLng);
+                            return distA - distB;
+                        } else if (sortBy === 'distance_desc') {
+                            const distA = getRowDistance(rowA, hospLat, hospLng);
+                            const distB = getRowDistance(rowB, hospLat, hospLng);
+                            return distB - distA;
+                        } else if (sortBy === 'name_asc') {
+                            return (rowA.attr('data-name') || '').localeCompare(rowB.attr('data-name') || '', 'ar');
+                        } else if (sortBy === 'name_desc') {
+                            return (rowB.attr('data-name') || '').localeCompare(rowA.attr('data-name') || '', 'ar');
+                        }
+                        return 0;
+                    });
+
+                    $.each(rows, function(index, row) {
+                        tbody.append(row);
+                    });
+
+                    let emptyState = pane.find('.empty-search-state');
+                    if (visibleCount === 0 && rows.length > 0) {
+                        if (emptyState.length === 0) {
+                            emptyState = $('<div class="empty-search-state text-center py-5 text-muted"><i class="fas fa-search-minus fs-1 text-primary mb-3"></i><h5>لا توجد نتائج تطابق البحث.</h5></div>');
+                            tbody.parent().after(emptyState);
+                        }
+                        emptyState.show();
+                        tbody.parent().hide();
+                    } else {
+                        if (emptyState.length > 0) {
+                            emptyState.hide();
+                        }
+                        tbody.parent().show();
+                    }
+                });
+            };
+
+            // Bind events for search and sorting
+            $(document).on('keyup change', '#queueSearchInput', function() {
+                applyQueueFiltersAndSort();
+            });
+
+            $(document).on('change', '#queueSortSelect', function() {
+                applyQueueFiltersAndSort();
+            });
+
+            $(document).on('click', '#clearQueueFilters', function() {
+                $('#queueSearchInput').val('');
+                $('#queueSortSelect').val('waiting_desc');
+                applyQueueFiltersAndSort();
+            });
+
+            // Run initial sort/filter
+            applyQueueFiltersAndSort();
  
             // 4. SignalR Real-Time connection for incoming pending requests
             const providerId = '@Model.ProviderId';
@@ -1569,6 +1754,9 @@
                     updateBedColor(availBeds);
                 });
 
+                const searchVal = $('#queueSearchInput').val();
+                const sortVal = $('#queueSortSelect').val();
+
                 $('#queueTablesContainer').load(window.location.href + ' #queueTablesContainer > *', function() {
                     if (activeTabId) {
                         $('#triageTabs .nav-link').removeClass('active');
@@ -1580,7 +1768,10 @@
                         const targetPaneId = newTabButton.attr('data-bs-target');
                         $(targetPaneId).addClass('show active');
                     }
+                    $('#queueSearchInput').val(searchVal);
+                    $('#queueSortSelect').val(sortVal);
                     recalculateETAs();
+                    applyQueueFiltersAndSort();
                 });
             });
 

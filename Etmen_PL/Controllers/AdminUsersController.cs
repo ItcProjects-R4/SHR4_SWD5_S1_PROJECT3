@@ -31,24 +31,28 @@ namespace Etmen_PL.Controllers
             _userManager = userManager;
             _logger = logger;
         }
+        
 
         /// <summary>
         /// GET: /AdminUsers/Index
-        /// Lists system users with status toggles
+        /// Lists system users with status toggles and filters
         /// </summary>
         [HttpGet]
-        public async Task<IActionResult> Index(int pageNumber = 1)
+        public async Task<IActionResult> Index(int pageNumber = 1, string? searchTerm = null, string? sortBy = null)
         {
             try
             {
                 pageNumber = Math.Max(pageNumber, 1);
 
-                var result = await _adminService.GetAllUsersAsync(pageNumber);
+                var result = await _adminService.GetAllUsersAsync(pageNumber, 10, searchTerm, sortBy);
                 if (!result.IsSuccess || result.Data is null)
                 {
                     TempData["Error"] = result.ErrorMessage ?? "Error loading users";
                     return RedirectToAction("Index", "AdminDashboard");
                 }
+
+                ViewBag.SearchTerm = searchTerm;
+                ViewBag.SortBy = sortBy;
 
                 return View(result.Data);
             }
