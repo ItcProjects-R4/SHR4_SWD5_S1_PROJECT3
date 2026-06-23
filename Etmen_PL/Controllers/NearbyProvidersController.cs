@@ -72,6 +72,9 @@ namespace Etmen_PL.Controllers
                     return View(viewModel);
                 }
 
+                HttpContext.Session.SetString("PatientLatitude", viewModel.Latitude.Value.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                HttpContext.Session.SetString("PatientLongitude", viewModel.Longitude.Value.ToString(System.Globalization.CultureInfo.InvariantCulture));
+
                 if (viewModel.ShowAll)
                 {
                     var allProviders = await _uow.HealthcareProviders.Table.Where(p => p.IsActive).ToListAsync();
@@ -202,7 +205,7 @@ namespace Etmen_PL.Controllers
         }
 
         [HttpGet("NearbyProviders/DoctorDetails/{id}")]
-        public async Task<IActionResult> DoctorDetails(int id, int? doctorId = null)
+        public async Task<IActionResult> DoctorDetails(int id, int? doctorId = null, double? lat = null, double? lng = null)
         {
             try
             {
@@ -216,6 +219,26 @@ namespace Etmen_PL.Controllers
                     TempData["Error"] = "المنشأة الطبية غير موجودة";
                     return RedirectToAction(nameof(Index));
                 }
+
+                // Get patient coordinates from parameters or session
+                if (!lat.HasValue || !lng.HasValue)
+                {
+                    if (double.TryParse(HttpContext.Session.GetString("PatientLatitude"), System.Globalization.CultureInfo.InvariantCulture, out double latVal))
+                        lat = latVal;
+                    if (double.TryParse(HttpContext.Session.GetString("PatientLongitude"), System.Globalization.CultureInfo.InvariantCulture, out double lngVal))
+                        lng = lngVal;
+                }
+
+                double? distanceKm = null;
+                if (lat.HasValue && lng.HasValue)
+                {
+                    distanceKm = Etmen_BLL.Helpers.GeoHelper.CalculateDistanceKm(
+                        lat.Value,
+                        lng.Value,
+                        (double)provider.Latitude,
+                        (double)provider.Longitude);
+                }
+                ViewBag.DistanceKm = distanceKm;
 
                 // 2. Find doctor linked to this provider
                 Etmen_Domain.Entities.DoctorProfile? doctor = null;
@@ -292,6 +315,7 @@ namespace Etmen_PL.Controllers
                     ConsultationFee = doctor?.ConsultationFee ?? 150.00m,
                     YearsOfExperience = doctor?.YearsOfExperience ?? 5,
                     LicenseNumber = doctor?.LicenseNumber ?? string.Empty,
+                    ProfilePicture = doctor?.ApplicationUser?.ProfilePicture,
                     AvailableSlots = slots
                 };
 
@@ -312,7 +336,7 @@ namespace Etmen_PL.Controllers
         }
 
         [HttpGet("NearbyProviders/ProviderDoctors/{id}")]
-        public async Task<IActionResult> ProviderDoctors(int id)
+        public async Task<IActionResult> ProviderDoctors(int id, double? lat = null, double? lng = null)
         {
             try
             {
@@ -325,6 +349,26 @@ namespace Etmen_PL.Controllers
                     TempData["Error"] = "المنشأة الطبية غير موجودة";
                     return RedirectToAction(nameof(Index));
                 }
+
+                // Get patient coordinates from parameters or session
+                if (!lat.HasValue || !lng.HasValue)
+                {
+                    if (double.TryParse(HttpContext.Session.GetString("PatientLatitude"), System.Globalization.CultureInfo.InvariantCulture, out double latVal))
+                        lat = latVal;
+                    if (double.TryParse(HttpContext.Session.GetString("PatientLongitude"), System.Globalization.CultureInfo.InvariantCulture, out double lngVal))
+                        lng = lngVal;
+                }
+
+                double? distanceKm = null;
+                if (lat.HasValue && lng.HasValue)
+                {
+                    distanceKm = Etmen_BLL.Helpers.GeoHelper.CalculateDistanceKm(
+                        lat.Value,
+                        lng.Value,
+                        (double)provider.Latitude,
+                        (double)provider.Longitude);
+                }
+                ViewBag.DistanceKm = distanceKm;
 
                 // Get all affiliated doctors
                 var affiliations = await _uow.DoctorProviders.GetByProviderIdAsync(id);
@@ -355,7 +399,8 @@ namespace Etmen_PL.Controllers
                         AverageRating = avgRating,
                         ReviewCount = reviewCount,
                         IsEmergencyDoctor = aff.IsEmergencyDoctor,
-                        AffiliationRole = aff.AffiliationRole ?? "عضو طاقم"
+                        AffiliationRole = aff.AffiliationRole ?? "عضو طاقم",
+                        ProfilePicture = doc.ApplicationUser?.ProfilePicture
                     });
                 }
 
@@ -388,5 +433,6 @@ namespace Etmen_PL.Controllers
         public int ReviewCount { get; set; }
         public bool IsEmergencyDoctor { get; set; }
         public string AffiliationRole { get; set; } = string.Empty;
+        public string? ProfilePicture { get; set; }
     }
 }

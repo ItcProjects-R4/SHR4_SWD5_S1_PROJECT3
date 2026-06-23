@@ -17,6 +17,7 @@ namespace Etmen_PL.Models.ViewModels.Patient
         public decimal ConsultationFee { get; set; }
         public int YearsOfExperience { get; set; }
         public string LicenseNumber { get; set; } = string.Empty;
+        public string? ProfilePicture { get; set; }
 
         public List<AvailableSlotDto> AvailableSlots { get; set; } = new();
     }

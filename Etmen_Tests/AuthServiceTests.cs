@@ -32,6 +32,7 @@ namespace Etmen_Tests
             var emailMock = new Mock<IEmailService>();
             var configMock = new Mock<IConfiguration>();
             var queueMock = new Mock<IBackgroundTaskQueue>();
+            var httpContextAccessorMock = new Mock<Microsoft.AspNetCore.Http.IHttpContextAccessor>();
 
             var service = new AuthService(
                 userManagerMock.Object,
@@ -40,7 +41,8 @@ namespace Etmen_Tests
                 loggerMock.Object,
                 emailMock.Object,
                 configMock.Object,
-                queueMock.Object
+                queueMock.Object,
+                httpContextAccessorMock.Object
             );
 
             // Act
@@ -74,6 +76,7 @@ namespace Etmen_Tests
             var emailMock = new Mock<IEmailService>();
             var configMock = new Mock<IConfiguration>();
             var queueMock = new Mock<IBackgroundTaskQueue>();
+            var httpContextAccessorMock = new Mock<Microsoft.AspNetCore.Http.IHttpContextAccessor>();
 
             var service = new AuthService(
                 userManagerMock.Object,
@@ -82,7 +85,8 @@ namespace Etmen_Tests
                 loggerMock.Object,
                 emailMock.Object,
                 configMock.Object,
-                queueMock.Object
+                queueMock.Object,
+                httpContextAccessorMock.Object
             );
 
             // Act

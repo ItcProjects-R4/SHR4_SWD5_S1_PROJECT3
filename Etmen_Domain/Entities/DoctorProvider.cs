@@ -13,7 +13,7 @@ namespace Etmen_Domain.Entities
         public bool IsEmergencyDoctor { get; set; } = false;
         public bool IsOwner { get; set; } = false; // true if it's the doctor's private clinic
         
-        [Column(TypeName = "varchar(100)")]
+        [Column(TypeName = "nvarchar(100)")]
         public string? AffiliationRole { get; set; } // e.g., "Consultant", "ER Doctor"
     }
 }

@@ -134,13 +134,28 @@
         overflow-y: auto;
     }
 
+    .slots-container::-webkit-scrollbar {
+        width: 5px;
+    }
+    .slots-container::-webkit-scrollbar-track {
+        background: #f8fafc;
+        border-radius: 10px;
+    }
+    .slots-container::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 10px;
+    }
+    .slots-container::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+    }
+
     .slot-time-btn {
         width: 100%;
-        padding: 6px 4px;
+        padding: 8px 4px;
         border: 1px solid var(--border-color);
         background-color: #F8FAFC;
-        border-radius: 6px;
-        font-size: 0.75rem;
+        border-radius: 8px;
+        font-size: 0.8rem;
         font-weight: bold;
         color: #2C3E50;
         transition: all 0.2s;
@@ -153,10 +168,10 @@
     }
 
     .slot-time-btn.active {
-        background-color: #00E676;
+        background-color: #27ae60;
         color: white;
-        border-color: #00E676;
-        box-shadow: 0 4px 10px rgba(0, 230, 118, 0.2);
+        border-color: #27ae60;
+        box-shadow: 0 4px 12px rgba(39, 174, 96, 0.25);
     }
 
     .calendar-nav-btn {
@@ -204,12 +219,18 @@
 
     <div class="row g-4">
         <!-- Right Column: Doctor Profile Info -->
-        <div class="col-lg-8 col-12">
-            <div class="doctor-header-card p-4 mb-4">
+             <div class="doctor-header-card p-4 mb-4">
                 <div class="d-flex align-items-center gap-4 flex-wrap flex-md-nowrap mb-4">
                     <!-- Profile image/avatar replacement -->
-                    <div class="doctor-avatar-box flex-shrink-0">
-                        <i class="fas fa-user-md"></i>
+                    <div class="doctor-avatar-box flex-shrink-0" style="position: relative; overflow: hidden; border: 3px solid #fff; box-shadow: 0 8px 25px rgba(26,111,191,0.15);">
+                        @if (!string.IsNullOrEmpty(Model.ProfilePicture))
+                        {
+                            <img src="@Model.ProfilePicture" alt="@Model.DoctorName" style="width: 100%; height: 100%; object-fit: cover;" />
+                        }
+                        else
+                        {
+                            <i class="fas fa-user-md"></i>
+                        }
                     </div>
 
                     <div class="flex-grow-1">
@@ -230,6 +251,11 @@
                             <span><i class="fas fa-user-clock"></i> خبرة @Model.YearsOfExperience سنوات</span>
                             <span>|</span>
                             <span><i class="fas fa-hospital-user"></i> @Model.ProviderName</span>
+                            @if (ViewBag.DistanceKm != null)
+                            {
+                                <span>|</span>
+                                <span><i class="fas fa-route text-primary"></i> يبعد عنك @(((double)ViewBag.DistanceKm).ToString("F1")) كم</span>
+                            }
                         </div>
                     </div>
                 </div>
@@ -254,7 +280,13 @@
                             <div class="info-icon"><i class="fas fa-map-marker-alt"></i></div>
                             <div>
                                 <small class="text-muted d-block">العنوان والفرع</small>
-                                <strong class="text-dark">@Model.ProviderAddress</strong>
+                                <strong class="text-dark">
+                                    @Model.ProviderAddress
+                                    @if (ViewBag.DistanceKm != null)
+                                    {
+                                        <span class="text-primary fs-7 fw-bold d-block mt-1"><i class="fas fa-route ms-1"></i> يبعد عنك @(((double)ViewBag.DistanceKm).ToString("F1")) كم</span>
+                                    }
+                                </strong>
                             </div>
                         </div>
                     </div>

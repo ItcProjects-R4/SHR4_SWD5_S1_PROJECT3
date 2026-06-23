@@ -265,7 +265,8 @@ namespace Etmen_BLL.Mapping
             config.NewConfig<AvailableSlot, AvailableSlotDto>()
                 .Map(dest => dest.Date,       src => src.SlotDate)
                 .Map(dest => dest.StartTime,  src => src.SlotStart)
-                .Map(dest => dest.EndTime,    src => src.SlotEnd);
+                .Map(dest => dest.EndTime,    src => src.SlotEnd)
+                .Map(dest => dest.DoctorId,   src => src.DoctorProfileId);
 
             config.NewConfig<HealthcareProvider, ProviderDto>()
                 .Map(dest => dest.Id,        src => src.Id)
