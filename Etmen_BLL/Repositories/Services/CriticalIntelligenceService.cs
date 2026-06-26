@@ -707,11 +707,11 @@ namespace Etmen_BLL.Repositories.Services
                     : assessment.Symptoms.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                         .Select(s => new RiskContributionDto
                         {
-                            Factor = "Symptom",
+                            Factor = s,
                             Value = s,
                             ImpactPercent = assessment.RiskLevel >= RiskLevel.High ? 30 : 15,
                             Severity = assessment.RiskLevel.ToString(),
-                            Explanation = $"Reported symptom contributed to the {assessment.RiskLevel} classification."
+                            Explanation = $"العرض '{s}' أسهم في تصنيف الحالة كـ {assessment.RiskLevel}."
                         })
                         .ToList(),
                 ImmediateActions = RiskCalculatorHelper.GenerateRecommendations(assessment.RiskLevel, [])
@@ -946,11 +946,11 @@ namespace Etmen_BLL.Repositories.Services
             {
                 contributions.Add(new RiskContributionDto
                 {
-                    Factor = "Symptom",
+                    Factor = factor,
                     Value = factor,
                     ImpactPercent = 25,
                     Severity = level >= RiskLevel.High ? "High" : "Medium",
-                    Explanation = "Reported symptom matched a known risk pattern."
+                    Explanation = $"العرض '{factor}' تطابق نمطاً معروفاً يرتبط بالخطر."
                 });
             }
 

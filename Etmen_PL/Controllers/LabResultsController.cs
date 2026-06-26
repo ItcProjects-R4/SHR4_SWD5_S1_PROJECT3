@@ -279,6 +279,38 @@ namespace Etmen_PL.Controllers
         }
 
         /// <summary>
+        /// GET: /LabResults/GetOcrStatus/{id}
+        /// Checks the OCR processing status and returns data if completed
+        /// </summary>
+        [HttpGet]
+        public async Task<IActionResult> GetOcrStatus(int id)
+        {
+            if (id <= 0)
+                return BadRequest("Invalid ID");
+
+            var patient = HttpContext.Items["PatientProfile"] as Etmen_Domain.Entities.PatientProfile;
+            if (patient == null)
+                return Unauthorized();
+
+            var result = await _labService.GetLabResultByIdAsync(id);
+            if (!result.IsSuccess || result.Data == null)
+                return NotFound();
+
+            if (result.Data.PatientId != patient.Id)
+                return Forbid();
+
+            var data = result.Data;
+            var isPending = data.OcrExtractedData == "OCR processing pending.";
+
+            return Json(new
+            {
+                isPending = isPending,
+                ocrExtractedData = data.OcrExtractedData,
+                results = data.Results
+            });
+        }
+
+        /// <summary>
         /// POST: /LabResults/CreateDemoSample
         /// Generates a mock lab result synchronously for presentation purposes
         /// </summary>
