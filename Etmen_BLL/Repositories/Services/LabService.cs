@@ -1,5 +1,7 @@
 
 
+using System.Net.Http;
+
 namespace Etmen_BLL.Repositories.Services
 {
     public sealed class LabService : ILabService
@@ -11,6 +13,7 @@ namespace Etmen_BLL.Repositories.Services
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly IConfiguration _configuration;
         private readonly IBackgroundTaskQueue _taskQueue;
+        private readonly IHttpClientFactory _httpClientFactory;
 
         public LabService(
             IUnitOfWork uow,
@@ -19,7 +22,8 @@ namespace Etmen_BLL.Repositories.Services
             ILogger<LabService> logger,
             IServiceScopeFactory scopeFactory,
             IConfiguration configuration,
-            IBackgroundTaskQueue taskQueue)
+            IBackgroundTaskQueue taskQueue,
+            IHttpClientFactory httpClientFactory)
         {
             _uow          = uow;
             _emailService = emailService;
@@ -28,6 +32,7 @@ namespace Etmen_BLL.Repositories.Services
             _scopeFactory = scopeFactory;
             _configuration   = configuration;
             _taskQueue    = taskQueue;
+            _httpClientFactory = httpClientFactory;
         }
 
         public async Task<ServiceResult<LabResultDto>> GetLabResultByIdAsync(int labResultId)
@@ -112,13 +117,15 @@ namespace Etmen_BLL.Repositories.Services
 
                                 using var scope = _scopeFactory.CreateScope();
                                 var scopedUow = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
-                                var httpClient = scope.ServiceProvider.GetRequiredService<HttpClient>();
+                                var httpClient = _httpClientFactory.CreateClient();
 
                                 // Use the dedicated vision API config (gemini-1.5-flash supports inlineData)
                                 var apiKey = _configuration["GeminiVisionApi:ApiKey"]
                                           ?? _configuration["ChatbotApi:ApiKey"];
                                 var endpoint = _configuration["GeminiVisionApi:Endpoint"]
                                             ?? _configuration["ChatbotApi:Endpoint"];
+                                var ocrPrompt = _configuration["GeminiVisionApi:Prompt"]
+                                             ?? "قم بتحليل تقرير المختبر الطبي المرفق بدقة. استخرج كافة أسماء الفحوصات الطبية، قيمها المقاسة، وحداتها، ومداها الطبيعي. حدد أي نتائج غير طبيعية (خارج المدى الطبيعي) بشكل واضح بكتابة (مرتفع) أو (منخفض) أو (غير طبيعي). صِغ التقرير النهائي باللغة العربية بشكل منسق ومنظم جداً للمريض.";
 
                                 _logger.LogInformation("Starting Gemini Vision OCR for lab {Id}, file={Path}, mime={Mime}", lab.Id, physicalPath, mimeType);
 
@@ -142,7 +149,7 @@ namespace Etmen_BLL.Repositories.Services
                                                     },
                                                     new
                                                     {
-                                                        text = "قم بتحليل تقرير المختبر الطبي المرفق بدقة. استخرج كافة أسماء الفحوصات الطبية، قيمها المقاسة، وحداتها، ومداها الطبيعي. حدد أي نتائج غير طبيعية (خارج المدى الطبيعي) بشكل واضح بكتابة (مرتفع) أو (منخفض) أو (غير طبيعي). صِغ التقرير النهائي باللغة العربية بشكل منسق ومنظم جداً للمريض."
+                                                        text = ocrPrompt
                                                     }
                                                 }
                                             }
@@ -150,20 +157,45 @@ namespace Etmen_BLL.Repositories.Services
                                         generationConfig = new
                                         {
                                             temperature = 0.2,
-                                            maxOutputTokens = 2000
+                                            maxOutputTokens = 8000
                                         }
                                     };
 
                                     var url = $"{endpoint}?key={apiKey}";
                                     var requestJson = JsonSerializer.Serialize(requestBody);
 
-                                    using var request = new HttpRequestMessage(HttpMethod.Post, url);
-                                    request.Content = new StringContent(requestJson, Encoding.UTF8, "application/json");
+                                    HttpResponseMessage? response = null;
+                                    int maxAttempts = 3;
+                                    for (int attempt = 1; attempt <= maxAttempts; attempt++)
+                                    {
+                                        try
+                                        {
+                                            using var request = new HttpRequestMessage(HttpMethod.Post, url);
+                                            request.Content = new StringContent(requestJson, Encoding.UTF8, "application/json");
 
-                                    using var response = await httpClient.SendAsync(request, token);
-                                    if (response.IsSuccessStatusCode)
+                                            response = await httpClient.SendAsync(request, token);
+                                            if (response.IsSuccessStatusCode)
+                                            {
+                                                break;
+                                            }
+
+                                            _logger.LogWarning("Gemini Vision OCR attempt {Attempt} failed with status {StatusCode} for lab {Id}", attempt, response.StatusCode, lab.Id);
+                                        }
+                                        catch (Exception ex) when (attempt < maxAttempts)
+                                        {
+                                            _logger.LogWarning(ex, "Gemini Vision OCR attempt {Attempt} encountered an error for lab {Id}", attempt, lab.Id);
+                                        }
+
+                                        if (attempt < maxAttempts)
+                                        {
+                                            await Task.Delay(1000 * attempt, token);
+                                        }
+                                    }
+
+                                    if (response != null && response.IsSuccessStatusCode)
                                     {
                                         var responseText = await response.Content.ReadAsStringAsync(token);
+                                        _logger.LogInformation("Gemini API Full Response for lab {Id}: {Response}", lab.Id, responseText);
                                         using var doc = JsonDocument.Parse(responseText);
                                         var root = doc.RootElement;
                                         if (root.TryGetProperty("candidates", out var candidates) && candidates.GetArrayLength() > 0)
@@ -200,9 +232,9 @@ namespace Etmen_BLL.Repositories.Services
                                     }
                                     else
                                     {
-                                        var errorContent = await response.Content.ReadAsStringAsync(token);
-                                        _logger.LogError("Gemini Vision OCR API returned error {StatusCode} for lab {Id}: {Error}",
-                                            response.StatusCode, lab.Id, errorContent);
+                                        var errorContent = response != null ? await response.Content.ReadAsStringAsync(token) : "No response / Timeout";
+                                        _logger.LogError("Gemini Vision OCR API returned error for lab {Id}: {Error}",
+                                            lab.Id, errorContent);
                                     }
                                 }
                             }
