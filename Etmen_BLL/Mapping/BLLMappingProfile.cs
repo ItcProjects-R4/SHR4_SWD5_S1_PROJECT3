@@ -20,7 +20,6 @@ namespace Etmen_BLL.Mapping
         }
 
         //  Patient 
-
         private static void RegisterPatientMappings(TypeAdapterConfig config)
         {
             // Entity → DTO
@@ -37,7 +36,7 @@ namespace Etmen_BLL.Mapping
                 .Map(dest => dest.Allergies,               src => src.Allergies)
                 .Map(dest => dest.CurrentMedications,      src => src.CurrentMedications);
 
-            // DTO → Entity (for update)
+            // DTO → Entity 
             config.NewConfig<ProfileDto, PatientProfile>()
                 .Ignore(dest => dest.Id)
                 .Ignore(dest => dest.ApplicationUserId)
@@ -50,12 +49,10 @@ namespace Etmen_BLL.Mapping
                 .Ignore(dest => dest.LinkedLinks)
                 .Ignore(dest => dest.EmergencyRequests)
                 .Ignore(dest => dest.CreatedAt);
-        }
-
-        //  Doctor 
-
-        private static void RegisterDoctorMappings(TypeAdapterConfig config)
-        {
+        }
+        //  Doctor 
+        private static void RegisterDoctorMappings(TypeAdapterConfig config)
+        {
             // Entity → DTO (requires navigation property ApplicationUser to be loaded)
             config.NewConfig<DoctorProfile, DoctorProfileDto>()
                 .Map(dest => dest.Id,                  src => src.Id)
@@ -75,7 +72,6 @@ namespace Etmen_BLL.Mapping
         }
 
         //  Appointment 
-
         private static void RegisterAppointmentMappings(TypeAdapterConfig config)
         {
             // Entity → Nearby AppointmentDto
@@ -138,7 +134,6 @@ namespace Etmen_BLL.Mapping
         }
 
         //  Medical Records 
-
         private static void RegisterMedicalRecordMappings(TypeAdapterConfig config)
         {
             // Entity → DTO
@@ -171,8 +166,7 @@ namespace Etmen_BLL.Mapping
                 .Ignore(dest => dest.CreatedAt);
         }
 
-        //  Alerts 
-
+        //  Alerts 
         private static void RegisterAlertMappings(TypeAdapterConfig config)
         {
             config.NewConfig<Alert, PatientAlertDto>()
@@ -188,9 +182,7 @@ namespace Etmen_BLL.Mapping
                 .Map(dest => dest.Title,      src => src.Title)
                 .Map(dest => dest.CreatedAt,  src => src.CreatedAt);
         }
-
-        //  Lab Results 
-
+        //  Lab Results 
         private static void RegisterLabResultMappings(TypeAdapterConfig config)
         {
             config.NewConfig<LabResult, LabResultDto>()
@@ -204,8 +196,7 @@ namespace Etmen_BLL.Mapping
                 .Map(dest => dest.CreatedAt,           src => src.CreatedAt);
         }
 
-        //  Emergency 
-
+        //  Emergency 
         private static void RegisterEmergencyMappings(TypeAdapterConfig config)
         {
             config.NewConfig<EmergencyRequestDto, EmergencyRequest>()
@@ -225,9 +216,8 @@ namespace Etmen_BLL.Mapping
                 .Ignore(dest => dest.ResponseNotes!);
         }
 
-        //  Family 
-
-        private static void RegisterFamilyMappings(TypeAdapterConfig config)
+        //  Family 
+       private static void RegisterFamilyMappings(TypeAdapterConfig config)
         {
             config.NewConfig<FamilyLink, FamilyDto>()
                 .Map(dest => dest.Id,                   src => src.Id)
@@ -240,8 +230,7 @@ namespace Etmen_BLL.Mapping
                 .Map(dest => dest.CreatedAt,            src => src.CreatedAt);
         }
 
-        //  Risk Assessment 
-
+        //  Risk Assessment 
         private static void RegisterRiskAssessmentMappings(TypeAdapterConfig config)
         {
             config.NewConfig<RiskAssessment, RiskResultDto>()
@@ -258,8 +247,7 @@ namespace Etmen_BLL.Mapping
                 .Map(dest => dest.NearestEmergencyCenter, src => (string?)null);
         }
 
-        //  Slots & Providers 
-
+        //  Slots & Providers 
         private static void RegisterSlotAndProviderMappings(TypeAdapterConfig config)
         {
             config.NewConfig<AvailableSlot, AvailableSlotDto>()
@@ -278,8 +266,7 @@ namespace Etmen_BLL.Mapping
                 .Map(dest => dest.Longitude, src => src.Longitude);
         }
 
-        //  Notifications 
-
+        //  Notifications 
         private static void RegisterNotificationMappings(TypeAdapterConfig config)
         {
             config.NewConfig<Notification, NotificationDto>()

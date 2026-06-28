@@ -1,83 +1,40 @@
 ﻿
 
-using Microsoft.Extensions.Logging;
-
-
-
-
-
 namespace Etmen_BLL.Repositories.Services
-
 {
-
     public sealed class AdminService : IAdminService
-
     {
-
         private readonly IUnitOfWork _uow;
-
         private readonly ILogger<AdminService> _logger;
 
-
-
         public AdminService(IUnitOfWork uow, ILogger<AdminService> logger)
-
         {
-
             _uow = uow;
-
             _logger = logger;
-
         }
 
-
-
         /// <summary>
-
         /// Gets all users with pagination
-
         /// </summary>
-
         public async Task<ServiceResult<PaginatedResult<UserListItemDto>>> GetAllUsersAsync(int pageNumber = 1, int pageSize = 10, string? searchTerm = null, string? sortBy = null)
-
         {
-
             try
-
             {
-
                 if (pageNumber < 1 || pageSize < 1)
-
                     return ServiceResult<PaginatedResult<UserListItemDto>>.Failure("رقم الصفحة وحجم الصفحة يجب أن يكونا أكبر من 0.");
-
-
-
                 var users = await _uow.Users.GetAllAsync();
-
-
-
-                // Apply search filter
-
+                // Apply search filt
                 if (!string.IsNullOrWhiteSpace(searchTerm))
 
                 {
-
                     var term = searchTerm.Trim().ToLower();
-
                     users = users.Where(u => 
-
                         (u.FirstName != null && u.FirstName.ToLower().Contains(term)) ||
-
                         (u.LastName != null && u.LastName.ToLower().Contains(term)) ||
-
                         (u.Email != null && u.Email.ToLower().Contains(term)) ||
-
                         (u.PhoneNumber != null && u.PhoneNumber.Contains(term))
-
                     ).ToList();
-
                 }
-
 
 
                 // Apply sorting
@@ -85,14 +42,10 @@ namespace Etmen_BLL.Repositories.Services
                 users = sortBy switch
 
                 {
-
                     "name_asc" => users.OrderBy(u => $"{u.FirstName} {u.LastName}").ToList(),
-
                     "name_desc" => users.OrderByDescending(u => $"{u.FirstName} {u.LastName}").ToList(),
-
                     "time_asc" => users.OrderBy(u => u.CreatedAt).ToList(),
-
-                    "time_desc" or _ => users.OrderByDescending(u => u.CreatedAt).ToList(),
+                   "time_desc" or _ => users.OrderByDescending(u => u.CreatedAt).ToList(),
 
                 };
 
@@ -103,33 +56,19 @@ namespace Etmen_BLL.Repositories.Services
 
 
                 var paginatedUsers = users
-
                     .Skip((pageNumber - 1) * pageSize)
-
                     .Take(pageSize)
-
                     .Select(u => new UserListItemDto
-
                     {
-
                         Id = u.Id,
-
                         FullName = $"{u.FirstName} {u.LastName}".Trim(),
-
                         Email = u.Email ?? string.Empty,
-
                         PhoneNumber = u.PhoneNumber,
-
                         Role = "User",
-
                         IsActive = u.IsActive,
-
                         IsEmailVerified = u.EmailConfirmed,
-
                         CreatedAt = u.CreatedAt,
-
                         LastLoginAt = u.LastLoginAt
-
                     })
 
                     .ToList();
@@ -141,53 +80,30 @@ namespace Etmen_BLL.Repositories.Services
                 {
 
                     Items = paginatedUsers.AsReadOnly(),
-
                     TotalCount = totalCount,
-
                     PageNumber = pageNumber,
-
                     PageSize = pageSize
 
                 };
-
-
-
                 _logger.LogInformation("Retrieved {Count} users for page {PageNumber}.", paginatedUsers.Count, pageNumber);
-
-
-
                 return ServiceResult<PaginatedResult<UserListItemDto>>.Success(result);
-
             }
-
             catch (Exception ex)
-
             {
-
-                _logger.LogError(ex, "Error retrieving all users.");
-
+               _logger.LogError(ex, "Error retrieving all users.");
                 return ServiceResult<PaginatedResult<UserListItemDto>>.Failure("حدث خطأ أثناء استرجاع المستخدمين.");
-
             }
 
         }
 
-
-
         /// <summary>
-
         /// Gets a user by ID
-
         /// </summary>
 
         public async Task<ServiceResult<UserListItemDto>> GetUserByIdAsync(int userId)
-
         {
-
             try
-
             {
-
                 if (userId <= 0)
 
                     return ServiceResult<UserListItemDto>.Failure("Ù…Ø¹Ø±Ù Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù… ØºÙŠØ± ØµØ­ÙŠØ­.");
