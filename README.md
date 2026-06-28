@@ -540,6 +540,11 @@ Etmen_DEPI_Project/
   استمارة تفاعلية يملأها المريض لتحديد الأعراض الحالية وعلاماته الحيوية لتشخيص فئة الخطر وتوجيه الرعاية المناسبة.
   ![نموذج التقييم الذكي للمخاطر والأعراض](Etmen_PL/wwwroot/images/screenshots/02_risk_assessment_form.png)
 
+* **Etmen Cycle Risking Score (Etmen Cycle Risking Score):**  
+ 
+  ![نموذج التقييم الذكي للمخاطر والأعراض](Etmen_PL/wwwroot/images/screenshots/Etmen_Cycle_Risking_Score.png)
+
+
 * **شاشة نتيجة تقييم المخاطر الطبية (Risk Assessment Result):**  
   واجهة عرض نتيجة تشخيص الأعراض وحساب فئة الخطر ونسبة احتمالية الإصابة بالمرض أو الوباء مع توجيهات طبية فورية.
   ![شاشة نتيجة تقييم المخاطر الطبية](Etmen_PL/wwwroot/images/screenshots/03_risk_result.png)
