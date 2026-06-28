@@ -15,10 +15,7 @@ using System.Threading.Tasks;
 
 namespace Etmen_PL.Controllers
 {
-    /// <summary>
-    /// Admin Dashboard Controller
-    /// System overview telemetry dashboard
-    /// </summary>
+    
     [Authorize(Roles = "Admin,HospitalStaff")]
     public class AdminDashboardController : Controller
     {
@@ -47,10 +44,7 @@ namespace Etmen_PL.Controllers
             base.OnActionExecuting(context);
         }
 
-        /// <summary>
-        /// GET: /AdminDashboard/Index
-        /// Shows active users, appointments, and crisis status
-        /// </summary>
+        
         [HttpGet]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Index()
@@ -85,26 +79,19 @@ namespace Etmen_PL.Controllers
             }
         }
 
-        /// <summary>
-        /// GET: /AdminDashboard/NormalMap
-        /// Shows full screen map of clinics, hospitals, doctors, and emergency cases in normal mode
-        /// </summary>
+      
         [HttpGet]
         public IActionResult NormalMap()
         {
             return View();
         }
 
-        /// <summary>
-        /// GET: /AdminDashboard/GetMapData
-        /// Returns system telemetry mapping coordinates for clinics, hospitals, doctors, and critical cases
-        /// </summary>
+     
         [HttpGet]
         public async Task<IActionResult> GetMapData()
         {
             try
             {
-                // 1. Query Healthcare Providers (Clinics and Hospitals)
                 var providersList = await _uow.HealthcareProviders.Table
                     .Where(p => p.IsActive)
                     .Select(p => new
@@ -119,7 +106,6 @@ namespace Etmen_PL.Controllers
                     })
                     .ToListAsync();
 
-                // 2. Query Doctors (registered, with onboarding location)
                 var doctorsListRaw = await _uow.DoctorProfiles.Table
                     .Include(d => d.ApplicationUser)
                     .Where(d => d.IsOnboarded && !string.IsNullOrEmpty(d.OnboardingDataJson))
@@ -165,7 +151,6 @@ namespace Etmen_PL.Controllers
                     double? lat = (double?)req.Latitude;
                     double? lng = (double?)req.Longitude;
 
-                    // Fallback to patient profile coordinates if request doesn't have them
                     if ((lat == null || lat == 0) && req.PatientProfile != null)
                     {
                         lat = (double?)req.PatientProfile.Latitude;

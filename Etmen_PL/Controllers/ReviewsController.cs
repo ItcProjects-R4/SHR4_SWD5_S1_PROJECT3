@@ -19,7 +19,6 @@ namespace Etmen_PL.Controllers
             _reviewService = reviewService;
             _logger = logger;
         }
-
         [HttpPost]
         [Authorize(Roles = "Patient")]
         [ValidateAntiForgeryToken]
@@ -29,7 +28,6 @@ namespace Etmen_PL.Controllers
             {
                 return Json(new { success = false, message = "بيانات التقييم غير صالحة." });
             }
-
             try
             {
                 var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
