@@ -7,16 +7,16 @@
       <stop offset="100%" stop-color="#040814" />
     </linearGradient>
 
-    <!-- Cyan Glow Filter -->
+    <!-- Cyan Glow Filter for ECG line -->
     <filter id="cyanGlow" x="-20%" y="-20%" width="140%" height="140%">
-      <feGaussianBlur stdDeviation="6" result="blur" />
+      <feGaussianBlur stdDeviation="5" result="blur" />
       <feMerge>
         <feMergeNode in="blur" />
         <feMergeNode in="SourceGraphic" />
       </feMerge>
     </filter>
 
-    <!-- Text Glow Filter -->
+    <!-- Subtle Text Glow Filter -->
     <filter id="textGlow" x="-20%" y="-20%" width="140%" height="140%">
       <feGaussianBlur stdDeviation="4" result="blur" />
       <feMerge>
@@ -48,13 +48,37 @@
       fill: #526b8e;
       letter-spacing: 2px;
     }
-    .pulse-line {
+    
+    /* Dim background pulse line */
+    .pulse-bg {
+      fill: none;
+      stroke: #00e5ff;
+      stroke-width: 1.5;
+      stroke-opacity: 0.12;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    /* Animated glowing ECG line */
+    .pulse-glow {
       fill: none;
       stroke: #00e5ff;
       stroke-width: 2.5;
       stroke-linecap: round;
       stroke-linejoin: round;
+      stroke-dasharray: 160 840; /* 160px dash length, 840px gap */
+      animation: ecgSweep 2.5s linear infinite;
     }
+
+    @keyframes ecgSweep {
+      0% {
+        stroke-dashoffset: 1000;
+      }
+      100% {
+        stroke-dashoffset: 0;
+      }
+    }
+
     .grid-line {
       stroke: #ffffff;
       stroke-opacity: 0.03;
@@ -65,6 +89,22 @@
       stroke: #00e5ff;
       stroke-width: 2.5;
       stroke-linecap: round;
+      stroke-opacity: 0.8;
+    }
+
+    /* Pulsing glow dots on peak values */
+    .pulse-dot {
+      fill: #00e5ff;
+      animation: dotPulse 1.25s ease-in-out infinite;
+    }
+
+    @keyframes dotPulse {
+      0%, 100% {
+        opacity: 0.3;
+      }
+      50% {
+        opacity: 1;
+      }
     }
   </style>
 
@@ -76,18 +116,18 @@
   <path d="M 100 0 L 100 250 M 200 0 L 200 250 M 300 0 L 300 250 M 400 0 L 400 250 M 500 0 L 500 250 M 600 0 L 600 250 M 700 0 L 700 250" class="grid-line" />
 
   <!-- Corner Brackets -->
-  <path d="M 25 45 L 25 25 L 45 25" fill="none" class="corner-bracket" />
-  <path d="M 25 205 L 25 225 L 45 225" fill="none" class="corner-bracket" />
-  <path d="M 775 45 L 775 25 L 755 25" fill="none" class="corner-bracket" />
-  <path d="M 775 205 L 775 225 L 755 225" fill="none" class="corner-bracket" />
+  <path d="M 25 45 L 25 25 L 45 25" class="corner-bracket" />
+  <path d="M 25 205 L 25 225 L 45 225" class="corner-bracket" />
+  <path d="M 775 45 L 775 25 L 755 25" class="corner-bracket" />
+  <path d="M 775 205 L 775 225 L 755 225" class="corner-bracket" />
 
   <!-- Faint decorative circular status lights -->
   <circle cx="80" cy="125" r="25" fill="none" stroke="#00e5ff" stroke-opacity="0.1" stroke-width="1" />
-  <circle cx="80" cy="125" r="4" fill="#00e5ff" fill-opacity="0.4" />
+  <circle cx="80" cy="125" r="4" class="pulse-dot" />
   <circle cx="720" cy="125" r="25" fill="none" stroke="#00e5ff" stroke-opacity="0.1" stroke-width="1" />
-  <circle cx="720" cy="125" r="4" fill="#00e5ff" fill-opacity="0.4" />
+  <circle cx="720" cy="125" r="4" class="pulse-dot" />
 
-  <!-- Heartbeat ECG Pulse Line -->
+  <!-- Heartbeat ECG Pulse Line - Background (Static & Dim) -->
   <path d="M 0 135 
            L 180 135 
            L 190 120 L 195 150 L 200 135
@@ -100,9 +140,24 @@
            L 610 135
            L 620 125 L 625 145 L 630 135
            L 800 135" 
-        class="pulse-line" filter="url(#cyanGlow)" />
+        class="pulse-bg" />
 
-  <!-- Glowing pulse points -->
+  <!-- Heartbeat ECG Pulse Line - Foreground (Animated & Glowing) -->
+  <path d="M 0 135 
+           L 180 135 
+           L 190 120 L 195 150 L 200 135
+           L 320 135 
+           L 330 110 L 335 160 L 340 135
+           L 360 135
+           L 368 70 L 376 210 L 384 120 L 388 150 L 394 135
+           L 510 135
+           L 520 115 L 525 155 L 530 135
+           L 610 135
+           L 620 125 L 625 145 L 630 135
+           L 800 135" 
+        class="pulse-glow" filter="url(#cyanGlow)" />
+
+  <!-- Glowing pulse points on peaks -->
   <circle cx="368" cy="70" r="3" fill="#ffffff" filter="url(#textGlow)" />
   <circle cx="376" cy="210" r="3" fill="#ffffff" filter="url(#textGlow)" />
 
