@@ -104,7 +104,6 @@ catch (Exception ex)
     startupLogger.LogError(ex, "An error occurred during database migration/seeding.");
 
 }
-═════════════════════════════════════════════════════════════
 
 app.Run();
 

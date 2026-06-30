@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="banner.svg" alt="Etmen Banner" width="100%">
+</p>
+
 # 🏥 نظام إطمن لإدارة الطوارئ والأزمات الصحية (Etmen Health Emergency Management System)
 
 <div align="center">
